@@ -31,6 +31,9 @@ MESES = [
     "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
 ]
 
+# Frecuencia de aseo por defecto si la entrega no especifica otra.
+ASEO_DEFAULT = "Aseo semanal (cada 7 a 10 días)"
+
 
 def cargar() -> dict:
     try:
@@ -49,6 +52,15 @@ def solo_digitos(telefono: str) -> str:
     if d.startswith("9") and len(d) == 9:  # móvil chileno sin prefijo
         return "56" + d
     return d
+
+
+def clp(monto) -> str:
+    """Formatea un número como pesos chilenos: 160000 -> $160.000."""
+    try:
+        n = int(round(float(monto)))
+    except (TypeError, ValueError):
+        return str(monto)
+    return "$" + f"{n:,}".replace(",", ".")
 
 
 def fecha_legible(iso: str) -> str:
@@ -72,6 +84,28 @@ def construir_resumen(e: dict) -> str:
     if e.get("servicio"):
         lineas.append("")
         lineas.append(f"📦 Servicio: {e['servicio']}")
+    # Aseo: usa lo indicado o el valor por defecto.
+    lineas.append(f"🧽 Aseo: {e.get('aseo') or ASEO_DEFAULT}")
+    pago = e.get("pago") or {}
+    if pago.get("monto") is not None:
+        lineas.append("")
+        lineas.append(f"💵 COBRAR AL CLIENTE: {clp(pago['monto'])}")
+        if pago.get("nota"):
+            lineas.append(f"   ({pago['nota']})")
+    factura = e.get("factura") or {}
+    if factura.get("requiere") or factura.get("razon_social"):
+        lineas.append("")
+        lineas.append("🧾 Factura:")
+        if factura.get("razon_social"):
+            lineas.append(f"   Razón social: {factura['razon_social']}")
+        if factura.get("rut"):
+            lineas.append(f"   RUT: {factura['rut']}")
+        if factura.get("giro"):
+            lineas.append(f"   Giro: {factura['giro']}")
+        if factura.get("direccion"):
+            lineas.append(f"   Dirección: {factura['direccion']}")
+        if factura.get("email"):
+            lineas.append(f"   Email: {factura['email']}")
     detalle = e.get("detalle") or []
     if detalle:
         lineas.append("")

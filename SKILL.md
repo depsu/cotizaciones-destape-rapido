@@ -46,7 +46,7 @@ Todos los valores son **netos** (se les suma IVA 19%). Si el usuario indica un v
    - IVA: siempre 19% sobre el valor neto.
    - Validez: 15 días desde emisión.
    - Cobertura: Región Metropolitana.
-   - Mantención: según lo pedido (si no dice, asumir 1 vez/semana para mensual).
+   - Mantención/aseo: según lo pedido. **Si no se especifica, por defecto es aseo semanal (cada 7 a 10 días).**
 
 4. **Generar el PDF** ejecutando el script `scripts/generar_cotizacion.py` con los parámetros correspondientes. Ver sección "Uso del script".
    - **Ruta y nombre OBLIGATORIOS:** guardar siempre en `cotizaciones/` con el formato `cotizacion-AAAAMMDD-<cliente>.pdf` (cliente en kebab-case, ej. `cotizacion-20260622-ignacio-cancino.pdf`). **Nunca** generar en `/tmp`.
@@ -217,6 +217,8 @@ Opciones: `--cliente`, `--asunto`, `--cc correo@x.cl` (repetible), `--mensaje`. 
 
 ## Puntos de atención
 
+- **Aprender de cada cliente:** después de cotizar, actualizar la ficha del cliente en `clientes/historial.md` (precio, sensibilidad, condiciones, estado). Para preguntas de negociación, leer ese historial primero. Ver skill `resumen-repartidor`.
+- **Cotizar ≠ entregar:** enviar una cotización/PDF **no** confirma una entrega ni agrega al cliente a la lista del repartidor. Una entrega se crea solo cuando Alejandro lo confirma por WhatsApp (skill `resumen-repartidor`).
 - **Netos vs. con IVA:** por defecto asumir que los valores dados son **netos**. Si hay duda, avisar al final ("los valores están tratados como netos + IVA 19%; si querías que X fuera total final, me avisas").
 - **Período mensual vs. evento corto:** ajustar la redacción de condiciones. Para eventos cortos (fechas puntuales), hablar de "período del servicio" y "retiro al finalizar". Para mensuales, hablar de "renovación automática" y "facturación mensual".
 - **Valores SIEMPRE mensuales (REGLA DURA):** la cifra protagonista de cualquier cotización de arriendo es **el valor mensual**, sin excepciones. Aplica tanto al PDF como al cuerpo del correo.

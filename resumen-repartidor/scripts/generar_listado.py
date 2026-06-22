@@ -31,11 +31,23 @@ MESES = [
 ]
 DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 
+# Frecuencia de aseo por defecto si la entrega no especifica otra.
+ASEO_DEFAULT = "Aseo semanal (cada 7 a 10 días)"
+
 ESTADOS = {
     "pendiente": ("Pendiente", "#B45309", "#FEF3C7"),
     "en-camino": ("En camino", "#1E40AF", "#DBEAFE"),
     "entregado": ("Entregado", "#166534", "#DCFCE7"),
 }
+
+
+def clp(monto) -> str:
+    """Formatea un número como pesos chilenos: 160000 -> $160.000."""
+    try:
+        n = int(round(float(monto)))
+    except (TypeError, ValueError):
+        return str(monto)
+    return "$" + f"{n:,}".replace(",", ".")
 
 
 def solo_digitos(telefono: str) -> str:
@@ -76,6 +88,33 @@ def tarjeta(e: dict) -> str:
     estado = e.get("estado", "pendiente")
     etiqueta, color_txt, color_bg = ESTADOS.get(estado, ESTADOS["pendiente"])
 
+    # Pago: lo que el repartidor (dueño) le cobra al cliente.
+    pago = e.get("pago") or {}
+    monto = pago.get("monto")
+    monto_chip = f'<span class="monto">💵 {esc(clp(monto))}</span>' if monto is not None else ""
+    cobro_html = ""
+    if monto is not None:
+        nota_pago = f'<span class="cobro-nota">{esc(pago.get("nota"))}</span>' if pago.get("nota") else ""
+        cobro_html = (
+            f'<div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span>'
+            f'<span class="cobro-monto">{esc(clp(monto))}</span>{nota_pago}</div>'
+        )
+
+    # Aseo: lo indicado o el valor por defecto.
+    aseo = esc(e.get("aseo") or ASEO_DEFAULT)
+
+    # Factura (si el cliente la requiere).
+    factura = e.get("factura") or {}
+    factura_html = ""
+    if factura.get("requiere") or factura.get("razon_social"):
+        filas = []
+        for etq, clave in (("Razón social", "razon_social"), ("RUT", "rut"),
+                           ("Giro", "giro"), ("Dirección", "direccion"), ("Email", "email")):
+            if factura.get(clave):
+                filas.append(f"<li><b>{etq}:</b> {esc(factura[clave])}</li>")
+        cuerpo = f"<ul>{''.join(filas)}</ul>" if filas else "<p>Requiere factura.</p>"
+        factura_html = f'<div class="bloque"><span class="etq">🧾 Factura</span>{cuerpo}</div>'
+
     detalle = e.get("detalle") or []
     detalle_html = ""
     if detalle:
@@ -109,11 +148,15 @@ def tarjeta(e: dict) -> str:
         <div class="resumen-sub">
           <span class="dir">📍 {esc(direccion)}</span>
           {hora_chip}
+          {monto_chip}
         </div>
       </summary>
       <div class="detalle">
+        {cobro_html}
         {f'<div class="bloque"><span class="etq">Servicio</span><p>{servicio}</p></div>' if servicio else ""}
+        <div class="bloque"><span class="etq">Aseo</span><p>{aseo}</p></div>
         {f'<div class="bloque"><span class="etq">Teléfono</span><p>{esc(telefono)}</p></div>' if telefono else ""}
+        {factura_html}
         {detalle_html}
         {notas_html}
         {botones_html}
@@ -192,6 +235,14 @@ def construir_html(data: dict) -> str:
   .resumen-sub > * {{ min-width:0; }}
   .dir {{ overflow-wrap:anywhere; }}
   .hora {{ font-variant-numeric:tabular-nums; white-space:nowrap; }}
+  .monto {{ font-weight:700; color:#166534; white-space:nowrap; font-variant-numeric:tabular-nums; }}
+  .cobro {{
+    margin-top:12px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:12px;
+    padding:12px 14px; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px;
+  }}
+  .cobro-etq {{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:#166534; width:100%; }}
+  .cobro-monto {{ font-size:26px; font-weight:800; color:#166534; font-variant-numeric:tabular-nums; }}
+  .cobro-nota {{ font-size:13px; color:#15803D; }}
   .detalle {{ padding:4px 16px 16px; border-top:1px solid var(--linea); margin-top:2px; }}
   .bloque {{ margin-top:12px; }}
   .etq {{ display:block; font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--gris); margin-bottom:3px; }}
