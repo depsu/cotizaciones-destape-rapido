@@ -1,0 +1,17 @@
+# Credenciales / configuración local — nunca subir
+config/*.local.json
+.env
+.env.*
+
+# PDFs generados
+cotizaciones/*.pdf
+
+# Artefactos de previsualización (capturas headless)
+**/preview*.png
+**/preview*.html
+
+# Sistema
+.DS_Store
+
+# Config local de Claude Code
+.claude/

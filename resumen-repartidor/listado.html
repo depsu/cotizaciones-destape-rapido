@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Entregas — Destape Rápido</title>
+<style>
+  :root { --azul:#1F5AA8; --tinta:#0F172A; --gris:#64748B; --linea:#E2E8F0; --fondo:#F1F5F9; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { max-width:100%; overflow-x:hidden; }
+  body {
+    margin:0; background:var(--fondo); color:var(--tinta);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px; line-height:1.45; padding-bottom:env(safe-area-inset-bottom);
+  }
+  header {
+    position:sticky; top:0; z-index:10; background:var(--azul); color:#fff;
+    padding:16px 18px calc(16px + env(safe-area-inset-top)); padding-top:max(16px,env(safe-area-inset-top));
+    box-shadow:0 2px 8px rgba(15,23,42,.18);
+  }
+  header h1 { margin:0; font-size:19px; letter-spacing:.3px; }
+  header .sub { margin-top:3px; font-size:13px; opacity:.85; }
+  main { max-width:560px; margin:0 auto; padding:14px 12px 40px; }
+  .fecha-titulo {
+    display:flex; align-items:center; gap:8px; font-size:14px; text-transform:uppercase;
+    letter-spacing:.6px; color:var(--gris); margin:22px 4px 10px;
+  }
+  .conteo {
+    background:var(--azul); color:#fff; font-size:12px; min-width:22px; height:22px;
+    border-radius:11px; display:inline-flex; align-items:center; justify-content:center; padding:0 7px;
+  }
+  .card {
+    background:#fff; border:1px solid var(--linea); border-radius:14px; margin-bottom:10px;
+    overflow:hidden; box-shadow:0 1px 2px rgba(15,23,42,.04);
+  }
+  summary { list-style:none; cursor:pointer; padding:14px 16px; position:relative; }
+  summary::-webkit-details-marker { display:none; }
+  summary::after {
+    content:"⌄"; position:absolute; right:16px; top:14px; font-size:20px; color:var(--gris);
+    transition:transform .2s;
+  }
+  details[open] summary::after { transform:rotate(180deg); }
+  .resumen-top { display:flex; align-items:center; gap:10px; padding-right:24px; }
+  .cliente { font-weight:700; font-size:17px; }
+  .badge { font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; white-space:nowrap; }
+  .resumen-sub { display:flex; flex-wrap:wrap; gap:6px 12px; margin-top:5px; color:var(--gris); font-size:14px; }
+  .resumen-sub > * { min-width:0; }
+  .dir { overflow-wrap:anywhere; }
+  .hora { font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .detalle { padding:4px 16px 16px; border-top:1px solid var(--linea); margin-top:2px; }
+  .bloque { margin-top:12px; }
+  .etq { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.6px; color:var(--gris); margin-bottom:3px; }
+  .bloque p { margin:0; }
+  .bloque ul { margin:4px 0 0; padding-left:18px; }
+  .bloque li { margin:2px 0; }
+  .acciones { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .btn {
+    flex:1 1 calc(50% - 8px); text-align:center; text-decoration:none; color:#fff;
+    font-weight:600; font-size:15px; padding:12px 10px; border-radius:10px; min-height:46px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .btn:active { filter:brightness(.92); }
+  .vacio { text-align:center; color:var(--gris); margin-top:40px; }
+  footer { text-align:center; color:var(--gris); font-size:12px; padding:24px 16px 40px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>🚚 Entregas — Destape Rápido</h1>
+    <div class="sub">1 pendiente(s) · Actualizado 22/06/2026</div>
+  </header>
+  <main>
+    <section><h2 class="fecha-titulo">Jueves 25 de junio<span class="conteo">1</span></h2>
+    <details class="card">
+      <summary>
+        <div class="resumen-top">
+          <span class="cliente">Ignacio Cancino</span>
+          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
+        </div>
+        <div class="resumen-sub">
+          <span class="dir">📍 Dr. Genaro Benavides 5663, La Reina, Región Metropolitana</span>
+          
+        </div>
+      </summary>
+      <div class="detalle">
+        <div class="bloque"><span class="etq">Servicio</span><p>1 baño químico — arriendo mensual</p></div>
+        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 7835 1084</p></div>
+        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Coordinar la ubicación exacta con el cliente.</li></ul></div>
+        <div class="bloque"><span class="etq">Notas</span><p>Confirmar con el cliente antes de llegar.</p></div>
+        <div class="acciones"><a class="btn" href="https://wa.me/56978351084" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 7835 1084" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Dr.%20Genaro%20Benavides%205663%2C%20La%20Reina%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
+      </div>
+    </details></section>
+  </main>
+  <footer>Toca una entrega para ver el detalle · Destape Rápido</footer>
+</body>
+</html>

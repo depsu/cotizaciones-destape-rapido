@@ -1,0 +1,11 @@
+{
+  "_instrucciones": "Copia este archivo como 'smtp.local.json' (en la misma carpeta) y reemplaza los valores. smtp.local.json está ignorado por git, así nunca se sube la contraseña.",
+  "host": "panel.freehosting.com",
+  "port": 465,
+  "secure": "ssl",
+  "user": "contacto@destaperapido.cl",
+  "password": "PEGA-AQUI-TU-CONTRASEÑA",
+  "from_name": "Destape Rápido",
+  "from_email": "contacto@destaperapido.cl",
+  "guardar_copia": true
+}

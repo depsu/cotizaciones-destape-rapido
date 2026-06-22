@@ -1,0 +1,25 @@
+{
+  "_instrucciones": "Lista de entregas para el repartidor. Cada entrega alimenta tanto el resumen de WhatsApp (resumen_repartidor.py) como el listado web (generar_listado.py). 'estado' puede ser: pendiente | en-camino | entregado.",
+  "repartidor": {
+    "nombre": "Repartidor",
+    "telefono": "+56 9 2196 4789"
+  },
+  "entregas": [
+    {
+      "id": "2026-06-25-ignacio-cancino",
+      "cliente": "Ignacio Cancino",
+      "telefono": "+56 9 7835 1084",
+      "direccion": "Dr. Genaro Benavides 5663, La Reina, Región Metropolitana",
+      "fecha": "2026-06-25",
+      "hora": "",
+      "servicio": "1 baño químico — arriendo mensual",
+      "detalle": [
+        "Instalar 1 baño químico.",
+        "Dejar insumos: papel higiénico y desodorizante.",
+        "Coordinar la ubicación exacta con el cliente."
+      ],
+      "notas": "Confirmar con el cliente antes de llegar.",
+      "estado": "pendiente"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "subtitulo": "Arriendo de baño químico — Evento de voluntariado",
+  "cliente": {
+    "titulo": "SOLICITANTE",
+    "campos": [
+      ["Solicitante", "Sara Prophete"],
+      ["Tipo de actividad", "Trabajo de voluntariado"],
+      ["Lugar de instalación", "Forestal Alto"],
+      ["Período del servicio", "20 al 24 de mayo (5 días)"],
+      ["Email", "Si0@uc.cl"]
+    ]
+  },
+  "items": [
+    {
+      "descripcion_titulo": "Arriendo de baño químico — período de 5 días",
+      "descripcion_bullets": [
+        "1 unidad de baño químico.",
+        "Despacho e instalación en Forestal Alto.",
+        "Retiro al finalizar el período (24 de mayo).",
+        "Incluye insumos básicos (papel higiénico, desodorizante).",
+        "Disposición final de residuos con gestor autorizado."
+      ],
+      "cantidad": 1,
+      "valor_unitario_neto": 100000
+    }
+  ],
+  "condiciones_extra": [
+    ["Período del servicio", "Del 20 al 24 de mayo (5 días corridos)."]
+  ],
+  "observaciones_extra": [
+    "De requerirse mantención durante los 5 días, se cotiza como servicio adicional."
+  ]
+}

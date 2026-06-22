@@ -1,0 +1,78 @@
+---
+name: resumen-repartidor
+description: Gestiona las entregas de Destape Rápido para el repartidor. Úsalo cuando el usuario pida "haz un resumen para el repartidor", "resumen de entrega", "agenda/registra una entrega", "pásame el WhatsApp para el repartidor", "muéstrame las entregas", "genera/actualiza el listado de entregas" o similar. Produce (1) un resumen ordenado con un link de WhatsApp pre-escrito para mandar al repartidor, y (2) una página web mobile-first (listado.html) con las entregas, con botones de WhatsApp al cliente, mapa para llegar y llamar.
+---
+
+# Resumen para el repartidor + listado de entregas
+
+Skill para que el repartidor de **Destape Rápido** sepa exactamente a dónde ir, qué entregar, y pueda hablarle al cliente y llegar desde el celular. Todo sale de un único archivo de datos: `entregas.json`.
+
+## Fuente de datos: `entregas.json`
+
+Cada entrega tiene esta forma:
+
+```json
+{
+  "id": "2026-06-25-ignacio-cancino",
+  "cliente": "Ignacio Cancino",
+  "telefono": "+56 9 7835 1084",
+  "direccion": "Dr. Genaro Benavides 5663, La Reina, Región Metropolitana",
+  "fecha": "2026-06-25",
+  "hora": "",
+  "servicio": "1 baño químico — arriendo mensual",
+  "detalle": ["Instalar 1 baño químico.", "Dejar insumos: papel y desodorizante."],
+  "notas": "Confirmar con el cliente antes de llegar.",
+  "estado": "pendiente"
+}
+```
+
+- **`id`**: único. Convención `AAAA-MM-DD-<cliente-kebab>`.
+- **`estado`**: `pendiente` | `en-camino` | `entregado`.
+- **`hora`**: opcional.
+- El bloque `repartidor` (arriba del archivo) tiene `nombre` y `telefono` del repartidor (para dirigirle el WhatsApp). Si `telefono` está vacío, el link igual funciona: abre WhatsApp para elegir el contacto.
+
+## Qué hace Claude según lo que pidan
+
+### 1. "Haz un resumen para el repartidor" → texto + link de WhatsApp
+
+Ejecutar `scripts/resumen_repartidor.py`. Devuelve, por cada entrega: el resumen ordenado en texto plano, un **link `wa.me` con ese resumen ya pre-cargado** (solo abrir y enviar) y un link de Google Maps.
+
+```bash
+python scripts/resumen_repartidor.py --hoy          # entregas de hoy
+python scripts/resumen_repartidor.py --fecha 2026-06-25
+python scripts/resumen_repartidor.py --id 2026-06-25-ignacio-cancino
+python scripts/resumen_repartidor.py                # todas las pendientes
+```
+
+Al responder en el chat: entregar el **link de WhatsApp** de forma destacada (es lo que el usuario va a tocar) y, si ayuda, mostrar también el resumen en texto.
+
+### 2. "Agenda / registra una entrega"
+
+Agregar (o editar) el objeto correspondiente en `entregas.json`. Extraer del mensaje del usuario o de una cotización existente: cliente, teléfono, dirección, fecha, servicio, detalle, notas. Mantener el `id` con la convención. Tras editar, **regenerar el listado** (paso 3).
+
+### 3. "Muéstrame / genera / actualiza el listado de entregas" → página web
+
+Ejecutar `scripts/generar_listado.py`. Genera `listado.html`: página **mobile-first, autocontenida** (sin dependencias), con las entregas agrupadas por fecha; al tocar una se despliega el detalle, con botones de **WhatsApp al cliente**, **Cómo llegar** (Google Maps) y **Llamar**.
+
+```bash
+python scripts/generar_listado.py            # genera listado.html
+```
+
+Para que el repartidor la vea desde su celular, subir `listado.html` al hosting (vía File Manager del panel) y pasarle el enlace. También se puede abrir localmente.
+
+**Importante:** cada vez que se modifica `entregas.json`, hay que regenerar `listado.html` para que refleje los cambios.
+
+## Reglas
+
+- **Teléfonos:** los links de WhatsApp y mapas se construyen solos desde los datos. Para Chile, si el número viene sin prefijo país, se asume `+56`.
+- **No inventar datos:** si falta dirección o teléfono de una entrega, pedirlo; sin dirección no hay link de mapa, sin teléfono no hay botón de WhatsApp al cliente.
+- **Coherencia con cotizaciones:** los datos de una entrega suelen venir de una cotización ya hecha (ver skill `cotizaciones-destape-rapido`). Reutilizar cliente/teléfono/dirección de ahí cuando aplique.
+- **Empresa:** Destape Rápido (tel. +56 9 3647 0112).
+
+## Archivos del skill
+
+- `SKILL.md` — este archivo
+- `entregas.json` — datos de las entregas (lo edita Claude/el usuario)
+- `scripts/resumen_repartidor.py` — resumen + link de WhatsApp para el repartidor
+- `scripts/generar_listado.py` — genera `listado.html` (página mobile-first)
+- `listado.html` — salida generada (subir al hosting para verla en el celular)

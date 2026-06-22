@@ -1,0 +1,152 @@
+#!/usr/bin/env python3
+"""Genera un resumen ordenado de entrega(s) y un link de WhatsApp pre-escrito.
+
+Lee entregas.json y arma, para la(s) entrega(s) seleccionada(s):
+  - Un resumen en texto plano, ordenado, pensado para el repartidor.
+  - Un link wa.me con ese resumen ya pre-cargado (solo abrir y enviar).
+  - Un link de Google Maps para llegar a la dirección.
+
+Uso:
+    python scripts/resumen_repartidor.py --hoy
+    python scripts/resumen_repartidor.py --fecha 2026-06-25
+    python scripts/resumen_repartidor.py --id 2026-06-25-ignacio-cancino
+
+Si no se pasa filtro, muestra todas las entregas pendientes.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from datetime import date
+from pathlib import Path
+from urllib.parse import quote
+
+DATA_PATH = Path(__file__).resolve().parent.parent / "entregas.json"
+
+MESES = [
+    "enero", "febrero", "marzo", "abril", "mayo", "junio",
+    "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+]
+
+
+def cargar() -> dict:
+    try:
+        return json.loads(DATA_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        sys.exit(f"❌ No se encontró {DATA_PATH}")
+    except json.JSONDecodeError as e:
+        sys.exit(f"❌ entregas.json tiene un error de formato: {e}")
+
+
+def solo_digitos(telefono: str) -> str:
+    """Deja solo dígitos y asegura prefijo país Chile (56) si falta."""
+    d = re.sub(r"\D", "", telefono or "")
+    if d.startswith("56"):
+        return d
+    if d.startswith("9") and len(d) == 9:  # móvil chileno sin prefijo
+        return "56" + d
+    return d
+
+
+def fecha_legible(iso: str) -> str:
+    try:
+        f = date.fromisoformat(iso)
+        return f"{f.day:02d} de {MESES[f.month - 1]} de {f.year}"
+    except (ValueError, IndexError):
+        return iso
+
+
+def construir_resumen(e: dict) -> str:
+    """Arma el texto plano del resumen de una entrega."""
+    lineas = [f"🚚 ENTREGA — {fecha_legible(e.get('fecha', ''))}"]
+    if e.get("hora"):
+        lineas.append(f"🕐 Hora: {e['hora']}")
+    lineas.append("")
+    lineas.append(f"👤 Cliente: {e.get('cliente', '—')}")
+    lineas.append(f"📍 Dirección: {e.get('direccion', '—')}")
+    if e.get("telefono"):
+        lineas.append(f"📱 Teléfono cliente: {e['telefono']}")
+    if e.get("servicio"):
+        lineas.append("")
+        lineas.append(f"📦 Servicio: {e['servicio']}")
+    detalle = e.get("detalle") or []
+    if detalle:
+        lineas.append("")
+        lineas.append("Qué hacer:")
+        for d in detalle:
+            lineas.append(f"- {d}")
+    if e.get("notas"):
+        lineas.append("")
+        lineas.append(f"📝 Notas: {e['notas']}")
+    return "\n".join(lineas)
+
+
+def link_whatsapp(numero_repartidor: str, texto: str) -> str:
+    """Link wa.me con el texto pre-cargado.
+
+    Si hay número del repartidor, va dirigido a él; si no, link sin número
+    (WhatsApp deja elegir el contacto al abrir).
+    """
+    num = solo_digitos(numero_repartidor)
+    base = f"https://wa.me/{num}" if num else "https://wa.me/"
+    return f"{base}?text={quote(texto)}"
+
+
+def link_maps(direccion: str) -> str:
+    return f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
+
+
+def seleccionar(data: dict, args) -> list:
+    entregas = data.get("entregas", [])
+    if args.id:
+        sel = [e for e in entregas if e.get("id") == args.id]
+        if not sel:
+            sys.exit(f"❌ No se encontró ninguna entrega con id '{args.id}'.")
+        return sel
+    if args.fecha:
+        return [e for e in entregas if e.get("fecha") == args.fecha]
+    if args.hoy:
+        hoy = date.today().isoformat()
+        return [e for e in entregas if e.get("fecha") == hoy]
+    # Por defecto: pendientes (incluye 'en-camino').
+    return [e for e in entregas if e.get("estado", "pendiente") != "entregado"]
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Resumen de entregas + link de WhatsApp.")
+    grupo = parser.add_mutually_exclusive_group()
+    grupo.add_argument("--id", help="ID exacto de una entrega.")
+    grupo.add_argument("--fecha", help="Fecha en formato AAAA-MM-DD.")
+    grupo.add_argument("--hoy", action="store_true", help="Entregas de hoy.")
+    args = parser.parse_args()
+
+    data = cargar()
+    repartidor = data.get("repartidor", {})
+    seleccion = seleccionar(data, args)
+
+    if not seleccion:
+        print("No hay entregas que coincidan con el filtro.")
+        return
+
+    for i, e in enumerate(seleccion, start=1):
+        resumen = construir_resumen(e)
+        wa = link_whatsapp(repartidor.get("telefono", ""), resumen)
+        maps = link_maps(e.get("direccion", ""))
+
+        print("=" * 56)
+        print(resumen)
+        print("-" * 56)
+        print(f"🗺️  Mapa para llegar:\n{maps}")
+        print()
+        destino = repartidor.get("nombre") or "el repartidor"
+        print(f"💬 Enviar a {destino} por WhatsApp (link pre-escrito):\n{wa}")
+        print("=" * 56)
+        if i < len(seleccion):
+            print()
+
+
+if __name__ == "__main__":
+    main()

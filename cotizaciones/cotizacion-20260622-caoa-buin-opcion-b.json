@@ -1,0 +1,50 @@
+{
+  "subtitulo": "Arriendo de baños químicos — Obra Buin (Opción B: 2 limpiezas semanales)",
+  "cliente": {
+    "titulo": "CLIENTE",
+    "campos": [
+      ["Empresa", "CAOA"],
+      ["Contacto", "V. Rojas"],
+      ["Email", "Vrojas@caoa.cl"],
+      ["Teléfono", "+56 9 9226 3393"],
+      ["Dirección de instalación", "Obra en Comuna de Buin, Región Metropolitana"]
+    ]
+  },
+  "items": [
+    {
+      "descripcion_titulo": "Arriendo mensual de baño químico básico — 1ra unidad (2 mantenciones/semana)",
+      "descripcion_bullets": [
+        "1 unidad de baño químico estándar.",
+        "Aseo y mantención 2 veces por semana (recomendado para obra de uso intensivo).",
+        "Traslado, instalación y retiro incluidos.",
+        "Incluye insumos básicos (papel higiénico, desodorizante).",
+        "Disposición final de residuos con gestor autorizado."
+      ],
+      "cantidad": 1,
+      "valor_unitario_neto": 210000
+    },
+    {
+      "descripcion_titulo": "Arriendo mensual de baños químicos básicos — unidades adicionales (30% dcto c/u, 2 mantenciones/semana)",
+      "descripcion_bullets": [
+        "2 unidades adicionales de baño químico estándar.",
+        "Descuento por volumen: 30% sobre el valor de arriendo desde la 2da unidad.",
+        "Aseo y mantención 2 veces por semana en cada unidad.",
+        "Traslado, instalación, retiro e insumos básicos incluidos."
+      ],
+      "cantidad": 2,
+      "valor_unitario_neto": 156000
+    }
+  ],
+  "condiciones_extra": [
+    ["Modalidad de cobro", "Valor mensual por unidad. El monto indicado corresponde a 1 mes de servicio para las 3 unidades."],
+    ["Frecuencia de mantención", "2 limpiezas por semana en cada unidad."],
+    ["Cobertura", "Comuna de Buin / Región Metropolitana."],
+    ["Forma de pago", "Según se acuerde (contra entrega o facturación a 30 días)."]
+  ],
+  "observaciones_extra": [
+    "El valor indicado es mensual por las 3 unidades; no corresponde a un total acumulado del proyecto.",
+    "Opción recomendada para obra: la doble mantención semanal mantiene mejores condiciones de higiene con uso intensivo de personal.",
+    "Si la obra requiere izaje en altura, se cotiza unidad con arnés ($200.000 neto c/u).",
+    "Oferta sujeta a disponibilidad de cupos de baños."
+  ]
+}
