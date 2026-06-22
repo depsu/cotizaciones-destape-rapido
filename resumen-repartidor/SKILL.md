@@ -32,6 +32,7 @@ Cada entrega tiene esta forma:
   "fecha": "2026-06-25",
   "hora": "",
   "servicio": "1 baño químico — arriendo mensual",
+  "cantidad": 1,
   "aseo": "",
   "pago": { "monto": 160000, "nota": "Mensual. Cobrar al entregar." },
   "factura": { "requiere": true, "razon_social": "Empresa SpA", "rut": "76.123.456-7", "email": "pagos@empresa.cl" },
@@ -45,6 +46,7 @@ Cada entrega tiene esta forma:
 - **`estado`**: `pendiente` | `en-camino` | `entregado`.
 - **`hora`**: opcional.
 - **`pago`** (OBLIGATORIO): `monto` en CLP = lo que el repartidor (dueño) **le cobra al cliente**, y `nota` (forma/momento de pago). Es el dato clave de la entrega.
+- **`cantidad`**: número de baños. Se muestra como íconos 🚽 (1–4 baños = esa cantidad de 🚽; más de 4 = `🚽+`), tanto en el resumen de WhatsApp como en la página. Si se omite, se infiere del texto del `servicio` (ej. "2 baños…" → 2); por defecto 1.
 - **`aseo`**: frecuencia de limpieza. **Si se deja vacío o se omite, por defecto es "Aseo semanal (cada 7 a 10 días)"** (se aplica automáticamente en el resumen y la página).
 - **`factura`** (opcional): solo si el cliente la requiere. Campos: `requiere`, `razon_social`, `rut`, `giro`, `direccion`, `email` (los que se tengan).
 - El bloque `repartidor` (arriba del archivo) tiene `nombre` y `telefono` del repartidor (para dirigirle el WhatsApp). Si `telefono` está vacío, el link igual funciona: abre WhatsApp para elegir el contacto.

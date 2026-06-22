@@ -50,6 +50,22 @@ def clp(monto) -> str:
     return "$" + f"{n:,}".replace(",", ".")
 
 
+def cantidad_banos(e: dict) -> int:
+    """Cantidad de baños: usa 'cantidad' o la infiere del texto del servicio."""
+    c = e.get("cantidad")
+    if isinstance(c, int) and c > 0:
+        return c
+    m = re.search(r"(\d+)\s*ba[ñn]o", e.get("servicio", ""), re.IGNORECASE)
+    return int(m.group(1)) if m else 1
+
+
+def icono_banos(n: int) -> str:
+    """1–4 baños => esa cantidad de 🚽; más de 4 => 🚽+."""
+    if n <= 0:
+        n = 1
+    return "🚽+" if n > 4 else "🚽" * n
+
+
 def solo_digitos(telefono: str) -> str:
     d = re.sub(r"\D", "", telefono or "")
     if d.startswith("56"):
@@ -83,6 +99,7 @@ def tarjeta(e: dict) -> str:
     direccion = e.get("direccion", "")
     telefono = e.get("telefono", "")
     servicio = esc(e.get("servicio", ""))
+    banos_icono = icono_banos(cantidad_banos(e))
     hora = esc(e.get("hora", ""))
     notas = e.get("notas", "")
     estado = e.get("estado", "pendiente")
@@ -146,6 +163,7 @@ def tarjeta(e: dict) -> str:
           <span class="badge" style="color:{color_txt};background:{color_bg}">{etiqueta}</span>
         </div>
         <div class="resumen-sub">
+          <span class="banos">{banos_icono}</span>
           <span class="dir">📍 {esc(direccion)}</span>
           {hora_chip}
           {monto_chip}
@@ -153,7 +171,7 @@ def tarjeta(e: dict) -> str:
       </summary>
       <div class="detalle">
         {cobro_html}
-        {f'<div class="bloque"><span class="etq">Servicio</span><p>{servicio}</p></div>' if servicio else ""}
+        {f'<div class="bloque"><span class="etq">Servicio</span><p>{banos_icono} {servicio}</p></div>' if servicio else ""}
         <div class="bloque"><span class="etq">Aseo</span><p>{aseo}</p></div>
         {f'<div class="bloque"><span class="etq">Teléfono</span><p>{esc(telefono)}</p></div>' if telefono else ""}
         {factura_html}
@@ -235,6 +253,7 @@ def construir_html(data: dict) -> str:
   .resumen-sub > * {{ min-width:0; }}
   .dir {{ overflow-wrap:anywhere; }}
   .hora {{ font-variant-numeric:tabular-nums; white-space:nowrap; }}
+  .banos {{ white-space:nowrap; letter-spacing:1px; }}
   .monto {{ font-weight:700; color:#166534; white-space:nowrap; font-variant-numeric:tabular-nums; }}
   .cobro {{
     margin-top:12px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:12px;

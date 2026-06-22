@@ -63,6 +63,22 @@ def clp(monto) -> str:
     return "$" + f"{n:,}".replace(",", ".")
 
 
+def cantidad_banos(e: dict) -> int:
+    """Cantidad de baños de la entrega: usa 'cantidad' o la infiere del texto del servicio."""
+    c = e.get("cantidad")
+    if isinstance(c, int) and c > 0:
+        return c
+    m = re.search(r"(\d+)\s*ba[ñn]o", e.get("servicio", ""), re.IGNORECASE)
+    return int(m.group(1)) if m else 1
+
+
+def icono_banos(n: int) -> str:
+    """Ícono(s) de baño: 1–4 baños => esa cantidad de 🚽; más de 4 => 🚽+."""
+    if n <= 0:
+        n = 1
+    return "🚽+" if n > 4 else "🚽" * n
+
+
 def fecha_legible(iso: str) -> str:
     try:
         f = date.fromisoformat(iso)
@@ -83,7 +99,7 @@ def construir_resumen(e: dict) -> str:
         lineas.append(f"📱 Teléfono cliente: {e['telefono']}")
     if e.get("servicio"):
         lineas.append("")
-        lineas.append(f"📦 Servicio: {e['servicio']}")
+        lineas.append(f"{icono_banos(cantidad_banos(e))} Servicio: {e['servicio']}")
     # Aseo: usa lo indicado o el valor por defecto.
     lineas.append(f"🧽 Aseo: {e.get('aseo') or ASEO_DEFAULT}")
     pago = e.get("pago") or {}
