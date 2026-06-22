@@ -133,6 +133,34 @@ def link_maps(direccion: str) -> str:
     return f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
 
 
+def abrir_whatsapp(numero_repartidor: str, texto: str) -> bool:
+    """Abre WhatsApp con el mensaje ya escrito (solo falta presionar enviar).
+
+    En macOS usa la app de WhatsApp si está instalada (apertura directa);
+    si no, abre wa.me en el navegador. Devuelve True si lanzó la apertura.
+    """
+    import os
+    import subprocess
+    import sys
+
+    num = solo_digitos(numero_repartidor)
+    web_url = link_whatsapp(numero_repartidor, texto)
+    app_url = f"whatsapp://send?phone={num}&text={quote(texto)}" if num else web_url
+
+    try:
+        if sys.platform == "darwin":
+            destino = app_url if (num and os.path.isdir("/Applications/WhatsApp.app")) else web_url
+            subprocess.run(["open", destino], check=False)
+        elif sys.platform.startswith("linux"):
+            subprocess.run(["xdg-open", web_url], check=False)
+        else:  # windows
+            os.startfile(web_url)  # type: ignore[attr-defined]
+        return True
+    except Exception as e:  # noqa: BLE001
+        print(f"   ↳ no se pudo abrir automáticamente: {e}")
+        return False
+
+
 def seleccionar(data: dict, args) -> list:
     entregas = data.get("entregas", [])
     if args.id:
@@ -155,6 +183,8 @@ def main() -> None:
     grupo.add_argument("--id", help="ID exacto de una entrega.")
     grupo.add_argument("--fecha", help="Fecha en formato AAAA-MM-DD.")
     grupo.add_argument("--hoy", action="store_true", help="Entregas de hoy.")
+    parser.add_argument("--abrir", action="store_true",
+                        help="Abre WhatsApp con el mensaje listo (solo presionar enviar).")
     args = parser.parse_args()
 
     data = cargar()
@@ -176,7 +206,13 @@ def main() -> None:
         print(f"🗺️  Mapa para llegar:\n{maps}")
         print()
         destino = repartidor.get("nombre") or "el repartidor"
-        print(f"💬 Enviar a {destino} por WhatsApp (link pre-escrito):\n{wa}")
+        if args.abrir:
+            if abrir_whatsapp(repartidor.get("telefono", ""), resumen):
+                print(f"💬 ✅ Abriendo WhatsApp para enviar a {destino} — solo presiona ENVIAR.")
+            else:
+                print(f"💬 Enviar a {destino} por WhatsApp:\n{wa}")
+        else:
+            print(f"💬 Enviar a {destino} por WhatsApp (link pre-escrito):\n{wa}")
         print("=" * 56)
         if i < len(seleccion):
             print()
