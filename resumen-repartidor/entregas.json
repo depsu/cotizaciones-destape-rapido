@@ -4,5 +4,31 @@
     "nombre": "Repartidor",
     "telefono": "+56 9 2196 4789"
   },
-  "entregas": []
+  "entregas": [
+    {
+      "id": "2026-06-25-hercha-ingenieria",
+      "cliente": "Don Eliecer (HERCHA Ingeniería)",
+      "telefono": "+56 9 9450 4902",
+      "direccion": "Planta de Tratamiento de Aguas Servidas Aguas Andinas, Camino El Trebal 2095, Padre Hurtado, Región Metropolitana",
+      "fecha": "2026-06-25",
+      "hora": "10:00 a 11:30 AM",
+      "servicio": "1 baño químico — arriendo mensual",
+      "aseo": "",
+      "pago": { "monto": 190400, "nota": "$160.000 neto + IVA. Se emite factura a HERCHA." },
+      "factura": {
+        "requiere": true,
+        "razon_social": "HERCHA INGENIERIA Y SERVICIOS SpA",
+        "rut": "77.735.148-6",
+        "giro": "Instalación de sistemas de seguridad",
+        "direccion": "Progreso 4420, La Florida, Santiago"
+      },
+      "detalle": [
+        "Instalar 1 baño químico.",
+        "Traslado incluido.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Lo contacta el repartidor. Confirmar ubicación exacta y acceso con Don Eliecer al llegar.",
+      "estado": "pendiente"
+    }
+  ]
 }
