@@ -9,15 +9,15 @@ Skill para que el repartidor de **Destape Rápido** sepa exactamente a dónde ir
 
 ## Flujo rápido (POR DEFECTO — una sola pasada, sin preguntar de más)
 
-Cuando Alejandro diga **"resumen para repartidor"** y pegue un chat de cliente confirmado, ejecutar TODO de corrido y entregar el resultado. **No hacer preguntas salvo que falte un dato crítico: dirección, fecha o valor.** Todo lo demás se asume con los defaults.
+Cuando Alejandro diga **"resumen para repartidor"** y pegue un chat de cliente confirmado, ejecutar TODO de corrido. **No hacer preguntas salvo que falte un dato crítico: dirección, fecha o valor.** Todo lo demás se asume con los defaults.
+
+> 🔝 **REGLA DE PRIORIDAD: el LINK de WhatsApp del repartidor es lo PRIMERO que se entrega en el chat.** Apenas se tenga, mostrarlo de inmediato (destacado, para que Alejandro se lo reenvíe a su jefe al instante) y **recién después** seguir con lo demás (publicar la página, historial). El usuario NO debe esperar a que termine todo para tener el link.
 
 1. **Extraer del chat:** cliente, teléfono, dirección, fecha (convertir "el jueves" a la fecha real), hora, servicio, valor, datos de factura.
-2. **Cobro (REGLA FIJA, NO preguntar):** el repartidor es el dueño/jefe y **siempre cobra**. `pago.monto` = el valor acordado; **si el cliente lleva factura, el monto es neto + IVA 19%**. Incluir los datos de facturación en `factura`. Nunca preguntar la forma/método de cobro: solo dejar los datos.
-3. **Aseo:** si el chat no especifica, queda el default (semanal 7–10 días).
-4. **Agregar** la entrega a `entregas.json`.
-5. **Publicar en un solo comando:** `bash resumen-repartidor/publicar.sh "agrega entrega <cliente>"` (regenera la página y hace push a GitHub Pages).
-6. **Entregar el link de WhatsApp** del repartidor: `python3 resumen-repartidor/scripts/resumen_repartidor.py --id <id>`.
-7. **Actualizar** la ficha del cliente en `clientes/historial.md`.
+2. **Cobro (REGLA FIJA, NO preguntar):** el repartidor es el dueño/jefe y **siempre cobra**. `pago.monto` = el valor acordado; **si el cliente lleva factura, el monto es neto + IVA 19%**. Incluir los datos de facturación en `factura`. Nunca preguntar la forma/método de cobro: solo dejar los datos. **Aseo:** si el chat no especifica, queda el default (semanal 7–10 días).
+3. **Agregar** la entrega a `entregas.json`.
+4. **🔝 ENTREGAR EL LINK PRIMERO:** correr `python3 resumen-repartidor/scripts/resumen_repartidor.py --id <id>` y poner el link de WhatsApp como **lo primero** del mensaje de chat.
+5. **Después**, en el mismo turno: **publicar** con `bash resumen-repartidor/publicar.sh "agrega entrega <cliente>"` y **actualizar** la ficha en `clientes/historial.md`. Confirmar al final que la página quedó en línea.
 
 ## Fuente de datos: `entregas.json`
 
