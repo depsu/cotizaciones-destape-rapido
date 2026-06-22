@@ -11,12 +11,12 @@ Skill para que el repartidor de **Destape Rápido** sepa exactamente a dónde ir
 
 Cuando Alejandro diga **"resumen para repartidor"** y pegue un chat de cliente confirmado, ejecutar TODO de corrido. **No hacer preguntas salvo que falte un dato crítico: dirección, fecha o valor.** Todo lo demás se asume con los defaults.
 
-> 🔝 **REGLA DE PRIORIDAD: lo PRIMERO es abrir WhatsApp con el mensaje para el repartidor.** Apenas se tenga la entrega, correr el script con `--abrir`: abre WhatsApp Desktop con el mensaje ya escrito para que Alejandro **solo presione ENVIAR**. Además pegar el link en el chat como respaldo. **Recién después** seguir con lo demás (publicar la página, historial). El usuario NO debe esperar a que termine todo.
+> 🔝 **REGLA DE PRIORIDAD: lo PRIMERO es enviar el WhatsApp al repartidor.** Apenas se tenga la entrega, correr el script con `--enviar`: abre WhatsApp Desktop y **envía solo** el mensaje (presiona Enter automático; Alejandro no hace nada). **Antes de enviar, verificar que los datos extraídos estén correctos**, porque el envío es automático y sin confirmación manual. Pegar también el link en el chat como respaldo. **Recién después** seguir con lo demás (publicar la página, historial).
 
 1. **Extraer del chat:** cliente, teléfono, dirección, fecha (convertir "el jueves" a la fecha real), hora, servicio, valor, datos de factura.
 2. **Cobro (REGLA FIJA, NO preguntar):** el repartidor es el dueño/jefe y **siempre cobra**. `pago.monto` = el valor acordado; **si el cliente lleva factura, el monto es neto + IVA 19%**. Incluir los datos de facturación en `factura`. Nunca preguntar la forma/método de cobro: solo dejar los datos. **Aseo:** si el chat no especifica, queda el default (semanal 7–10 días).
 3. **Agregar** la entrega a `entregas.json`.
-4. **🔝 ABRIR WHATSAPP PRIMERO:** correr `python3 resumen-repartidor/scripts/resumen_repartidor.py --id <id> --abrir` → abre WhatsApp Desktop con el mensaje listo para el repartidor (Alejandro solo presiona ENVIAR). Pegar también el link en el chat como respaldo.
+4. **🔝 ENVIAR PRIMERO (automático):** verificar que los datos estén correctos y correr `python3 resumen-repartidor/scripts/resumen_repartidor.py --id <id> --enviar` → abre WhatsApp y envía solo el mensaje al repartidor. Pegar también el link en el chat como respaldo. (Si se prefiere revisar antes de enviar, usar `--abrir` en vez de `--enviar`.)
 5. **Después**, en el mismo turno: **publicar** con `bash resumen-repartidor/publicar.sh "agrega entrega <cliente>"` y **actualizar** la ficha en `clientes/historial.md`. Confirmar al final que la página quedó en línea.
 
 ## Fuente de datos: `entregas.json`

@@ -161,6 +161,38 @@ def abrir_whatsapp(numero_repartidor: str, texto: str) -> bool:
         return False
 
 
+def enviar_whatsapp(numero_repartidor: str, texto: str, espera: float = 4.0) -> bool:
+    """Abre WhatsApp con el mensaje y presiona ENVIAR automáticamente (solo macOS).
+
+    Requiere WhatsApp Desktop y permiso de Accesibilidad para el terminal.
+    Si no es macOS o falta el número, hace fallback a solo abrir.
+    """
+    import subprocess
+    import sys
+    import time
+
+    num = solo_digitos(numero_repartidor)
+    if sys.platform != "darwin" or not num:
+        return abrir_whatsapp(numero_repartidor, texto)
+
+    app_url = f"whatsapp://send?phone={num}&text={quote(texto)}"
+    subprocess.run(["open", app_url], check=False)
+    time.sleep(espera)  # esperar a que cargue el chat y el texto
+
+    # Activar WhatsApp y presionar Return (key code 36) para enviar.
+    script = (
+        'tell application "WhatsApp" to activate\n'
+        'delay 0.6\n'
+        'tell application "System Events" to key code 36'
+    )
+    res = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
+    if res.returncode != 0:
+        print("   ↳ no se pudo enviar automáticamente "
+              f"(¿falta permiso de Accesibilidad?): {res.stderr.strip()}")
+        return False
+    return True
+
+
 def seleccionar(data: dict, args) -> list:
     entregas = data.get("entregas", [])
     if args.id:
@@ -184,7 +216,9 @@ def main() -> None:
     grupo.add_argument("--fecha", help="Fecha en formato AAAA-MM-DD.")
     grupo.add_argument("--hoy", action="store_true", help="Entregas de hoy.")
     parser.add_argument("--abrir", action="store_true",
-                        help="Abre WhatsApp con el mensaje listo (solo presionar enviar).")
+                        help="Abre WhatsApp con el mensaje listo (tú presionas enviar).")
+    parser.add_argument("--enviar", action="store_true",
+                        help="Abre WhatsApp y ENVÍA solo (presiona Enter automáticamente). macOS.")
     args = parser.parse_args()
 
     data = cargar()
@@ -206,7 +240,12 @@ def main() -> None:
         print(f"🗺️  Mapa para llegar:\n{maps}")
         print()
         destino = repartidor.get("nombre") or "el repartidor"
-        if args.abrir:
+        if args.enviar:
+            if enviar_whatsapp(repartidor.get("telefono", ""), resumen):
+                print(f"💬 ✅ Mensaje ENVIADO a {destino} por WhatsApp (automático).")
+            else:
+                print(f"💬 No se pudo enviar solo. Link para enviar manual:\n{wa}")
+        elif args.abrir:
             if abrir_whatsapp(repartidor.get("telefono", ""), resumen):
                 print(f"💬 ✅ Abriendo WhatsApp para enviar a {destino} — solo presiona ENVIAR.")
             else:
