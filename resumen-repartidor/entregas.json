@@ -6,6 +6,28 @@
   },
   "entregas": [
     {
+      "id": "2026-06-23-don-daniel",
+      "cliente": "Don Daniel",
+      "telefono": "+56 9 8229 1198",
+      "direccion": "Chapultepec 6047, Vitacura, Región Metropolitana",
+      "fecha": "2026-06-23",
+      "hora": "",
+      "servicio": "1 baño químico — arriendo mensual (obra)",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": { "monto": 190400, "nota": "$160.000 neto + IVA (descuento de la semana). Se emite factura. Cobrar al entregar." },
+      "factura": {
+        "requiere": true
+      },
+      "detalle": [
+        "Instalar 1 baño químico.",
+        "Traslado incluido.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Cliente confirmó para hoy. PENDIENTE: pedir/confirmar los datos de facturación (razón social, RUT, giro, dirección, email) al llegar. Lo contacta el repartidor antes de ir.",
+      "estado": "pendiente"
+    },
+    {
       "id": "2026-06-25-hercha-ingenieria",
       "cliente": "Don Eliecer (HERCHA Ingeniería)",
       "telefono": "+56 9 9450 4902",
