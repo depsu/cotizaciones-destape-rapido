@@ -6,6 +6,33 @@
   },
   "entregas": [
     {
+      "id": "2026-06-23-gino-munoz",
+      "cliente": "Gino Muñoz (Constructora GMP)",
+      "telefono": "+56 9 5387 2435",
+      "direccion": "Condominio Polo de Manquehue 2, Chicureo, Colina, Región Metropolitana",
+      "fecha": "2026-06-23",
+      "hora": "Durante el día (cualquier horario, están trabajando)",
+      "servicio": "1 baño químico — arriendo por 1 semana",
+      "cantidad": 1,
+      "aseo": "Aseo incluido durante el período (1 semana)",
+      "pago": { "monto": 119000, "nota": "$100.000 neto + IVA (incluye traslado y aseo todo el período). Se emite factura. Cobrar al entregar." },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Gino Enrique Muñoz Pavez",
+        "rut": "7.579.224-7",
+        "giro": "Persona natural con giro",
+        "email": "Info.constructoragmp@gmail.com"
+      },
+      "detalle": [
+        "Instalar 1 baño químico.",
+        "Traslado incluido.",
+        "Dejar insumos: papel higiénico y desodorizante.",
+        "Retiro al finalizar la semana (aprox. 30 de junio)."
+      ],
+      "notas": "Arriendo por 1 semana. Recibe durante el día, cualquier horario. El cliente manda ubicación exacta por WhatsApp. Factura a Gino Enrique Muñoz Pavez (persona natural con giro). Se paga al entregar.",
+      "estado": "pendiente"
+    },
+    {
       "id": "2026-06-23-don-daniel",
       "cliente": "Don Daniel",
       "telefono": "+56 9 8229 1198",
