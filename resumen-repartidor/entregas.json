@@ -14,8 +14,8 @@
       "hora": "Hoy",
       "servicio": "1 baño químico — arriendo por 2 semanas",
       "cantidad": 1,
-      "aseo": "Arriendo corto (2 semanas). Limpieza al finalizar el servicio, al retirar. Aseo extra opcional: $40.000 c/u.",
-      "pago": { "monto": 154700, "nota": "$130.000 neto + IVA. Arriendo 2 semanas. Se emite factura. Cobrar al entregar." },
+      "aseo": "Incluye aseo gratis semanal (1 por semana = 2 en las 2 semanas). El cliente quiere reforzar a 2 limpiezas/semana + recarga de agua → ese refuerzo es el aseo extra pendiente de cobrar.",
+      "pago": { "monto": 154700, "nota": "PAGADO el baño ($130.000 neto + IVA = $154.700). Pendiente aparte: aseo extra / plan de mantención (por definir y cobrar)." },
       "factura": {
         "requiere": true,
         "razon_social": "PENDIENTE — MAIR (el cliente enviará los datos de la empresa)",
@@ -29,8 +29,8 @@
         "Dejar insumos: papel higiénico y desodorizante.",
         "Retiro al finalizar las 2 semanas (aprox. 07 de julio)."
       ],
-      "notas": "Cliente con factura (empresa MAIR) — pedir/confirmar razón social y RUT al entregar. Confirmar la comuna exacta de 'Curicó 517' con el cliente antes de salir. El baño debe ir impecable.",
-      "estado": "pendiente"
+      "notas": "Baño PAGADO. Pendiente: coordinar y cobrar el aseo extra / plan de mantención (2 limpiezas/sem + recarga de agua). Cliente con factura (empresa MAIR) — confirmar razón social y RUT. Comuna de 'Curicó 517' por confirmar.",
+      "estado": "entregado"
     },
     {
       "id": "2026-06-23-gino-munoz",

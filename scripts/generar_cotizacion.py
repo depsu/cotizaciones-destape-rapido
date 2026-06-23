@@ -470,8 +470,9 @@ def generar(config: dict, output_path: str) -> None:
         [Paragraph("¿Cómo aceptar esta cotización?", st_conf_title)],
         [Paragraph(
             "Para confirmar el servicio basta con <b>responder este correo</b> "
-            "indicando su conformidad. No es necesario firmar ni imprimir el documento. "
-            "Apenas recibamos su respuesta, coordinamos la entrega.", st_small)],
+            "indicando su conformidad, o bien <b>si ya lo coordinamos por WhatsApp</b>, "
+            "queda igualmente confirmado. No es necesario firmar ni imprimir el documento. "
+            "Apenas tengamos su confirmación, coordinamos la entrega.", st_small)],
     ], colWidths=[170 * mm])
     conf_tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), ACCENT_SOFT),

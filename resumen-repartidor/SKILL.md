@@ -11,7 +11,7 @@ Skill para que el repartidor de **Destape Rápido** sepa exactamente a dónde ir
 
 Cuando Alejandro diga **"resumen para repartidor"** y pegue un chat de cliente confirmado, ejecutar TODO de corrido. **No hacer preguntas salvo que falte un dato crítico: dirección, fecha o valor.** Todo lo demás se asume con los defaults.
 
-> 🔝 **REGLA DE PRIORIDAD: lo PRIMERO es enviar el WhatsApp al repartidor.** Apenas se tenga la entrega, correr el script con `--enviar`: abre WhatsApp Desktop y **envía solo** el mensaje (presiona Enter automático; Alejandro no hace nada). **Antes de enviar, verificar que los datos extraídos estén correctos**, porque el envío es automático y sin confirmación manual. Pegar también el link en el chat como respaldo. **Recién después** seguir con lo demás (publicar la página, historial).
+> 🔝 **REGLA DE PRIORIDAD: lo PRIMERO es enviar el WhatsApp al repartidor.** Apenas se tenga la entrega, correr el script con `--enviar`: abre WhatsApp Desktop y **envía solo** el mensaje (presiona Enter automático; Alejandro no hace nada). **SIEMPRE usar `--enviar` (envío automático); NUNCA quedarse solo en el link ni en `--abrir`, ni preguntar si enviar — se envía directo.** **Antes de enviar, verificar que los datos extraídos estén correctos**, porque el envío es automático y sin confirmación manual. Pegar también el link en el chat como respaldo. **Recién después** seguir con lo demás (publicar la página, historial).
 
 ### FASE 1 — PRIORIDAD ABSOLUTA: enviar el WhatsApp al repartidor (ejecutar y reportar ESTO PRIMERO)
 

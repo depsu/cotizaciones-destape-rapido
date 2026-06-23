@@ -27,7 +27,9 @@
     ["Período del servicio", "2 semanas desde la instalación (retiro al finalizar)."],
     ["Cobertura", "Santiago / Región Metropolitana."],
     ["Facturación", "Se emite factura. El valor neto más IVA 19%."],
-    ["Aseo adicional", "Aseo extra opcional durante el período: $40.000 neto por aseo."]
+    ["Llenado de lavamanos", "El llenado de agua del lavamanos tiene un costo de $30.000 neto + IVA. Lo puede realizar el propio cliente; si requiere que lo hagamos nosotros, coordinar con anticipación."],
+    ["Limpiezas adicionales", "Cada limpieza extra tiene un costo de $10.000 neto, más el llenado del lavamanos ($30.000 neto) si se requiere."],
+    ["Datos para transferencia", "BAÑOS LOS PINDUS Y ASOCIADOS SPA · RUT 78.002.039-3 · Banco Santander · Cuenta Corriente N° 0000-9611698-5 · estebanmoreno347@gmail.com"]
   ],
   "observaciones_extra": [
     "Valor neto $130.000; con IVA 19% el total es $154.700.",
