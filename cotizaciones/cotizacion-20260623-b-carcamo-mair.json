@@ -1,0 +1,36 @@
+{
+  "subtitulo": "Arriendo de baño químico — 2 semanas (Curicó 517)",
+  "cliente": {
+    "titulo": "CLIENTE",
+    "campos": [
+      ["Empresa", "MAIR"],
+      ["Contacto", "B. Cárcamo"],
+      ["Email", "bcarcamo@mair.cl"],
+      ["Teléfono", "+56 9 3380 0237"],
+      ["Dirección de instalación", "Curicó 517, Santiago, Región Metropolitana"]
+    ]
+  },
+  "items": [
+    {
+      "descripcion_titulo": "Arriendo de baño químico por 2 semanas",
+      "descripcion_bullets": [
+        "1 unidad de baño químico estándar, entregada en óptimas condiciones de presentación.",
+        "Traslado, instalación y retiro incluidos.",
+        "Incluye insumos básicos (papel higiénico, desodorizante).",
+        "Limpieza al finalizar el servicio y disposición final de residuos con gestor autorizado."
+      ],
+      "cantidad": 1,
+      "valor_unitario_neto": 130000
+    }
+  ],
+  "condiciones_extra": [
+    ["Período del servicio", "2 semanas desde la instalación (retiro al finalizar)."],
+    ["Cobertura", "Santiago / Región Metropolitana."],
+    ["Facturación", "Se emite factura. El valor neto más IVA 19%."],
+    ["Aseo adicional", "Aseo extra opcional durante el período: $40.000 neto por aseo."]
+  ],
+  "observaciones_extra": [
+    "Valor neto $130.000; con IVA 19% el total es $154.700.",
+    "Oferta sujeta a disponibilidad de cupos."
+  ]
+}
