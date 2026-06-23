@@ -14,8 +14,8 @@
       "hora": "Durante el día (cualquier horario, están trabajando)",
       "servicio": "1 baño químico — arriendo por 1 semana",
       "cantidad": 1,
-      "aseo": "Aseo incluido durante el período (1 semana)",
-      "pago": { "monto": 119000, "nota": "$100.000 neto + IVA (incluye traslado y aseo todo el período). Se emite factura. Cobrar al entregar." },
+      "aseo": "Sin aseo periódico (arriendo corto). Limpieza al finalizar el servicio, al retirar. Aseo extra opcional: $40.000 c/u.",
+      "pago": { "monto": 119000, "nota": "$100.000 neto + IVA (incluye traslado; limpieza al finalizar el servicio). Se emite factura. Cobrar al entregar." },
       "factura": {
         "requiere": true,
         "razon_social": "Gino Enrique Muñoz Pavez",
@@ -77,6 +77,31 @@
         "Dejar insumos: papel higiénico y desodorizante."
       ],
       "notas": "Lo contacta el repartidor. Confirmar ubicación exacta y acceso con Don Eliecer al llegar.",
+      "estado": "pendiente"
+    },
+    {
+      "id": "2026-06-23-pilar-casanueva",
+      "cliente": "Pilar Casanueva (MDA Constructora)",
+      "telefono": "+56 9 8805 1486",
+      "direccion": "El Rincón 12382, casa 5, Lo Barnechea, Región Metropolitana",
+      "fecha": "2026-06-23",
+      "hora": "Lo antes posible (hoy; mañana temprano si no alcanza)",
+      "servicio": "1 baño químico — arriendo mensual (obra)",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": { "monto": 190400, "nota": "$160.000 neto + IVA (oferta de la semana; incluye traslado ida y vuelta y aseo semanal). Se emite factura. Cobrar al entregar." },
+      "factura": {
+        "requiere": true,
+        "razon_social": "MDA Constructora",
+        "rut": "76.867.755-7"
+      },
+      "detalle": [
+        "Instalar 1 baño químico.",
+        "Traslado ida y vuelta incluido.",
+        "Dejar insumos: papel higiénico y desodorizante.",
+        "Aseo semanal incluido (cada 7 a 10 días)."
+      ],
+      "notas": "Preguntar por PILAR CASANUEVA al llegar. Jefe de obra en terreno: David Durán, +56 9 8805 1486. Contacto que coordinó por WhatsApp: +56 9 4550 7354. Cliente necesita el baño HOY (trabajadores ya en obra). Arriendo mensual, puede extenderse.",
       "estado": "pendiente"
     }
   ]

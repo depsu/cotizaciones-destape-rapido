@@ -1,0 +1,33 @@
+{
+  "subtitulo": "Arriendo mensual de baño químico — obra, Lo Barnechea",
+  "cliente": {
+    "titulo": "CLIENTE",
+    "campos": [
+      ["Contacto", "Pilar Casanueva"],
+      ["Razón social", "MDA Constructora"],
+      ["RUT", "76.867.755-7"],
+      ["Email", "Fdapachecod@gmail.com"],
+      ["Ubicación", "El Rincón 12382, casa 5, Lo Barnechea, RM"]
+    ]
+  },
+  "items": [
+    {
+      "descripcion_titulo": "Arriendo mensual de baño químico",
+      "descripcion_bullets": [
+        "Despacho, instalación y retiro incluidos.",
+        "Traslado ida y vuelta incluido.",
+        "Aseo semanal incluido (cada 7 a 10 días).",
+        "Disposición final de residuos a cargo de Destape Rápido."
+      ],
+      "cantidad": 1,
+      "valor_unitario_neto": 160000
+    }
+  ],
+  "condiciones_extra": [
+    ["Período", "Mensual, con renovación automática. Inicio inmediato (hoy o a primera hora del día siguiente)."],
+    ["Promoción", "Valor preferente de la semana ($160.000 neto/mes)."]
+  ],
+  "observaciones_extra": [
+    "El valor mensual incluye traslado ida y vuelta y aseo semanal (cada 7 a 10 días)."
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "subtitulo": "Arriendo de baño químico — obra corta (5 días aprox.)",
+  "cliente": {
+    "titulo": "CLIENTE",
+    "campos": [
+      ["Contacto", "Luis Quinchel"],
+      ["Empresa", "Infravial"],
+      ["Email", "luis.quinchel@infravial.cl"],
+      ["Ubicación", "Sede Macul, UMCE, Macul, RM"]
+    ]
+  },
+  "items": [
+    {
+      "descripcion_titulo": "Arriendo de baño químico por obra corta (5 días aprox.)",
+      "descripcion_bullets": [
+        "Despacho, instalación y retiro incluidos.",
+        "Traslado ida y vuelta incluido.",
+        "Limpieza y disposición final de residuos al finalizar el servicio (al retiro)."
+      ],
+      "cantidad": 1,
+      "valor_unitario_neto": 100000
+    }
+  ],
+  "condiciones_extra": [
+    ["Período", "5 días aproximados, la próxima semana (fecha de inicio por confirmar)."],
+    ["Pago", "Contra entrega del baño, todo incluido."]
+  ],
+  "observaciones_extra": [
+    "El valor indicado es total por el período de 5 días, con traslado ida y vuelta incluido.",
+    "Aseo extra opcional durante el período: $40.000 neto por servicio."
+  ]
+}

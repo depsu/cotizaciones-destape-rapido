@@ -15,7 +15,7 @@
       "descripcion_bullets": [
         "Despacho, instalación y retiro incluidos.",
         "Traslado incluido.",
-        "Aseo y disposición final de residuos incluidos durante el período."
+        "Limpieza y disposición final de residuos al finalizar el servicio (al retiro)."
       ],
       "cantidad": 1,
       "valor_unitario_neto": 100000
@@ -26,6 +26,7 @@
     ["Recepción en obra", "Durante el día, cualquier horario"]
   ],
   "observaciones_extra": [
-    "Retiro de la unidad al finalizar el período de arriendo."
+    "Retiro de la unidad al finalizar el período de arriendo.",
+    "Aseo extra opcional durante el período: $40.000 neto por servicio."
   ]
 }
