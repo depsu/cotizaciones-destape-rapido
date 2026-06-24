@@ -1,0 +1,37 @@
+{
+  "subtitulo": "Arriendo de baños químicos — evento",
+  "cliente": {
+    "titulo": "CLIENTE",
+    "campos": [
+      ["Nombre", "Don Francisco"],
+      ["Email", "fandradest@gmail.com"],
+      ["Teléfono", "+56 9 9470 2993"]
+    ]
+  },
+  "items": [
+    {
+      "descripcion_titulo": "Arriendo de baño químico por evento",
+      "descripcion_bullets": [
+        "Despacho, instalación y retiro incluidos.",
+        "Disposición final de residuos.",
+        "Insumos: papel higiénico y desodorizante."
+      ],
+      "cantidad": 2,
+      "valor_unitario_neto": 90000
+    }
+  ],
+  "condiciones_extra": [
+    ["Período", "Evento del 4 de julio (horario de 16:00 a 22:00). Retiro al finalizar."],
+    ["Limpieza extra", "Cada limpieza extra durante el evento tiene un costo de $20.000 neto."]
+  ],
+  "datos_transferencia": {
+    "campos": [
+      ["Titular", "BAÑOS LOS PINDUS Y ASOCIADOS SPA"],
+      ["RUT", "78.002.039-3"],
+      ["Banco", "Santander"],
+      ["Tipo de cuenta", "Cuenta Corriente"],
+      ["N° de cuenta", "0000-9611698-5"],
+      ["Email", "contacto@destaperapido.cl"]
+    ]
+  }
+}
