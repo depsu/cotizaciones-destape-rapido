@@ -12,15 +12,16 @@
       "direccion": "Loreley 190, La Reina, Región Metropolitana",
       "fecha": "2026-06-24",
       "hora": "Lo más temprano posible",
-      "servicio": "1 baño químico — incluye 1 limpieza",
+      "servicio": "1 baño químico — arriendo por 2 semanas",
       "cantidad": 1,
       "aseo": "Incluye 1 limpieza.",
-      "pago": { "monto": 130000, "nota": "$130.000 neto. Sin factura. Cobrar al entregar." },
+      "pago": { "monto": 130000, "nota": "$130.000 neto por las 2 semanas. Sin factura. Cobrar al entregar." },
       "detalle": [
         "Instalar 1 baño químico.",
         "Incluye 1 limpieza.",
         "Dejar insumos: papel higiénico y desodorizante.",
-        "Entregar lo más temprano posible."
+        "Entregar lo más temprano posible.",
+        "Retiro al finalizar las 2 semanas (aprox. 08 de julio)."
       ],
       "notas": "ADULTOS MAYORES — tener paciencia y buen trato. No se tiene el nombre de la persona. Teléfono principal +56 9 4210 7260 sirve para WhatsApp y llamada; 2º teléfono +56 9 9694 0919 es SOLO para llamada (no WhatsApp).",
       "estado": "pendiente"
