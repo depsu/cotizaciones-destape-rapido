@@ -12,12 +12,12 @@
       "direccion": "Loreley 190, La Reina, Región Metropolitana",
       "fecha": "2026-06-24",
       "hora": "Lo más temprano posible",
-      "servicio": "2 baños químicos — incluye 1 limpieza",
-      "cantidad": 2,
+      "servicio": "1 baño químico — incluye 1 limpieza",
+      "cantidad": 1,
       "aseo": "Incluye 1 limpieza.",
-      "pago": { "monto": 260000, "nota": "$130.000 neto por baño × 2 baños = $260.000. Sin factura. Cobrar al entregar." },
+      "pago": { "monto": 130000, "nota": "$130.000 neto. Sin factura. Cobrar al entregar." },
       "detalle": [
-        "Instalar 2 baños químicos.",
+        "Instalar 1 baño químico.",
         "Incluye 1 limpieza.",
         "Dejar insumos: papel higiénico y desodorizante.",
         "Entregar lo más temprano posible."
