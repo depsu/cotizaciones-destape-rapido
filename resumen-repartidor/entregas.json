@@ -6,6 +6,27 @@
   },
   "entregas": [
     {
+      "id": "2026-06-25-tania-soria-768",
+      "cliente": "Tania (obra Soria 768, Las Condes)",
+      "telefono": "+56 9 5911 4408",
+      "direccion": "Soria 768, Las Condes, Región Metropolitana",
+      "fecha": "2026-06-25",
+      "hora": "9:00 AM (o cuando puedan en la mañana)",
+      "servicio": "1 baño químico — arriendo por 2 semanas",
+      "cantidad": 1,
+      "aseo": "Incluye 1 aseo durante el período. Aseo extra opcional: $40.000 c/u.",
+      "pago": { "monto": 130000, "nota": "$130.000 total. SIN factura (boleta), sin IVA. Paga al entregar: transferencia o efectivo." },
+      "detalle": [
+        "Instalar 1 baño químico.",
+        "Traslado incluido.",
+        "Dejar insumos: papel higiénico y desodorizante.",
+        "Incluye 1 aseo durante las 2 semanas.",
+        "Retiro al finalizar (aprox. 09 de julio)."
+      ],
+      "notas": "Obra de construcción. Recibe a las 9:00 AM, lo más tardar cuando puedan en la mañana. SIN factura (boleta). Cobrar al entregar: transferencia o efectivo. Cliente: Tania.",
+      "estado": "pendiente"
+    },
+    {
       "id": "2026-06-24-loreley-190-la-reina",
       "cliente": "Cliente — Loreley 190 (La Reina)",
       "telefono": "+56 9 4210 7260",

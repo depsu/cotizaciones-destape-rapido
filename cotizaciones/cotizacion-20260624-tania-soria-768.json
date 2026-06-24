@@ -1,0 +1,49 @@
+{
+  "subtitulo": "Arriendo de baño químico — obra Las Condes",
+  "solo_neto": true,
+  "cliente": {
+    "titulo": "CLIENTE",
+    "campos": [
+      ["Nombre", "Tania"],
+      ["Email", "Tachavarry@gmail.com"],
+      ["Teléfono", "+56 9 5911 4408"],
+      ["Dirección", "Soria 768, Las Condes, Región Metropolitana"]
+    ]
+  },
+  "items": [
+    {
+      "descripcion_titulo": "Arriendo de baño químico por 2 semanas",
+      "descripcion_bullets": [
+        "Despacho, instalación y retiro incluidos.",
+        "1 aseo incluido durante el período.",
+        "Disposición final de residuos.",
+        "Insumos: papel higiénico y desodorizante."
+      ],
+      "cantidad": 1,
+      "valor_unitario_neto": 130000
+    }
+  ],
+  "condiciones": [
+    ["Período", "Arriendo por 2 semanas (entrega mañana, retiro aprox. 09 de julio)."],
+    ["Entrega", "Coordinada para mañana en la mañana, desde las 09:00."],
+    ["Forma de pago", "Transferencia electrónica o efectivo, al momento de la entrega."],
+    ["Documento", "Se emite boleta. El valor no lleva IVA adicional."],
+    ["Mantención", "Incluye 1 aseo durante el período. Traslado incluido."],
+    ["Cobertura", "Región Metropolitana."],
+    ["Valores", "Valor total: $130.000, todo incluido (sin IVA adicional)."]
+  ],
+  "observaciones_extra": [
+    "Incluye 1 aseo durante el período; aseos adicionales opcionales tienen un costo de $40.000 cada uno.",
+    "Servicio orientado a obra de construcción; el cliente debe asegurar un lugar estable y accesible para posicionar el baño."
+  ],
+  "datos_transferencia": {
+    "campos": [
+      ["Titular", "BAÑOS LOS PINDUS Y ASOCIADOS SPA"],
+      ["RUT", "78.002.039-3"],
+      ["Banco", "Santander"],
+      ["Tipo de cuenta", "Cuenta Corriente"],
+      ["N° de cuenta", "0000-9611698-5"],
+      ["Email", "contacto@destaperapido.cl"]
+    ]
+  }
+}
