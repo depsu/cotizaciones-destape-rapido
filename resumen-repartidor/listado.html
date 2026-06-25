@@ -135,6 +135,24 @@
   .cp-vacio { color:var(--gris); font-size:13px; margin-top:10px; }
   .estado-online { display:block; margin:0 0 12px; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:600;
     background:#FEF2F2; color:#B91C1C; border:1px solid #FECACA; }
+  /* Pestañas de vista (Entregas / Comisión) */
+  .vistas { display:flex; gap:8px; margin:0 0 14px; }
+  .vista-btn { flex:1 1 0; padding:11px; border:1px solid var(--linea); background:#fff; color:var(--gris);
+    font-family:inherit; font-size:14px; font-weight:700; border-radius:11px; cursor:pointer; min-height:46px; }
+  .vista-btn:active { filter:brightness(.96); }
+  .vista-btn.activo { background:var(--azul); color:#fff; border-color:var(--azul); }
+  .vista[hidden] { display:none; }
+  /* Secciones agregadas (limpiezas / retiros) */
+  .agregado { margin-top:22px; }
+  .ag-lista { list-style:none; margin:8px 0 0; padding:0; }
+  .ag-item { display:flex; align-items:flex-start; gap:10px; padding:11px 12px; margin-top:8px;
+    background:#fff; border:1px solid var(--linea); border-radius:12px; font-size:14px; }
+  .ag-fecha { font-variant-numeric:tabular-nums; white-space:nowrap; color:var(--gris); flex:none; min-width:64px; font-weight:600; }
+  .ag-main { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .ag-dir { color:var(--gris); font-size:13px; overflow-wrap:anywhere; }
+  .ag-sub { color:var(--gris); font-size:13px; }
+  .agregado .lp-badge { align-self:center; }
+  .agregado .lp-valor { align-self:center; }
 </style>
 </head>
 <body>
@@ -143,7 +161,7 @@
     <div class="sub">11 pendiente(s) · Actualizado 25/06/2026</div>
   </header>
   <main>
-    <div id="estado-online" class="estado-online" hidden></div><div id="comision-panel" class="comision-panel" hidden></div><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="conteo">4</span></h2>
+    <div id="estado-online" class="estado-online" hidden></div><div class="vistas"><button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button><button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button></div><div class="vista" data-vista="entregas"><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="conteo">4</span></h2>
     <details class="card" data-id="2026-06-23-don-daniel" data-fecha="2026-06-23" data-estado-orig="pendiente">
       <summary>
         <div class="resumen-top">
@@ -467,7 +485,7 @@
         <div class="bloque"><span class="etq">Notas</span><p>Confirmar dirección exacta / número y punto de instalación con la clienta antes de llegar. Falta RUT para la factura.</p></div>
         <div class="acciones"><a class="btn" href="https://wa.me/56978068907" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 7806 8907" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Camino%20El%20Alba%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana%20%28obra%29" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
-    </details></section>
+    </details></section><section class="agregado"><h2 class="fecha-titulo">🧽 Limpiezas a realizar<span class="conteo">3</span></h2><ul class="ag-lista"><li class="ag-item"><span class="ag-fecha">vie 26 jun</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 1</span><span class="ag-sub">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="ag-item"><span class="ag-fecha">mar 30 jun</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 2</span><span class="ag-sub">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="ag-item"><span class="ag-fecha">vie 3 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 3</span><span class="ag-sub">Aseo incluido en el arriendo.</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></section><section class="agregado"><h2 class="fecha-titulo">📦 Retiros<span class="conteo">5</span></h2><ul class="ag-lista"><li class="ag-item"><span class="ag-fecha">mar 30 jun</span><span class="ag-main"><b>Gino Muñoz (Constructora GMP)</b><span class="ag-dir">📍 Condominio Polo de Manquehue 2, Chicureo, Colina, Región Metropolitana</span><span class="ag-sub">Al finalizar la semana (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mar 7 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Retiro de la unidad (sin limpieza).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mar 7 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR)</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mié 8 jul</span><span class="ag-main"><b>Cliente — Loreley 190 (La Reina)</b><span class="ag-dir">📍 Loreley 190, La Reina, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">jue 9 jul</span><span class="ag-main"><b>Tania (obra Soria 768, Las Condes)</b><span class="ag-dir">📍 Soria 768, Las Condes, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li></ul></section></div><div class="vista" data-vista="comision" hidden><div id="comision-panel" class="comision-panel"></div></div>
   </main>
   <footer>Toca una entrega para ver el detalle · Destape Rápido</footer>
   <script>window.__APP__ = {"url": "https://abmzkzraptmjgebwjzys.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho", "entregas": [{"id": "2026-06-30-innovators-conveyor-belt", "cliente": "Suyen Guíñez — Innovators Conveyor Belt", "fecha": "2026-06-30", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-26-b-carcamo-mair-mantencion", "cliente": "B. Cárcamo (MAIR) — mantención reforzada + retiro", "fecha": "2026-06-26", "neto": 80000, "comision": 0, "comisiona": false, "estado": "pendiente"}, {"id": "2026-06-25-stock-diseno-chicureo", "cliente": "Stock Diseño Ltda. (Local Astop Aramco, Chicureo)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-25-tania-soria-768", "cliente": "Tania (obra Soria 768, Las Condes)", "fecha": "2026-06-25", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-24-loreley-190-la-reina", "cliente": "Cliente — Loreley 190 (La Reina)", "fecha": "2026-06-24", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-23-b-carcamo-mair", "cliente": "B. Cárcamo (MAIR)", "fecha": "2026-06-23", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "entregado"}, {"id": "2026-06-23-gino-munoz", "cliente": "Gino Muñoz (Constructora GMP)", "fecha": "2026-06-23", "neto": 100000, "comision": 20000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-23-don-daniel", "cliente": "Don Daniel", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-25-hercha-ingenieria", "cliente": "Don Eliecer (HERCHA Ingeniería)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-23-pilar-casanueva", "cliente": "Pilar Casanueva (MDA Constructora)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-26-villagra-conchali", "cliente": "Sr. Villagra", "fecha": "2026-06-26", "neto": 170000, "comision": 34000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-26-gamarra-santiago", "cliente": "Sr. Gamarra", "fecha": "2026-06-26", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente"}]};</script>
@@ -660,6 +678,21 @@
     });
   }
 
+  function wireVistas() {
+    var btns = document.querySelectorAll('.vista-btn');
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var v = b.getAttribute('data-vista');
+        btns.forEach(function (x) { x.classList.toggle('activo', x === b); });
+        document.querySelectorAll('.vista').forEach(function (sec) {
+          sec.hidden = (sec.getAttribute('data-vista') !== v);
+        });
+        window.scrollTo(0, 0);
+      });
+    });
+  }
+
+  wireVistas();
   wire();
   load();
 })();

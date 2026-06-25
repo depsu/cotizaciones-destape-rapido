@@ -364,6 +364,24 @@ ESTILOS_EXTRA = """
   .cp-vacio { color:var(--gris); font-size:13px; margin-top:10px; }
   .estado-online { display:block; margin:0 0 12px; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:600;
     background:#FEF2F2; color:#B91C1C; border:1px solid #FECACA; }
+  /* Pestañas de vista (Entregas / Comisión) */
+  .vistas { display:flex; gap:8px; margin:0 0 14px; }
+  .vista-btn { flex:1 1 0; padding:11px; border:1px solid var(--linea); background:#fff; color:var(--gris);
+    font-family:inherit; font-size:14px; font-weight:700; border-radius:11px; cursor:pointer; min-height:46px; }
+  .vista-btn:active { filter:brightness(.96); }
+  .vista-btn.activo { background:var(--azul); color:#fff; border-color:var(--azul); }
+  .vista[hidden] { display:none; }
+  /* Secciones agregadas (limpiezas / retiros) */
+  .agregado { margin-top:22px; }
+  .ag-lista { list-style:none; margin:8px 0 0; padding:0; }
+  .ag-item { display:flex; align-items:flex-start; gap:10px; padding:11px 12px; margin-top:8px;
+    background:#fff; border:1px solid var(--linea); border-radius:12px; font-size:14px; }
+  .ag-fecha { font-variant-numeric:tabular-nums; white-space:nowrap; color:var(--gris); flex:none; min-width:64px; font-weight:600; }
+  .ag-main { flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .ag-dir { color:var(--gris); font-size:13px; overflow-wrap:anywhere; }
+  .ag-sub { color:var(--gris); font-size:13px; }
+  .agregado .lp-badge { align-self:center; }
+  .agregado .lp-valor { align-self:center; }
 """
 
 # JS que carga el estado desde Supabase, cablea los controles de cada tarjeta y
@@ -531,10 +549,85 @@ SCRIPT_ESTADO = r"""<script>
     });
   }
 
+  function wireVistas() {
+    var btns = document.querySelectorAll('.vista-btn');
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var v = b.getAttribute('data-vista');
+        btns.forEach(function (x) { x.classList.toggle('activo', x === b); });
+        document.querySelectorAll('.vista').forEach(function (sec) {
+          sec.hidden = (sec.getAttribute('data-vista') !== v);
+        });
+        window.scrollTo(0, 0);
+      });
+    });
+  }
+
+  wireVistas();
   wire();
   load();
 })();
 </script>"""
+
+
+def seccion_limpiezas(entregas: list) -> str:
+    """Sección agregada con TODAS las limpiezas pendientes, ordenadas por fecha."""
+    filas = []
+    for e in entregas:
+        for lp in (e.get("limpiezas") or []):
+            if lp.get("estado") == "hecha":
+                continue
+            filas.append((lp.get("fecha", ""), e, lp))
+    if not filas:
+        return ""
+    filas.sort(key=lambda x: x[0])
+    items = []
+    for fecha, e, lp in filas:
+        tipo = lp.get("tipo", "incluida")
+        etq_t, col_t, bg_t = TIPO_LIMPIEZA.get(tipo, TIPO_LIMPIEZA["incluida"])
+        valor = lp.get("valor")
+        valor_html = (
+            f'<span class="lp-valor">{esc(clp(valor))}</span>'
+            if tipo == "extra" and valor else ""
+        )
+        nota = f'<span class="ag-sub">{esc(lp.get("nota"))}</span>' if lp.get("nota") else ""
+        items.append(
+            '<li class="ag-item">'
+            f'<span class="ag-fecha">{esc(fecha_corta(fecha))}</span>'
+            f'<span class="ag-main"><b>{esc(e.get("cliente", "—"))}</b>'
+            f'<span class="ag-dir">📍 {esc(e.get("direccion", ""))}</span>'
+            f'<span class="ag-sub">{esc(lp.get("etiqueta") or "Limpieza")}</span>{nota}</span>'
+            f'<span class="lp-badge" style="color:{col_t};background:{bg_t}">{etq_t}</span>'
+            f'{valor_html}</li>'
+        )
+    return (
+        '<section class="agregado"><h2 class="fecha-titulo">🧽 Limpiezas a realizar'
+        f'<span class="conteo">{len(filas)}</span></h2>'
+        f'<ul class="ag-lista">{"".join(items)}</ul></section>'
+    )
+
+
+def seccion_retiros(entregas: list) -> str:
+    """Sección agregada con los retiros programados, ordenados por fecha."""
+    datos = [(r.get("fecha", ""), e, r) for e in entregas if (r := e.get("retiro"))]
+    if not datos:
+        return ""
+    datos.sort(key=lambda x: x[0])
+    items = []
+    for fecha, e, r in datos:
+        nota = f'<span class="ag-sub">{esc(r.get("nota"))}</span>' if r.get("nota") else ""
+        items.append(
+            '<li class="ag-item">'
+            f'<span class="ag-fecha">{esc(fecha_corta(fecha))}</span>'
+            f'<span class="ag-main"><b>{esc(e.get("cliente", "—"))}</b>'
+            f'<span class="ag-dir">📍 {esc(e.get("direccion", ""))}</span>{nota}</span>'
+            '<span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li>'
+        )
+    return (
+        '<section class="agregado"><h2 class="fecha-titulo">📦 Retiros'
+        f'<span class="conteo">{len(datos)}</span></h2>'
+        f'<ul class="ag-lista">{"".join(items)}</ul></section>'
+    )
 
 
 def construir_html(data: dict) -> str:
@@ -575,16 +668,31 @@ def construir_html(data: dict) -> str:
     ).replace("</", "<\\/")  # evita cerrar el <script> con datos
     config_script = f"<script>window.__APP__ = {config_json};</script>"
 
-    # Panel de comisión (lo llena el JS) + aviso de conexión.
-    panel_html = (
-        '<div id="estado-online" class="estado-online" hidden></div>'
-        '<div id="comision-panel" class="comision-panel" hidden></div>'
-    )
-
     # Botón para mostrar las entregas de días anteriores (ocultas por defecto vía JS).
     boton_anteriores = '<button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button>'
-    cuerpo = (panel_html + boton_anteriores + "".join(secciones)) if secciones \
-        else (panel_html + '<p class="vacio">No hay entregas cargadas.</p>')
+
+    # Secciones agregadas que van DEBAJO de las entregas (misma vista).
+    limpiezas_sec = seccion_limpiezas(entregas)
+    retiros_sec = seccion_retiros(entregas)
+
+    if secciones:
+        vista_entregas = boton_anteriores + "".join(secciones) + limpiezas_sec + retiros_sec
+    else:
+        vista_entregas = '<p class="vacio">No hay entregas cargadas.</p>'
+
+    # Barra de pestañas + dos vistas (entregas / comisión). El JS las alterna sin
+    # regenerar la página. El aviso de conexión queda arriba, visible en ambas.
+    cuerpo = (
+        '<div id="estado-online" class="estado-online" hidden></div>'
+        '<div class="vistas">'
+        '<button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button>'
+        '<button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button>'
+        '</div>'
+        f'<div class="vista" data-vista="entregas">{vista_entregas}</div>'
+        '<div class="vista" data-vista="comision" hidden>'
+        '<div id="comision-panel" class="comision-panel"></div>'
+        '</div>'
+    )
     actualizado = date.today().strftime("%d/%m/%Y")
 
     # JS: oculta las secciones de días anteriores (según la fecha REAL del celular)

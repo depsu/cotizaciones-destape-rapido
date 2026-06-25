@@ -1,5 +1,5 @@
 {
-  "_instrucciones": "Entregas CONFIRMADas para el repartidor (el dueño, que cobra al cliente). Una entrega se crea solo cuando Alejandro confirma por WhatsApp, NO por haber enviado una cotización/PDF. Campos por entrega: id (AAAA-MM-DD-cliente-kebab), cliente, telefono, direccion, fecha, hora (opcional), servicio, detalle[], pago{monto:number CLP, nota}, notas, estado (pendiente|en-camino|entregado|cobrado). 'pago' es OBLIGATORIO: es el valor que el repartidor le cobra al cliente. Campo opcional 'comision' (bool, default true): si es false la entrega NO genera comisión para Alejandro (ej. servicios que son solo limpiezas/mantención extra). La comisión es 20% del NETO (si lleva factura, neto = monto/1,19; si es boleta, neto = monto) y solo se cuenta como 'te deben' cuando el estado pasa a 'cobrado'. El estado y la fecha reagendada los cambia el repartidor desde la página y se guardan en Supabase (tabla entrega_estado), no en este archivo. Campo opcional 'limpiezas': lista de limpiezas del servicio para llevar control de las que CORRESPONDEN (incluidas en el arriendo) y las EXTRAS (se cobran aparte). Cada limpieza: {fecha (AAAA-MM-DD), etiqueta (ej. 'Limpieza 1'), tipo ('incluida'|'extra'), valor (CLP neto, solo si es extra), estado ('pendiente'|'hecha'), nota (opcional)}. La página suma automáticamente el total de las extras.",
+  "_instrucciones": "Entregas CONFIRMADas para el repartidor (el dueño, que cobra al cliente). Una entrega se crea solo cuando Alejandro confirma por WhatsApp, NO por haber enviado una cotización/PDF. Campos por entrega: id (AAAA-MM-DD-cliente-kebab), cliente, telefono, direccion, fecha, hora (opcional), servicio, detalle[], pago{monto:number CLP, nota}, notas, estado (pendiente|en-camino|entregado|cobrado). 'pago' es OBLIGATORIO: es el valor que el repartidor le cobra al cliente. Campo opcional 'comision' (bool, default true): si es false la entrega NO genera comisión para Alejandro (ej. servicios que son solo limpiezas/mantención extra). La comisión es 20% del NETO (si lleva factura, neto = monto/1,19; si es boleta, neto = monto) y solo se cuenta como 'te deben' cuando el estado pasa a 'cobrado'. El estado y la fecha reagendada los cambia el repartidor desde la página y se guardan en Supabase (tabla entrega_estado), no en este archivo. Campo opcional 'limpiezas': lista de limpiezas del servicio para llevar control de las que CORRESPONDEN (incluidas en el arriendo) y las EXTRAS (se cobran aparte). Cada limpieza: {fecha (AAAA-MM-DD), etiqueta (ej. 'Limpieza 1'), tipo ('incluida'|'extra'), valor (CLP neto, solo si es extra), estado ('pendiente'|'hecha'), nota (opcional)}. La página suma automáticamente el total de las extras. Campo opcional 'retiro': {fecha (AAAA-MM-DD), nota}: día en que se retira la unidad; la página arma una sección 'Retiros' ordenada por fecha. La vista de entregas también muestra una sección 'Limpiezas a realizar' que junta todas las limpiezas pendientes de todas las entregas, y la comisión está en una vista aparte que se abre con un botón.",
   "repartidor": {
     "nombre": "Repartidor",
     "telefono": "+56 9 2196 4789"
@@ -35,6 +35,7 @@
     },
     {
       "id": "2026-06-26-b-carcamo-mair-mantencion",
+      "retiro": { "fecha": "2026-07-07", "nota": "Retiro de la unidad (sin limpieza)." },
       "cliente": "B. Cárcamo (MAIR) — mantención reforzada + retiro",
       "telefono": "+56 9 3380 0237",
       "direccion": "Curicó 517, Santiago Centro, Región Metropolitana",
@@ -120,6 +121,7 @@
     },
     {
       "id": "2026-06-25-tania-soria-768",
+      "retiro": { "fecha": "2026-07-09", "nota": "Al finalizar las 2 semanas (aprox.)." },
       "cliente": "Tania (obra Soria 768, Las Condes)",
       "telefono": "+56 9 5911 4408",
       "direccion": "Soria 768, Las Condes, Región Metropolitana",
@@ -144,6 +146,7 @@
     },
     {
       "id": "2026-06-24-loreley-190-la-reina",
+      "retiro": { "fecha": "2026-07-08", "nota": "Al finalizar las 2 semanas (aprox.)." },
       "cliente": "Cliente — Loreley 190 (La Reina)",
       "telefono": "+56 9 4210 7260",
       "direccion": "Loreley 190, La Reina, Región Metropolitana",
@@ -168,6 +171,7 @@
     },
     {
       "id": "2026-06-23-b-carcamo-mair",
+      "retiro": { "fecha": "2026-07-07", "nota": "Al finalizar las 2 semanas (aprox.)." },
       "cliente": "B. Cárcamo (MAIR)",
       "telefono": "+56 9 3380 0237",
       "direccion": "Curicó 517, Santiago Centro, Región Metropolitana",
@@ -198,6 +202,7 @@
     },
     {
       "id": "2026-06-23-gino-munoz",
+      "retiro": { "fecha": "2026-06-30", "nota": "Al finalizar la semana (aprox.)." },
       "cliente": "Gino Muñoz (Constructora GMP)",
       "telefono": "+56 9 5387 2435",
       "direccion": "Condominio Polo de Manquehue 2, Chicureo, Colina, Región Metropolitana",
