@@ -15,7 +15,7 @@
       "servicio": "Plan de mantención reforzada (2 limpiezas extra + recarga de agua) y retiro del baño ya instalado",
       "cantidad": 1,
       "aseo": "Limpieza 1: viernes 26 jun · Limpieza 2: martes 30 jun · Limpieza 3: viernes 3 jul · Retiro: martes 7 jul (sin limpieza).",
-      "pago": { "monto": 130900, "nota": "Servicio adicional: 2 limpiezas extra ($40.000 c/u) + recarga de agua del lavamanos ($30.000) = $110.000 neto + IVA = $130.900. Se factura a MAIR. (El arriendo del baño ya fue pagado por separado)." },
+      "pago": { "monto": 95200, "nota": "Servicio adicional: 2 servicios de mantención (limpieza + recarga de agua, todo incluido) a $40.000 c/u = $80.000 neto + IVA = $95.200. Se factura a MAIR. (El arriendo del baño ya fue pagado por separado)." },
       "factura": {
         "requiere": true,
         "razon_social": "PENDIENTE — MAIR (el cliente enviará los datos de la empresa)",
@@ -30,7 +30,7 @@
         "Recarga de agua del lavamanos según corresponda.",
         "El baño debe mantenerse lo más presentable/impecable posible (lo pidió el cliente)."
       ],
-      "notas": "Cliente existente (baño ya instalado y pagado en Curicó 517). Esto es SOLO el plan de mantención reforzada + retiro. Cobro pendiente del refuerzo: $110.000 neto + IVA = $130.900 (factura MAIR). Confirmar razón social y RUT al facturar.",
+      "notas": "Cliente existente (baño ya instalado y pagado en Curicó 517). Esto es SOLO el plan de mantención reforzada + retiro. Cobro pendiente del refuerzo: 2 servicios todo incluido a $40.000 c/u = $80.000 neto + IVA = $95.200 (factura MAIR). Confirmar razón social y RUT al facturar.",
       "estado": "pendiente"
     },
     {

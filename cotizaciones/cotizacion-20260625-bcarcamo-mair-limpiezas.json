@@ -12,21 +12,14 @@
   },
   "items": [
     {
-      "descripcion_titulo": "Limpieza extra de baño químico (refuerzo de mantención)",
+      "descripcion_titulo": "Servicio de mantención reforzada (limpieza + recarga de agua)",
       "descripcion_bullets": [
-        "Aseo adicional a las limpiezas incluidas en el arriendo.",
-        "Incluye desodorizante y reposición de insumos básicos."
+        "Aseo del baño adicional a las limpiezas incluidas en el arriendo.",
+        "Incluye recarga de agua del lavamanos, desodorizante y reposición de insumos básicos.",
+        "Valor todo incluido por servicio."
       ],
       "cantidad": 2,
       "valor_unitario_neto": 40000
-    },
-    {
-      "descripcion_titulo": "Llenado / recarga de agua del lavamanos",
-      "descripcion_bullets": [
-        "Recarga de agua limpia del lavamanos de la unidad."
-      ],
-      "cantidad": 1,
-      "valor_unitario_neto": 30000
     }
   ],
   "condiciones_extra": [
