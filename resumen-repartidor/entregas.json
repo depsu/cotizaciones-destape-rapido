@@ -6,6 +6,31 @@
   },
   "entregas": [
     {
+      "id": "2026-06-25-stock-diseno-chicureo",
+      "cliente": "Stock Diseño Ltda. (Local Astop Aramco, Chicureo)",
+      "telefono": "+56 9 9918 9274",
+      "direccion": "Av. Chicureo 2300, Chicureo, Región Metropolitana (Local Astop Aramco)",
+      "fecha": "2026-06-25",
+      "hora": "Hoy (confirmar hora de recepción con el cliente)",
+      "servicio": "1 baño químico — arriendo mensual",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": { "monto": 190400, "nota": "$160.000 neto + IVA = $190.400. Se emite factura a Stock Diseño Ltda. Cobrar al entregar." },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Stock Diseño Ltda.",
+        "rut": "76.327.169-2"
+      },
+      "detalle": [
+        "Instalar 1 baño químico.",
+        "Traslado incluido.",
+        "Dejar insumos: papel higiénico y desodorizante.",
+        "Aseo semanal incluido (cada 7 a 10 días)."
+      ],
+      "notas": "Cliente necesita el baño HOY. PENDIENTE: confirmar hora de recepción al coordinar (el cliente aún no la dio). Factura a Stock Diseño Ltda. (RUT 76.327.169-2). Ubicación: Local Astop Aramco (estación de servicio).",
+      "estado": "pendiente"
+    },
+    {
       "id": "2026-06-25-tania-soria-768",
       "cliente": "Tania (obra Soria 768, Las Condes)",
       "telefono": "+56 9 5911 4408",
