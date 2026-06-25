@@ -1,0 +1,40 @@
+{
+  "subtitulo": "Arriendo mensual de baño químico",
+  "cliente": {
+    "titulo": "CLIENTE",
+    "campos": [
+      ["Razón social", "Innovators Conveyor Belt"],
+      ["Contacto", "Suyen Guíñez"],
+      ["Teléfono", "+56 9 7806 8907"],
+      ["Email", "suyen.guinez@innovatorsconveyorbelt.cl"],
+      ["Dirección", "Camino El Alba, Las Condes, Región Metropolitana (obra)"]
+    ]
+  },
+  "items": [
+    {
+      "descripcion_titulo": "Arriendo mensual de baño químico",
+      "descripcion_bullets": [
+        "Despacho, instalación y retiro incluidos.",
+        "Limpieza semanal (cada 7 a 10 días) incluida.",
+        "Traslado y disposición final de residuos incluidos.",
+        "Insumos: papel higiénico y desodorizante."
+      ],
+      "cantidad": 1,
+      "valor_unitario_neto": 160000
+    }
+  ],
+  "condiciones_extra": [
+    ["Período", "Arriendo mensual (hasta 30 días) con renovación automática."],
+    ["Entrega", "Reserva confirmada para el martes 30 de junio de 2026."]
+  ],
+  "datos_transferencia": {
+    "campos": [
+      ["Titular", "BAÑOS LOS PINDUS Y ASOCIADOS SPA"],
+      ["RUT", "78.002.039-3"],
+      ["Banco", "Santander"],
+      ["Tipo de cuenta", "Cuenta Corriente"],
+      ["N° de cuenta", "0000-9611698-5"],
+      ["Email", "contacto@destaperapido.cl"]
+    ]
+  }
+}

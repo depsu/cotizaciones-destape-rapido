@@ -6,6 +6,34 @@
   },
   "entregas": [
     {
+      "id": "2026-06-30-innovators-conveyor-belt",
+      "cliente": "Suyen Guíñez — Innovators Conveyor Belt",
+      "telefono": "+56 9 7806 8907",
+      "direccion": "Camino El Alba, Las Condes, Región Metropolitana (obra)",
+      "fecha": "2026-06-30",
+      "hora": "",
+      "servicio": "1 baño químico — arriendo mensual (hasta 30 días)",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": {
+        "monto": 190400,
+        "nota": "Mensual. Cobrar al entregar. $160.000 neto + IVA (lleva factura)."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Innovators Conveyor Belt",
+        "rut": "",
+        "email": "suyen.guinez@innovatorsconveyorbelt.cl"
+      },
+      "detalle": [
+        "Instalar 1 baño químico en la obra (Camino El Alba, Las Condes).",
+        "Dejar insumos: papel higiénico y desodorizante.",
+        "Reserva confirmada para el martes 30."
+      ],
+      "notas": "Confirmar dirección exacta / número y punto de instalación con la clienta antes de llegar. Falta RUT para la factura.",
+      "estado": "pendiente"
+    },
+    {
       "id": "2026-06-26-b-carcamo-mair-mantencion",
       "cliente": "B. Cárcamo (MAIR) — mantención reforzada + retiro",
       "telefono": "+56 9 3380 0237",
@@ -16,11 +44,34 @@
       "cantidad": 1,
       "aseo": "Plan de mantención reforzada (ver detalle en Limpiezas). Retiro: martes 7 jul (sin limpieza).",
       "limpiezas": [
-        { "fecha": "2026-06-26", "etiqueta": "Limpieza 1", "tipo": "extra", "valor": 40000, "estado": "pendiente", "nota": "Incluye recarga de agua del lavamanos." },
-        { "fecha": "2026-06-30", "etiqueta": "Limpieza 2", "tipo": "extra", "valor": 40000, "estado": "pendiente", "nota": "Incluye recarga de agua del lavamanos." },
-        { "fecha": "2026-07-03", "etiqueta": "Limpieza 3", "tipo": "incluida", "estado": "pendiente", "nota": "Aseo incluido en el arriendo." }
+        {
+          "fecha": "2026-06-26",
+          "etiqueta": "Limpieza 1",
+          "tipo": "extra",
+          "valor": 40000,
+          "estado": "pendiente",
+          "nota": "Incluye recarga de agua del lavamanos."
+        },
+        {
+          "fecha": "2026-06-30",
+          "etiqueta": "Limpieza 2",
+          "tipo": "extra",
+          "valor": 40000,
+          "estado": "pendiente",
+          "nota": "Incluye recarga de agua del lavamanos."
+        },
+        {
+          "fecha": "2026-07-03",
+          "etiqueta": "Limpieza 3",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo."
+        }
       ],
-      "pago": { "monto": 95200, "nota": "Servicio adicional: 2 servicios de mantención (limpieza + recarga de agua, todo incluido) a $40.000 c/u = $80.000 neto + IVA = $95.200. Se factura a MAIR. (El arriendo del baño ya fue pagado por separado)." },
+      "pago": {
+        "monto": 95200,
+        "nota": "Servicio adicional: 2 servicios de mantención (limpieza + recarga de agua, todo incluido) a $40.000 c/u = $80.000 neto + IVA = $95.200. Se factura a MAIR. (El arriendo del baño ya fue pagado por separado)."
+      },
       "factura": {
         "requiere": true,
         "razon_social": "PENDIENTE — MAIR (el cliente enviará los datos de la empresa)",
@@ -48,7 +99,10 @@
       "servicio": "1 baño químico — arriendo mensual",
       "cantidad": 1,
       "aseo": "",
-      "pago": { "monto": 190400, "nota": "$160.000 neto + IVA = $190.400. Se emite factura a Stock Diseño Ltda. Cobrar al entregar." },
+      "pago": {
+        "monto": 190400,
+        "nota": "$160.000 neto + IVA = $190.400. Se emite factura a Stock Diseño Ltda. Cobrar al entregar."
+      },
       "factura": {
         "requiere": true,
         "razon_social": "Stock Diseño Ltda.",
@@ -73,7 +127,10 @@
       "servicio": "1 baño químico — arriendo por 2 semanas",
       "cantidad": 1,
       "aseo": "Incluye 1 aseo durante el período. Aseo extra opcional: $40.000 c/u.",
-      "pago": { "monto": 130000, "nota": "$130.000 total. SIN factura (boleta), sin IVA. Paga al entregar: transferencia o efectivo." },
+      "pago": {
+        "monto": 130000,
+        "nota": "$130.000 total. SIN factura (boleta), sin IVA. Paga al entregar: transferencia o efectivo."
+      },
       "detalle": [
         "Instalar 1 baño químico.",
         "Traslado incluido.",
@@ -94,7 +151,10 @@
       "servicio": "1 baño químico — arriendo por 2 semanas",
       "cantidad": 1,
       "aseo": "Incluye 1 limpieza.",
-      "pago": { "monto": 130000, "nota": "$130.000 neto por las 2 semanas. Sin factura. Cobrar al entregar." },
+      "pago": {
+        "monto": 130000,
+        "nota": "$130.000 neto por las 2 semanas. Sin factura. Cobrar al entregar."
+      },
       "detalle": [
         "Instalar 1 baño químico.",
         "Incluye 1 limpieza.",
@@ -115,7 +175,10 @@
       "servicio": "1 baño químico — arriendo por 2 semanas",
       "cantidad": 1,
       "aseo": "Incluye aseo gratis semanal (1 por semana = 2 en las 2 semanas). El cliente quiere reforzar a 2 limpiezas/semana + recarga de agua → ese refuerzo es el aseo extra pendiente de cobrar.",
-      "pago": { "monto": 154700, "nota": "PAGADO el baño ($130.000 neto + IVA = $154.700). Pendiente aparte: aseo extra / plan de mantención (por definir y cobrar)." },
+      "pago": {
+        "monto": 154700,
+        "nota": "PAGADO el baño ($130.000 neto + IVA = $154.700). Pendiente aparte: aseo extra / plan de mantención (por definir y cobrar)."
+      },
       "factura": {
         "requiere": true,
         "razon_social": "PENDIENTE — MAIR (el cliente enviará los datos de la empresa)",
@@ -142,7 +205,10 @@
       "servicio": "1 baño químico — arriendo por 1 semana",
       "cantidad": 1,
       "aseo": "Sin aseo periódico (arriendo corto). Limpieza al finalizar el servicio, al retirar. Aseo extra opcional: $40.000 c/u.",
-      "pago": { "monto": 119000, "nota": "$100.000 neto + IVA (incluye traslado; limpieza al finalizar el servicio). Se emite factura. Cobrar al entregar." },
+      "pago": {
+        "monto": 119000,
+        "nota": "$100.000 neto + IVA (incluye traslado; limpieza al finalizar el servicio). Se emite factura. Cobrar al entregar."
+      },
       "factura": {
         "requiere": true,
         "razon_social": "Gino Enrique Muñoz Pavez",
@@ -169,7 +235,10 @@
       "servicio": "1 baño químico — arriendo mensual (obra)",
       "cantidad": 1,
       "aseo": "",
-      "pago": { "monto": 190400, "nota": "$160.000 neto + IVA (descuento de la semana). Se emite factura. Cobrar al entregar." },
+      "pago": {
+        "monto": 190400,
+        "nota": "$160.000 neto + IVA (descuento de la semana). Se emite factura. Cobrar al entregar."
+      },
       "factura": {
         "requiere": true
       },
@@ -190,7 +259,10 @@
       "hora": "10:00 a 11:30 AM",
       "servicio": "1 baño químico — arriendo mensual",
       "aseo": "",
-      "pago": { "monto": 190400, "nota": "$160.000 neto + IVA. Se emite factura a HERCHA." },
+      "pago": {
+        "monto": 190400,
+        "nota": "$160.000 neto + IVA. Se emite factura a HERCHA."
+      },
       "factura": {
         "requiere": true,
         "razon_social": "HERCHA INGENIERIA Y SERVICIOS SpA",
@@ -216,7 +288,10 @@
       "servicio": "1 baño químico — arriendo mensual (obra)",
       "cantidad": 1,
       "aseo": "",
-      "pago": { "monto": 190400, "nota": "$160.000 neto + IVA (oferta de la semana; incluye traslado ida y vuelta y aseo semanal). Se emite factura. Cobrar al entregar." },
+      "pago": {
+        "monto": 190400,
+        "nota": "$160.000 neto + IVA (oferta de la semana; incluye traslado ida y vuelta y aseo semanal). Se emite factura. Cobrar al entregar."
+      },
       "factura": {
         "requiere": true,
         "razon_social": "MDA Constructora",
@@ -229,6 +304,32 @@
         "Aseo semanal incluido (cada 7 a 10 días)."
       ],
       "notas": "Preguntar por PILAR CASANUEVA al llegar. Jefe de obra en terreno: David Durán, +56 9 8805 1486. Contacto que coordinó por WhatsApp: +56 9 4550 7354. Cliente necesita el baño HOY (trabajadores ya en obra). Arriendo mensual, puede extenderse.",
+      "estado": "pendiente"
+    },
+    {
+      "id": "2026-06-26-villagra-conchali",
+      "cliente": "Sr. Villagra",
+      "telefono": "+56 9 3300 3076",
+      "direccion": "Campanario 1749, Conchalí, Región Metropolitana",
+      "fecha": "2026-06-26",
+      "hora": "Durante el día",
+      "servicio": "1 baño químico — arriendo mensual",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": {
+        "monto": 170000,
+        "nota": "$170.000 todo incluido (oferta mensual). SIN factura, se emite BOLETA — no lleva IVA adicional. Cobrar al entregar."
+      },
+      "factura": {
+        "requiere": false
+      },
+      "detalle": [
+        "Instalar 1 baño químico.",
+        "Traslado ida y vuelta incluido.",
+        "Dejar insumos: papel higiénico y desodorizante.",
+        "Aseo semanal incluido (cada 7 a 10 días)."
+      ],
+      "notas": "Lo contacta el repartidor. Arriendo mensual (30 días), puede extenderse si lo pide. Confirmar acceso al llegar.",
       "estado": "pendiente"
     }
   ]
