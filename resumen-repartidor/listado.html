@@ -84,6 +84,15 @@
   }
   .btn:active { filter:brightness(.92); }
   .vacio { text-align:center; color:var(--gris); margin-top:40px; }
+  .ver-anteriores {
+    display:block; width:100%; margin:4px 0 6px; padding:12px; border:1px dashed var(--linea);
+    background:#fff; color:var(--gris); font-size:14px; font-weight:600; border-radius:12px;
+    cursor:pointer; font-family:inherit;
+  }
+  .ver-anteriores:active { background:var(--fondo); }
+  section.pasada { display:none; }
+  section.pasada.mostrar { display:block; }
+  section.pasada .card { opacity:.72; }
   footer { text-align:center; color:var(--gris); font-size:12px; padding:24px 16px 40px; }
 </style>
 </head>
@@ -93,7 +102,7 @@
     <div class="sub">8 pendiente(s) · Actualizado 25/06/2026</div>
   </header>
   <main>
-    <section><h2 class="fecha-titulo">Martes 23 de junio<span class="conteo">4</span></h2>
+    <button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="conteo">4</span></h2>
     <details class="card">
       <summary>
         <div class="resumen-top">
@@ -193,7 +202,7 @@
         <div class="bloque"><span class="etq">Notas</span><p>Preguntar por PILAR CASANUEVA al llegar. Jefe de obra en terreno: David Durán, +56 9 8805 1486. Contacto que coordinó por WhatsApp: +56 9 4550 7354. Cliente necesita el baño HOY (trabajadores ya en obra). Arriendo mensual, puede extenderse.</p></div>
         <div class="acciones"><a class="btn" href="https://wa.me/56988051486" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 8805 1486" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=El%20Rinc%C3%B3n%2012382%2C%20casa%205%2C%20Lo%20Barnechea%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
-    </details></section><section><h2 class="fecha-titulo">Miércoles 24 de junio<span class="conteo">1</span></h2>
+    </details></section><section data-fecha="2026-06-24"><h2 class="fecha-titulo">Miércoles 24 de junio<span class="conteo">1</span></h2>
     <details class="card">
       <summary>
         <div class="resumen-top">
@@ -218,7 +227,7 @@
         <div class="bloque"><span class="etq">Notas</span><p>ADULTOS MAYORES — tener paciencia y buen trato. No se tiene el nombre de la persona. Teléfono principal +56 9 4210 7260 sirve para WhatsApp y llamada; 2º teléfono +56 9 9694 0919 es SOLO para llamada (no WhatsApp).</p></div>
         <div class="acciones"><a class="btn" href="https://wa.me/56942107260" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 4210 7260" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Loreley%20190%2C%20La%20Reina%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
-    </details></section><section><h2 class="fecha-titulo">Jueves 25 de junio<span class="conteo">3</span></h2>
+    </details></section><section data-fecha="2026-06-25"><h2 class="fecha-titulo">Jueves 25 de junio<span class="conteo">3</span></h2>
     <details class="card">
       <summary>
         <div class="resumen-top">
@@ -293,7 +302,7 @@
         <div class="bloque"><span class="etq">Notas</span><p>Cliente necesita el baño HOY. PENDIENTE: confirmar hora de recepción al coordinar (el cliente aún no la dio). Factura a Stock Diseño Ltda. (RUT 76.327.169-2). Ubicación: Local Astop Aramco (estación de servicio).</p></div>
         <div class="acciones"><a class="btn" href="https://wa.me/56999189274" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9918 9274" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Chicureo%202300%2C%20Chicureo%2C%20Regi%C3%B3n%20Metropolitana%20%28Local%20Astop%20Aramco%29" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
-    </details></section><section><h2 class="fecha-titulo">Viernes 26 de junio<span class="conteo">1</span></h2>
+    </details></section><section data-fecha="2026-06-26"><h2 class="fecha-titulo">Viernes 26 de junio<span class="conteo">1</span></h2>
     <details class="card">
       <summary>
         <div class="resumen-top">
@@ -321,5 +330,31 @@
     </details></section>
   </main>
   <footer>Toca una entrega para ver el detalle · Destape Rápido</footer>
+  <script>
+(function () {
+  var ahora = new Date();
+  var hoyISO = ahora.getFullYear() + '-' +
+    String(ahora.getMonth() + 1).padStart(2, '0') + '-' +
+    String(ahora.getDate()).padStart(2, '0');
+  var pasadas = [];
+  document.querySelectorAll('section[data-fecha]').forEach(function (s) {
+    var f = s.getAttribute('data-fecha');
+    if (f && f < hoyISO) { s.classList.add('pasada'); pasadas.push(s); }
+  });
+  var btn = document.getElementById('toggle-anteriores');
+  if (!btn) { return; }
+  if (pasadas.length === 0) { btn.remove(); return; }
+  var abierto = false;
+  function pintar() {
+    pasadas.forEach(function (s) { s.classList.toggle('mostrar', abierto); });
+    btn.textContent = abierto
+      ? '\u25B4 Ocultar anteriores'
+      : '\u25BE Ver anteriores (' + pasadas.length + ')';
+  }
+  btn.hidden = false;
+  btn.addEventListener('click', function () { abierto = !abierto; pintar(); });
+  pintar();
+})();
+</script>
 </body>
 </html>

@@ -271,12 +271,45 @@ def construir_html(data: dict) -> str:
     for fecha, items in grupos.items():
         tarjetas = "".join(tarjeta(e) for e in items)
         secciones.append(
-            f'<section><h2 class="fecha-titulo">{esc(encabezado_fecha(fecha))}'
+            f'<section data-fecha="{esc(fecha)}"><h2 class="fecha-titulo">{esc(encabezado_fecha(fecha))}'
             f'<span class="conteo">{len(items)}</span></h2>{tarjetas}</section>'
         )
 
-    cuerpo = "".join(secciones) if secciones else '<p class="vacio">No hay entregas cargadas.</p>'
+    # Botón para mostrar las entregas de días anteriores (ocultas por defecto vía JS).
+    boton_anteriores = '<button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button>'
+    cuerpo = (boton_anteriores + "".join(secciones)) if secciones \
+        else '<p class="vacio">No hay entregas cargadas.</p>'
     actualizado = date.today().strftime("%d/%m/%Y")
+
+    # JS: oculta las secciones de días anteriores (según la fecha REAL del celular)
+    # y muestra un botón "Ver anteriores" para desplegarlas. No es f-string: las
+    # llaves van literales (no se duplican).
+    script = """<script>
+(function () {
+  var ahora = new Date();
+  var hoyISO = ahora.getFullYear() + '-' +
+    String(ahora.getMonth() + 1).padStart(2, '0') + '-' +
+    String(ahora.getDate()).padStart(2, '0');
+  var pasadas = [];
+  document.querySelectorAll('section[data-fecha]').forEach(function (s) {
+    var f = s.getAttribute('data-fecha');
+    if (f && f < hoyISO) { s.classList.add('pasada'); pasadas.push(s); }
+  });
+  var btn = document.getElementById('toggle-anteriores');
+  if (!btn) { return; }
+  if (pasadas.length === 0) { btn.remove(); return; }
+  var abierto = false;
+  function pintar() {
+    pasadas.forEach(function (s) { s.classList.toggle('mostrar', abierto); });
+    btn.textContent = abierto
+      ? '\\u25B4 Ocultar anteriores'
+      : '\\u25BE Ver anteriores (' + pasadas.length + ')';
+  }
+  btn.hidden = false;
+  btn.addEventListener('click', function () { abierto = !abierto; pintar(); });
+  pintar();
+})();
+</script>"""
 
     return f"""<!DOCTYPE html>
 <html lang="es">
@@ -364,6 +397,15 @@ def construir_html(data: dict) -> str:
   }}
   .btn:active {{ filter:brightness(.92); }}
   .vacio {{ text-align:center; color:var(--gris); margin-top:40px; }}
+  .ver-anteriores {{
+    display:block; width:100%; margin:4px 0 6px; padding:12px; border:1px dashed var(--linea);
+    background:#fff; color:var(--gris); font-size:14px; font-weight:600; border-radius:12px;
+    cursor:pointer; font-family:inherit;
+  }}
+  .ver-anteriores:active {{ background:var(--fondo); }}
+  section.pasada {{ display:none; }}
+  section.pasada.mostrar {{ display:block; }}
+  section.pasada .card {{ opacity:.72; }}
   footer {{ text-align:center; color:var(--gris); font-size:12px; padding:24px 16px 40px; }}
 </style>
 </head>
@@ -376,6 +418,7 @@ def construir_html(data: dict) -> str:
     {cuerpo}
   </main>
   <footer>Toca una entrega para ver el detalle · Destape Rápido</footer>
+  {script}
 </body>
 </html>
 """

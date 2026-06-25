@@ -1,0 +1,52 @@
+{
+  "subtitulo": "Arriendo mensual de baño químico — Conchalí",
+  "solo_neto": true,
+  "cliente": {
+    "titulo": "CLIENTE",
+    "campos": [
+      ["Nombre", "Sr. Villagra"],
+      ["Email", "m.villagra.1979.mv@gmail.com"],
+      ["Teléfono", "+56 9 3300 3076"],
+      ["Dirección", "Campanario 1749, Conchalí, Región Metropolitana"]
+    ]
+  },
+  "items": [
+    {
+      "descripcion_titulo": "Arriendo mensual de baño químico",
+      "descripcion_bullets": [
+        "Despacho, instalación y retiro incluidos.",
+        "Traslado ida y vuelta incluido.",
+        "Aseo semanal incluido (cada 7 a 10 días).",
+        "Disposición final de residuos a cargo de Destape Rápido.",
+        "Insumos: papel higiénico y desodorizante."
+      ],
+      "cantidad": 1,
+      "valor_unitario_neto": 170000
+    }
+  ],
+  "condiciones": [
+    ["Período", "Mensual (30 días), con renovación coordinable. Entrega mañana."],
+    ["Promoción", "Valor preferente de la semana: $170.000 al mes, todo incluido."],
+    ["Entrega", "Coordinada para mañana; el repartidor lo contactará."],
+    ["Forma de pago", "Transferencia electrónica o efectivo, al momento de la entrega."],
+    ["Documento", "Se emite boleta. El valor no lleva IVA adicional."],
+    ["Mantención", "Aseo semanal incluido (cada 7 a 10 días). Traslado y retiro incluidos."],
+    ["Cobertura", "Región Metropolitana."],
+    ["Valores", "Valor total: $170.000 al mes, todo incluido (sin IVA adicional)."]
+  ],
+  "observaciones_extra": [
+    "El valor mensual incluye traslado ida y vuelta, aseo semanal y retiro al término del servicio.",
+    "Si necesita extender el período, se coordina sin problema.",
+    "El cliente debe asegurar un lugar estable y accesible para posicionar el baño químico."
+  ],
+  "datos_transferencia": {
+    "campos": [
+      ["Titular", "BAÑOS LOS PINDUS Y ASOCIADOS SPA"],
+      ["RUT", "78.002.039-3"],
+      ["Banco", "Santander"],
+      ["Tipo de cuenta", "Cuenta Corriente"],
+      ["N° de cuenta", "0000-9611698-5"],
+      ["Email", "contacto@destaperapido.cl"]
+    ]
+  }
+}
