@@ -363,6 +363,38 @@
       ],
       "notas": "Lo contacta el repartidor para coordinar horario. PEDIR LOS DATOS DE FACTURACIÓN al coordinar la entrega (razón social, RUT, giro, dirección). Arriendo por 2 meses con prolongación a 3. Confirmar acceso al llegar.",
       "estado": "pendiente"
+    },
+    {
+      "id": "2026-06-23-grupo-b-nunoa",
+      "cliente": "Grupo B SpA (obra Ñuñoa)",
+      "telefono": "+56 9 5083 1752",
+      "direccion": "Pasaje Juan Moya 368, Ñuñoa, Región Metropolitana",
+      "fecha": "2026-06-23",
+      "hora": "Entregado a primera hora",
+      "servicio": "1 baño químico — arriendo mensual (2 meses)",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": {
+        "monto": 190400,
+        "nota": "$160.000 neto + IVA = $190.400 al mes. Factura a Grupo B SpA. Ya entregado y cobrado."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Grupo B SpA",
+        "rut": "76.743.140-6",
+        "giro": "Inmobiliaria",
+        "direccion": "Benvenuto Cellini 8082, Las Condes"
+      },
+      "detalle": [
+        "Instalar 1 baño químico.",
+        "Traslado incluido.",
+        "Dejar insumos: papel higiénico y desodorizante.",
+        "Aseo semanal incluido (cada 7 a 10 días).",
+        "Limpieza extra opcional: $30.000 c/u si pide más frecuencia."
+      ],
+      "notas": "Persona en terreno: Jonathan Bastías +56 9 5083 1752. Persona con la que se cerró el negocio: +56 9 9538 4264. Arriendo por 2 meses. ENTREGADO Y COBRADO. Comisión de Alejandro ($32.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).",
+      "estado": "cobrado",
+      "comision_pagada": true
     }
   ]
 }

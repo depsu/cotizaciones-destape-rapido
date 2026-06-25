@@ -429,7 +429,11 @@ SCRIPT_ESTADO = r"""<script>
     if (st && st.fecha) return st.fecha;
     return (META[id] && META[id].fecha) || '';
   }
-  function pagadaDe(id) { var st = estado[id]; return !!(st && st.comision_pagada); }
+  function pagadaDe(id) {
+    var st = estado[id];
+    if (st && typeof st.comision_pagada === 'boolean') return st.comision_pagada;
+    return !!(META[id] && META[id].comision_pagada);
+  }
 
   function pintarCard(card) {
     var id = card.getAttribute('data-id');
@@ -659,6 +663,7 @@ def construir_html(data: dict) -> str:
             "comision": comision_de(e),
             "comisiona": comisiona(e),
             "estado": e.get("estado", "pendiente"),
+            "comision_pagada": bool(e.get("comision_pagada", False)),
         }
         for e in entregas
     ]
