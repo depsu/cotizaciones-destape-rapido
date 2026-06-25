@@ -343,11 +343,11 @@
       "cantidad": 1,
       "aseo": "",
       "pago": {
-        "monto": 160000,
-        "nota": "$160.000 al mes, todo incluido. SIN factura, se emite BOLETA — no lleva IVA adicional. Arriendo 2 meses (prolongable a 3). Cobrar el primer mes ($160.000) al entregar."
+        "monto": 190400,
+        "nota": "$160.000 neto + IVA = $190.400 al mes, todo incluido. Se emite FACTURA. Arriendo 2 meses (prolongable a 3). Cobrar el primer mes ($190.400) al entregar."
       },
       "factura": {
-        "requiere": false
+        "requiere": true
       },
       "detalle": [
         "Instalar 1 baño químico.",
@@ -355,7 +355,7 @@
         "Dejar insumos: papel higiénico y desodorizante.",
         "Aseo semanal incluido (cada 7 a 10 días)."
       ],
-      "notas": "Lo contacta el repartidor para coordinar horario. Arriendo por 2 meses con prolongación a 3. Confirmar acceso al llegar.",
+      "notas": "Lo contacta el repartidor para coordinar horario. PEDIR LOS DATOS DE FACTURACIÓN al coordinar la entrega (razón social, RUT, giro, dirección). Arriendo por 2 meses con prolongación a 3. Confirmar acceso al llegar.",
       "estado": "pendiente"
     }
   ]

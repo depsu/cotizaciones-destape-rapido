@@ -1,6 +1,5 @@
 {
   "subtitulo": "Arriendo mensual de baño químico — Santiago",
-  "solo_neto": true,
   "cliente": {
     "titulo": "CLIENTE",
     "campos": [
@@ -26,13 +25,13 @@
   ],
   "condiciones": [
     ["Período", "Arriendo por 2 meses, con prolongación a 3 coordinable. Se cobra mensual (30 días)."],
-    ["Promoción", "Valor mensual con descuento: $160.000 al mes, todo incluido."],
+    ["Promoción", "Valor mensual con descuento: $160.000 neto al mes, todo incluido."],
     ["Entrega", "Coordinada para mañana; el repartidor lo contactará."],
     ["Forma de pago", "Transferencia electrónica o efectivo, al momento de la entrega de cada mes."],
-    ["Documento", "Se emite boleta. El valor no lleva IVA adicional."],
+    ["Facturación", "Se emite factura electrónica. Datos de facturación pendientes — el cliente los entrega al coordinar la entrega (razón social, RUT, giro, dirección)."],
     ["Mantención", "Aseo semanal incluido (cada 7 a 10 días). Traslado y retiro incluidos."],
     ["Cobertura", "Región Metropolitana."],
-    ["Valores", "Valor total: $160.000 al mes, todo incluido (sin IVA adicional)."]
+    ["Valores", "$160.000 neto al mes; se suma IVA (19%) → $190.400 con IVA al mes, todo incluido."]
   ],
   "observaciones_extra": [
     "El valor mensual incluye traslado ida y vuelta, aseo semanal y retiro al término del servicio.",

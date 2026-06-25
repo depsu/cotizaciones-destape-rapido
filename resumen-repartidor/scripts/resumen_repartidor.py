@@ -122,6 +122,10 @@ def construir_resumen(e: dict) -> str:
             lineas.append(f"   Dirección: {factura['direccion']}")
         if factura.get("email"):
             lineas.append(f"   Email: {factura['email']}")
+        # Si requiere factura pero aún no tenemos los datos, avisar que se los pida al cliente.
+        if factura.get("requiere") and not factura.get("razon_social"):
+            lineas.append("   ⚠️ Datos pendientes — pedírselos al cliente al coordinar "
+                          "(razón social, RUT, giro, dirección).")
     # NOTA: el bloque "Qué hacer" (detalle) se omite a propósito. El repartidor ya
     # conoce el estándar (instalar, traslado incluido, dejar insumos) y el aseo ya se
     # indica arriba en su propia línea, así que listarlo de nuevo es redundante.
