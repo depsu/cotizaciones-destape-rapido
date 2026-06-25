@@ -1,0 +1,48 @@
+{
+  "numero_cotizacion": "N° 2026-0625-002",
+  "subtitulo": "Arriendo mensual de baños químicos",
+  "cliente": {
+    "titulo": "CLIENTE",
+    "campos": [
+      ["Razón social", "Grupo Nor"],
+      ["Email", "Pagos@gruponor.cl"],
+      ["Dirección", "Colina, Región Metropolitana (según ubicación compartida)"]
+    ]
+  },
+  "items": [
+    {
+      "descripcion_titulo": "Arriendo mensual de baño químico",
+      "descripcion_bullets": [
+        "Despacho, instalación y retiro incluidos.",
+        "Limpieza semanal (cada 7 a 10 días) incluida.",
+        "Disposición final de residuos incluida.",
+        "Insumos: papel higiénico y desodorizante."
+      ],
+      "cantidad": 2,
+      "valor_unitario_neto": 170000
+    },
+    {
+      "descripcion_titulo": "Traslado: instalación inicial y retiro final",
+      "descripcion_bullets": [
+        "Cargo por única vez (ida a dejar + retiro), adicional a la mensualidad."
+      ],
+      "cantidad": 1,
+      "valor_unitario_neto": 30000
+    }
+  ],
+  "condiciones_extra": [
+    ["Período", "Arriendo mensual con renovación automática."],
+    ["Traslado", "Instalación inicial y retiro final: $30.000 neto por única vez (incluido en el detalle del servicio), adicional a la mensualidad."],
+    ["Limpieza extra", "Cada limpieza adicional a la semanal incluida: $40.000 neto por baño."]
+  ],
+  "datos_transferencia": {
+    "campos": [
+      ["Titular", "BAÑOS LOS PINDUS Y ASOCIADOS SPA"],
+      ["RUT", "78.002.039-3"],
+      ["Banco", "Santander"],
+      ["Tipo de cuenta", "Cuenta Corriente"],
+      ["N° de cuenta", "0000-9611698-5"],
+      ["Email", "contacto@destaperapido.cl"]
+    ]
+  }
+}
