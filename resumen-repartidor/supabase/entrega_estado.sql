@@ -19,9 +19,13 @@ create table if not exists public.entrega_estado (
                     check (estado in ('pendiente','en-camino','entregado','cobrado')),
   fecha           date,                      -- override al reagendar; null = usa la de entregas.json
   comision_pagada boolean not null default false,
+  pagada_at       timestamptz,               -- hora en que el repartidor marcó el pago (para verificar/revocar)
   nota            text,
   updated_at      timestamptz not null default now()
 );
+
+-- Columna añadida después (idempotente para bases ya creadas).
+alter table public.entrega_estado add column if not exists pagada_at timestamptz;
 
 -- updated_at automático en cada UPDATE.
 create or replace function public.entrega_estado_touch()

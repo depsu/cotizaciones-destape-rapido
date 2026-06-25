@@ -95,24 +95,32 @@
   section.pasada .card { opacity:.72; }
   footer { text-align:center; color:var(--gris); font-size:12px; padding:24px 16px 40px; }
 
-  /* Gestión por tarjeta */
-  .gestion { margin-top:4px; padding:12px 14px; background:#F8FAFC; border:1px solid var(--linea); border-radius:12px; }
-  .estado-control { display:flex; gap:6px; margin-top:4px; }
-  .est-btn { flex:1 1 0; padding:9px 6px; border:1px solid var(--linea); background:#fff; color:var(--gris);
-    font-size:13px; font-weight:600; border-radius:9px; cursor:pointer; font-family:inherit; min-height:42px; }
+  /* Gestión ARRIBA de la card */
+  .card-wrap { margin-bottom:10px; }
+  .gestion-top { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 12px;
+    background:#fff; border:1px solid var(--linea); border-bottom:none; border-radius:14px 14px 0 0; }
+  .card-wrap > .card { margin-bottom:0; border-top:none; border-radius:0 0 14px 14px; }
+  .gt-fecha { display:flex; align-items:center; gap:5px; font-size:13px; color:var(--gris); font-weight:600; }
+  .gt-rg-txt { display:none; }
+  .fecha-input { font-family:inherit; font-size:14px; padding:6px 8px; border:1px solid var(--linea);
+    border-radius:8px; background:#fff; color:var(--tinta); min-height:36px; }
+  .gt-estados { display:flex; gap:6px; margin-left:auto; }
+  .est-btn { padding:8px 12px; border:1px solid var(--linea); background:#fff; color:var(--gris);
+    font-size:13px; font-weight:700; border-radius:9px; cursor:pointer; font-family:inherit; min-height:38px; }
   .est-btn:active { filter:brightness(.96); }
-  .est-btn.activo { background:var(--azul); color:#fff; border-color:var(--azul); }
-  .est-btn.est-cobrado.activo { background:#065F46; border-color:#065F46; }
-  .reagendar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; font-size:14px; }
-  .rg-lbl { color:var(--gris); font-weight:600; }
-  .fecha-input { font-family:inherit; font-size:15px; padding:8px 10px; border:1px solid var(--linea);
-    border-radius:9px; background:#fff; color:var(--tinta); min-height:40px; }
-  .comision-mini { margin-top:10px; font-size:14px; color:#7C3AED; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
+  .est-btn.est-entregado.activo { background:#1E40AF; color:#fff; border-color:#1E40AF; }
+  .est-btn.est-cobrado.activo { background:#B8860B; color:#fff; border-color:#B8860B; }
+  .reagendada-chip { width:100%; font-size:12px; font-weight:700; color:#475569; background:#F1F5F9;
+    padding:3px 9px; border-radius:20px; box-sizing:border-box; }
+  /* Colores de la card según estado */
+  .card-wrap.is-entregado > .card, .card-wrap.is-entregado > .gestion-top { border-color:#93C5FD; background:#EFF6FF; }
+  .card-wrap.is-cobrado > .card, .card-wrap.is-cobrado > .gestion-top { border-color:#FCD34D; background:#FFFBEB; }
+  .card-wrap.is-reagendado > .card, .card-wrap.is-reagendado > .gestion-top { border-color:#CBD5E1; background:#F1F5F9; }
+  .card-wrap.oculto-anterior { display:none; }
+  .comision-mini { margin-top:2px; font-size:14px; color:#92600A; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
   .comision-mini b { font-size:16px; }
   .comision-mini .cm-base { color:var(--gris); font-size:12px; }
   .comision-mini.comision-no { color:var(--gris); }
-  .reagendada-chip { margin-top:6px; font-size:12px; font-weight:700; color:#B45309; background:#FEF3C7;
-    display:inline-block; padding:3px 9px; border-radius:20px; }
   /* Panel de comisión */
   .comision-panel { background:#fff; border:1px solid var(--linea); border-radius:16px; padding:16px;
     margin:6px 0 16px; box-shadow:0 2px 10px rgba(124,58,237,.08); border-top:4px solid #7C3AED; }
@@ -153,6 +161,52 @@
   .ag-sub { color:var(--gris); font-size:13px; }
   .agregado .lp-badge { align-self:center; }
   .agregado .lp-valor { align-self:center; }
+  /* Vista comisión: flujo de pago */
+  .comision-panel { border-top-color:#B8860B; box-shadow:0 2px 10px rgba(184,134,11,.10); }
+  .cp-titulo { color:#92600A; }
+  .com-deuda { display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    background:#FFFBEB; border:1px solid #FCD34D; border-radius:12px; padding:12px 14px; margin-top:12px; }
+  .com-deuda b { font-size:24px; font-weight:800; color:#92600A; font-variant-numeric:tabular-nums; }
+  .com-sec-tit { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--gris);
+    font-weight:700; margin:18px 2px 8px; }
+  .com-card { display:flex; align-items:center; gap:10px; padding:11px 13px; margin-bottom:8px;
+    background:#FFFBEB; border:1px solid #FCD34D; border-radius:12px; }
+  .com-card.com-pagada { background:#F0FDF4; border-color:#BBF7D0; opacity:.85; }
+  .com-check { width:22px; height:22px; flex:none; accent-color:#16A34A; }
+  .com-main { flex:1 1 auto; min-width:0; }
+  .com-cli { font-weight:700; }
+  .com-dir { color:var(--gris); font-size:13px; overflow-wrap:anywhere; }
+  .com-monto { font-weight:800; color:#92600A; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .com-pagada .com-monto { color:#166534; }
+  .com-pagada-tag { font-size:10px; font-weight:700; color:#166534; background:#DCFCE7; padding:3px 8px;
+    border-radius:20px; flex:none; text-transform:uppercase; letter-spacing:.4px; }
+  .com-revocar { font-size:12px; font-weight:600; padding:6px 9px; border:1px solid var(--linea);
+    background:#fff; border-radius:8px; color:#B91C1C; cursor:pointer; flex:none; }
+  /* Barra y botón pagar */
+  .barra-pagar { position:sticky; bottom:0; margin:10px -12px 0; padding:12px;
+    background:rgba(255,255,255,.96); border-top:1px solid var(--linea); }
+  .btn-pagar { width:100%; background:#16A34A; color:#fff; border:none; font-family:inherit;
+    font-size:16px; font-weight:800; padding:15px; border-radius:13px; cursor:pointer; min-height:54px; }
+  .btn-pagar:disabled { background:#CBD5E1; cursor:default; }
+  /* Modal de pago */
+  .modal-bg { position:fixed; inset:0; background:rgba(15,23,42,.55); display:flex;
+    align-items:flex-end; justify-content:center; z-index:50; }
+  .modal { background:#fff; width:100%; max-width:520px; border-radius:18px 18px 0 0; padding:20px 18px;
+    max-height:92vh; overflow:auto; box-shadow:0 -4px 24px rgba(15,23,42,.25); }
+  .modal h3 { margin:0 0 4px; font-size:19px; }
+  .modal-sub { margin:0 0 8px; font-size:13px; color:var(--gris); }
+  .bank { background:#F8FAFC; border:1px solid var(--linea); border-radius:12px; padding:10px 14px; margin:10px 0; font-size:14px; }
+  .bank-row { display:flex; justify-content:space-between; gap:12px; padding:4px 0; }
+  .bank-row span { color:var(--gris); }
+  .bank-row b { font-variant-numeric:tabular-nums; text-align:right; overflow-wrap:anywhere; }
+  .bank-total { border-top:1px solid var(--linea); margin-top:4px; padding-top:8px; font-size:16px; }
+  .file-comp { display:block; margin-top:10px; font-size:14px; font-weight:600; color:var(--azul); }
+  .file-comp input { display:block; margin-top:6px; font-weight:400; }
+  .comp-preview { display:none; margin-top:10px; max-width:100%; border-radius:10px; }
+  .modal-acciones { display:flex; gap:10px; margin-top:16px; }
+  .btn-modal { flex:1 1 0; padding:13px; border-radius:11px; font-family:inherit; font-weight:700;
+    font-size:15px; cursor:pointer; border:1px solid var(--linea); background:#fff; color:var(--tinta); }
+  .btn-modal.primary { background:#16A34A; color:#fff; border-color:#16A34A; }
 </style>
 </head>
 <body>
@@ -162,399 +216,406 @@
   </header>
   <main>
     <div id="estado-online" class="estado-online" hidden></div><div class="vistas"><button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button><button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button></div><div class="vista" data-vista="entregas"><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="conteo">5</span></h2>
-    <details class="card" data-id="2026-06-23-don-daniel" data-fecha="2026-06-23" data-estado-orig="pendiente">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">Don Daniel</span>
-          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
-        </div>
-        <div class="resumen-sub">
-          <span class="banos">🚽</span>
-          <span class="dir">📍 Chapultepec 6047, Vitacura, Región Metropolitana</span>
+    <div class="card-wrap" data-id="2026-06-23-don-daniel" data-fecha="2026-06-23" data-estado-orig="pendiente">
+      <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-23" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span></div>
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">Don Daniel</span>
+            <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">🚽</span>
+            <span class="dir">📍 Chapultepec 6047, Vitacura, Región Metropolitana</span>
+            
+            <span class="monto">💵 $190.400</span>
+          </div>
+        </summary>
+        <div class="detalle">
+          <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (descuento de la semana). Se emite factura. Cobrar al entregar.</span></div>
+          <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (obra)</p></div>
+          <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           
-          <span class="monto">💵 $190.400</span>
+          <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 8229 1198</p></div>
+          <div class="bloque"><span class="etq">🧾 Factura</span><p>Requiere factura.</p></div>
+          <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li></ul></div>
+          <div class="bloque"><span class="etq">Notas</span><p>Cliente confirmó para hoy. PENDIENTE: pedir/confirmar los datos de facturación (razón social, RUT, giro, dirección, email) al llegar. Lo contacta el repartidor antes de ir.</p></div>
+          <div class="acciones"><a class="btn" href="https://wa.me/56982291198" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 8229 1198" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Chapultepec%206047%2C%20Vitacura%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
         </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-23"></label><div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div></div>
-        <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (descuento de la semana). Se emite factura. Cobrar al entregar.</span></div>
-        <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (obra)</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
-        
-        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 8229 1198</p></div>
-        <div class="bloque"><span class="etq">🧾 Factura</span><p>Requiere factura.</p></div>
-        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li></ul></div>
-        <div class="bloque"><span class="etq">Notas</span><p>Cliente confirmó para hoy. PENDIENTE: pedir/confirmar los datos de facturación (razón social, RUT, giro, dirección, email) al llegar. Lo contacta el repartidor antes de ir.</p></div>
-        <div class="acciones"><a class="btn" href="https://wa.me/56982291198" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 8229 1198" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Chapultepec%206047%2C%20Vitacura%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
-      </div>
-    </details>
-    <details class="card" data-id="2026-06-23-gino-munoz" data-fecha="2026-06-23" data-estado-orig="cobrado">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">Gino Muñoz (Constructora GMP)</span>
-          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
-        </div>
-        <div class="resumen-sub">
-          <span class="banos">🚽</span>
-          <span class="dir">📍 Condominio Polo de Manquehue 2, Chicureo, Colina, Región Metropolitana</span>
-          <span class="hora">🕐 Durante el día (cualquier horario, están trabajando)</span>
-          <span class="monto">💵 $119.000</span>
-        </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-23"></label><div class="comision-mini">💰 Tu comisión: <b>$20.000</b><span class="cm-base">20% de $100.000 neto</span></div></div>
-        <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$119.000</span><span class="cobro-nota">$100.000 neto + IVA (incluye traslado; limpieza al finalizar el servicio). Se emite factura. Cobrar al entregar.</span></div>
-        <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 1 semana</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Sin aseo periódico (arriendo corto). Limpieza al finalizar el servicio, al retirar. Aseo extra opcional: $40.000 c/u.</p></div>
-        
-        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 5387 2435</p></div>
-        <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> Gino Enrique Muñoz Pavez</li><li><b>RUT:</b> 7.579.224-7</li><li><b>Giro:</b> Persona natural con giro</li><li><b>Email:</b> Info.constructoragmp@gmail.com</li></ul></div>
-        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Retiro al finalizar la semana (aprox. 30 de junio).</li></ul></div>
-        <div class="bloque"><span class="etq">Notas</span><p>Arriendo por 1 semana. Recibe durante el día, cualquier horario. El cliente manda ubicación exacta por WhatsApp. Factura a Gino Enrique Muñoz Pavez (persona natural con giro). Se paga al entregar. Apodo del repartidor: &#x27;El Valle&#x27;. ENTREGADO Y COBRADO. Comisión ($20.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).</p></div>
-        <div class="acciones"><a class="btn" href="https://wa.me/56953872435" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 5387 2435" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Condominio%20Polo%20de%20Manquehue%202%2C%20Chicureo%2C%20Colina%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
-      </div>
-    </details>
-    <details class="card" data-id="2026-06-23-grupo-b-nunoa" data-fecha="2026-06-23" data-estado-orig="cobrado">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">Grupo B SpA (obra Ñuñoa)</span>
-          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
-        </div>
-        <div class="resumen-sub">
-          <span class="banos">🚽</span>
-          <span class="dir">📍 Pasaje Juan Moya 368, Ñuñoa, Región Metropolitana</span>
-          <span class="hora">🕐 Entregado a primera hora</span>
-          <span class="monto">💵 $190.400</span>
-        </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-23"></label><div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div></div>
-        <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400 al mes. Factura a Grupo B SpA. Ya entregado y cobrado.</span></div>
-        <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (2 meses)</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
-        
-        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 5083 1752</p></div>
-        <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> Grupo B SpA</li><li><b>RUT:</b> 76.743.140-6</li><li><b>Giro:</b> Inmobiliaria</li><li><b>Dirección:</b> Benvenuto Cellini 8082, Las Condes</li></ul></div>
-        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Aseo semanal incluido (cada 7 a 10 días).</li><li>Limpieza extra opcional: $30.000 c/u si pide más frecuencia.</li></ul></div>
-        <div class="bloque"><span class="etq">Notas</span><p>Persona en terreno: Jonathan Bastías +56 9 5083 1752. Persona con la que se cerró el negocio: +56 9 9538 4264. Arriendo por 2 meses. ENTREGADO Y COBRADO. Comisión de Alejandro ($32.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).</p></div>
-        <div class="acciones"><a class="btn" href="https://wa.me/56950831752" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 5083 1752" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Pasaje%20Juan%20Moya%20368%2C%20%C3%91u%C3%B1oa%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
-      </div>
-    </details>
-    <details class="card" data-id="2026-06-23-b-carcamo-mair" data-fecha="2026-06-23" data-estado-orig="cobrado">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">B. Cárcamo (MAIR)</span>
-          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
-        </div>
-        <div class="resumen-sub">
-          <span class="banos">🚽</span>
-          <span class="dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span>
-          <span class="hora">🕐 Hoy</span>
-          <span class="monto">💵 $154.700</span>
-        </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-23"></label><div class="comision-mini">💰 Tu comisión: <b>$26.000</b><span class="cm-base">20% de $130.000 neto</span></div></div>
-        <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$154.700</span><span class="cobro-nota">PAGADO el baño ($130.000 neto + IVA = $154.700). Pendiente aparte: aseo extra / plan de mantención (por definir y cobrar).</span></div>
-        <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Incluye aseo gratis semanal (1 por semana = 2 en las 2 semanas). El cliente quiere reforzar a 2 limpiezas/semana + recarga de agua → ese refuerzo es el aseo extra pendiente de cobrar.</p></div>
-        
-        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 3380 0237</p></div>
-        <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> PENDIENTE — MAIR (el cliente enviará los datos de la empresa)</li><li><b>RUT:</b> PENDIENTE</li><li><b>Email:</b> bcarcamo@mair.cl</li></ul></div>
-        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>IMPORTANTE: el baño debe ir lo más presentable/impecable posible (el cliente lo pidió expresamente).</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Retiro al finalizar las 2 semanas (aprox. 07 de julio).</li></ul></div>
-        <div class="bloque"><span class="etq">Notas</span><p>Baño PAGADO. Pendiente: coordinar y cobrar el aseo extra / plan de mantención (2 limpiezas/sem + recarga de agua). Cliente con factura (empresa MAIR) — confirmar razón social y RUT. Comuna de &#x27;Curicó 517&#x27; por confirmar. Apodo del repartidor: &#x27;Líder&#x27; (se instala casi dentro de un Líder). Comisión ($26.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).</p></div>
-        <div class="acciones"><a class="btn" href="https://wa.me/56933800237" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 3380 0237" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
-      </div>
-    </details>
-    <details class="card" data-id="2026-06-23-pilar-casanueva" data-fecha="2026-06-23" data-estado-orig="cobrado">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">Pilar Casanueva (MDA Constructora)</span>
-          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
-        </div>
-        <div class="resumen-sub">
-          <span class="banos">🚽</span>
-          <span class="dir">📍 El Rincón 12382, casa 5, Lo Barnechea, Región Metropolitana</span>
-          <span class="hora">🕐 Lo antes posible (hoy; mañana temprano si no alcanza)</span>
-          <span class="monto">💵 $190.400</span>
-        </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-23"></label><div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div></div>
-        <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (oferta de la semana; incluye traslado ida y vuelta y aseo semanal). Se emite factura. Cobrar al entregar.</span></div>
-        <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (obra)</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
-        
-        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 8805 1486</p></div>
-        <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> MDA Constructora</li><li><b>RUT:</b> 76.867.755-7</li></ul></div>
-        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado ida y vuelta incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Aseo semanal incluido (cada 7 a 10 días).</li></ul></div>
-        <div class="bloque"><span class="etq">Notas</span><p>Preguntar por PILAR CASANUEVA al llegar. Jefe de obra en terreno: David Durán, +56 9 8805 1486. Contacto que coordinó por WhatsApp: +56 9 4550 7354. Cliente necesita el baño HOY (trabajadores ya en obra). Arriendo mensual, puede extenderse. ENTREGADO Y COBRADO. Comisión ($32.000, apodo &#x27;Barnechea&#x27;) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).</p></div>
-        <div class="acciones"><a class="btn" href="https://wa.me/56988051486" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 8805 1486" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=El%20Rinc%C3%B3n%2012382%2C%20casa%205%2C%20Lo%20Barnechea%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
-      </div>
-    </details></section><section data-fecha="2026-06-24"><h2 class="fecha-titulo">Miércoles 24 de junio<span class="conteo">1</span></h2>
-    <details class="card" data-id="2026-06-24-loreley-190-la-reina" data-fecha="2026-06-24" data-estado-orig="pendiente">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">Cliente — Loreley 190 (La Reina)</span>
-          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
-        </div>
-        <div class="resumen-sub">
-          <span class="banos">🚽</span>
-          <span class="dir">📍 Loreley 190, La Reina, Región Metropolitana</span>
-          <span class="hora">🕐 Lo más temprano posible</span>
-          <span class="monto">💵 $130.000</span>
-        </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-24"></label><div class="comision-mini">💰 Tu comisión: <b>$26.000</b><span class="cm-base">20% de $130.000 neto</span></div></div>
-        <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 neto por las 2 semanas. Sin factura. Cobrar al entregar.</span></div>
-        <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Incluye 1 limpieza.</p></div>
-        
-        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 4210 7260</p></div>
-        
-        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Incluye 1 limpieza.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Entregar lo más temprano posible.</li><li>Retiro al finalizar las 2 semanas (aprox. 08 de julio).</li></ul></div>
-        <div class="bloque"><span class="etq">Notas</span><p>ADULTOS MAYORES — tener paciencia y buen trato. No se tiene el nombre de la persona. Teléfono principal +56 9 4210 7260 sirve para WhatsApp y llamada; 2º teléfono +56 9 9694 0919 es SOLO para llamada (no WhatsApp).</p></div>
-        <div class="acciones"><a class="btn" href="https://wa.me/56942107260" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 4210 7260" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Loreley%20190%2C%20La%20Reina%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
-      </div>
-    </details></section><section data-fecha="2026-06-25"><h2 class="fecha-titulo">Jueves 25 de junio<span class="conteo">3</span></h2>
-    <details class="card" data-id="2026-06-25-hercha-ingenieria" data-fecha="2026-06-25" data-estado-orig="pendiente">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">Don Eliecer (HERCHA Ingeniería)</span>
-          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
-        </div>
-        <div class="resumen-sub">
-          <span class="banos">🚽</span>
-          <span class="dir">📍 Planta de Tratamiento de Aguas Servidas Aguas Andinas, Camino El Trebal 2095, Padre Hurtado, Región Metropolitana</span>
-          <span class="hora">🕐 10:00 a 11:30 AM</span>
-          <span class="monto">💵 $190.400</span>
-        </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-25"></label><div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div></div>
-        <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA. Se emite factura a HERCHA.</span></div>
-        <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
-        
-        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 9450 4902</p></div>
-        <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> HERCHA INGENIERIA Y SERVICIOS SpA</li><li><b>RUT:</b> 77.735.148-6</li><li><b>Giro:</b> Instalación de sistemas de seguridad</li><li><b>Dirección:</b> Progreso 4420, La Florida, Santiago</li></ul></div>
-        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li></ul></div>
-        <div class="bloque"><span class="etq">Notas</span><p>Lo contacta el repartidor. Confirmar ubicación exacta y acceso con Don Eliecer al llegar.</p></div>
-        <div class="acciones"><a class="btn" href="https://wa.me/56994504902" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9450 4902" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Planta%20de%20Tratamiento%20de%20Aguas%20Servidas%20Aguas%20Andinas%2C%20Camino%20El%20Trebal%202095%2C%20Padre%20Hurtado%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
-      </div>
-    </details>
-    <details class="card" data-id="2026-06-25-tania-soria-768" data-fecha="2026-06-25" data-estado-orig="pendiente">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">Tania (obra Soria 768, Las Condes)</span>
-          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
-        </div>
-        <div class="resumen-sub">
-          <span class="banos">🚽</span>
-          <span class="dir">📍 Soria 768, Las Condes, Región Metropolitana</span>
-          <span class="hora">🕐 9:00 AM (o cuando puedan en la mañana)</span>
-          <span class="monto">💵 $130.000</span>
-        </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-25"></label><div class="comision-mini">💰 Tu comisión: <b>$26.000</b><span class="cm-base">20% de $130.000 neto</span></div></div>
-        <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 total. SIN factura (boleta), sin IVA. Paga al entregar: transferencia o efectivo.</span></div>
-        <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Incluye 1 aseo durante el período. Aseo extra opcional: $40.000 c/u.</p></div>
-        
-        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 5911 4408</p></div>
-        
-        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Incluye 1 aseo durante las 2 semanas.</li><li>Retiro al finalizar (aprox. 09 de julio).</li></ul></div>
-        <div class="bloque"><span class="etq">Notas</span><p>Obra de construcción. Recibe a las 9:00 AM, lo más tardar cuando puedan en la mañana. SIN factura (boleta). Cobrar al entregar: transferencia o efectivo. Cliente: Tania.</p></div>
-        <div class="acciones"><a class="btn" href="https://wa.me/56959114408" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 5911 4408" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Soria%20768%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
-      </div>
-    </details>
-    <details class="card" data-id="2026-06-25-stock-diseno-chicureo" data-fecha="2026-06-25" data-estado-orig="pendiente">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">Stock Diseño Ltda. (Local Astop Aramco, Chicureo)</span>
-          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
-        </div>
-        <div class="resumen-sub">
-          <span class="banos">🚽</span>
-          <span class="dir">📍 Av. Chicureo 2300, Chicureo, Región Metropolitana (Local Astop Aramco)</span>
-          <span class="hora">🕐 Hoy (confirmar hora de recepción con el cliente)</span>
-          <span class="monto">💵 $190.400</span>
-        </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-25"></label><div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div></div>
-        <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400. Se emite factura a Stock Diseño Ltda. Cobrar al entregar.</span></div>
-        <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
-        
-        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 9918 9274</p></div>
-        <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> Stock Diseño Ltda.</li><li><b>RUT:</b> 76.327.169-2</li></ul></div>
-        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Aseo semanal incluido (cada 7 a 10 días).</li></ul></div>
-        <div class="bloque"><span class="etq">Notas</span><p>Cliente necesita el baño HOY. PENDIENTE: confirmar hora de recepción al coordinar (el cliente aún no la dio). Factura a Stock Diseño Ltda. (RUT 76.327.169-2). Ubicación: Local Astop Aramco (estación de servicio).</p></div>
-        <div class="acciones"><a class="btn" href="https://wa.me/56999189274" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9918 9274" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Chicureo%202300%2C%20Chicureo%2C%20Regi%C3%B3n%20Metropolitana%20%28Local%20Astop%20Aramco%29" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
-      </div>
-    </details></section><section data-fecha="2026-06-26"><h2 class="fecha-titulo">Viernes 26 de junio<span class="conteo">3</span></h2>
-    <details class="card" data-id="2026-06-26-b-carcamo-mair-mantencion" data-fecha="2026-06-26" data-estado-orig="pendiente">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">B. Cárcamo (MAIR) — mantención reforzada + retiro</span>
-          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
-        </div>
-        <div class="resumen-sub">
-          <span class="banos">🚽</span>
-          <span class="dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span>
+      </details>
+    </div>
+    <div class="card-wrap is-cobrado" data-id="2026-06-23-gino-munoz" data-fecha="2026-06-23" data-estado-orig="cobrado">
+      <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-23" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span></div>
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">Gino Muñoz (Constructora GMP)</span>
+            <span class="badge" style="color:#92600A;background:#FEF3C7">Cliente ya pagó</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">🚽</span>
+            <span class="dir">📍 Condominio Polo de Manquehue 2, Chicureo, Colina, Región Metropolitana</span>
+            <span class="hora">🕐 Durante el día (cualquier horario, están trabajando)</span>
+            <span class="monto">💵 $119.000</span>
+          </div>
+        </summary>
+        <div class="detalle">
+          <div class="comision-mini">💰 Tu comisión: <b>$20.000</b><span class="cm-base">20% de $100.000 neto</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$119.000</span><span class="cobro-nota">$100.000 neto + IVA (incluye traslado; limpieza al finalizar el servicio). Se emite factura. Cobrar al entregar.</span></div>
+          <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 1 semana</p></div>
+          <div class="bloque"><span class="etq">Aseo</span><p>Sin aseo periódico (arriendo corto). Limpieza al finalizar el servicio, al retirar. Aseo extra opcional: $40.000 c/u.</p></div>
           
-          <span class="monto">💵 $95.200</span>
+          <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 5387 2435</p></div>
+          <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> Gino Enrique Muñoz Pavez</li><li><b>RUT:</b> 7.579.224-7</li><li><b>Giro:</b> Persona natural con giro</li><li><b>Email:</b> Info.constructoragmp@gmail.com</li></ul></div>
+          <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Retiro al finalizar la semana (aprox. 30 de junio).</li></ul></div>
+          <div class="bloque"><span class="etq">Notas</span><p>Arriendo por 1 semana. Recibe durante el día, cualquier horario. El cliente manda ubicación exacta por WhatsApp. Factura a Gino Enrique Muñoz Pavez (persona natural con giro). Se paga al entregar. Apodo del repartidor: &#x27;El Valle&#x27;. ENTREGADO Y COBRADO. Comisión ($20.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).</p></div>
+          <div class="acciones"><a class="btn" href="https://wa.me/56953872435" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 5387 2435" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Condominio%20Polo%20de%20Manquehue%202%2C%20Chicureo%2C%20Colina%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
         </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-26"></label><div class="comision-mini comision-no">Sin comisión (servicio extra)</div></div>
-        <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$95.200</span><span class="cobro-nota">Servicio adicional: 2 servicios de mantención (limpieza + recarga de agua, todo incluido) a $40.000 c/u = $80.000 neto + IVA = $95.200. Se factura a MAIR. (El arriendo del baño ya fue pagado por separado).</span></div>
-        <div class="bloque"><span class="etq">Servicio</span><p>🚽 Plan de mantención reforzada (2 limpiezas extra + recarga de agua) y retiro del baño ya instalado</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Plan de mantención reforzada (ver detalle en Limpiezas). Retiro: martes 7 jul (sin limpieza).</p></div>
-        <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">vie 26 jun</span><span class="lp-etq">Limpieza 1<span class="lp-nota">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mar 30 jun</span><span class="lp-etq">Limpieza 2<span class="lp-nota">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">vie 3 jul</span><span class="lp-etq">Limpieza 3<span class="lp-nota">Aseo incluido en el arriendo.</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul><div class="lp-total">2 limpieza(s) extra · <b>$80.000 neto</b></div></div>
-        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 3380 0237</p></div>
-        <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> PENDIENTE — MAIR (el cliente enviará los datos de la empresa)</li><li><b>RUT:</b> PENDIENTE</li><li><b>Email:</b> bcarcamo@mair.cl</li></ul></div>
-        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Visita 1 — viernes 26 jun: limpieza del baño.</li><li>Visita 2 — martes 30 jun: limpieza del baño.</li><li>Visita 3 — viernes 3 jul: limpieza del baño.</li><li>Retiro — martes 7 jul: retirar la unidad (sin limpieza).</li><li>Recarga de agua del lavamanos según corresponda.</li><li>El baño debe mantenerse lo más presentable/impecable posible (lo pidió el cliente).</li></ul></div>
-        <div class="bloque"><span class="etq">Notas</span><p>Cliente existente (baño ya instalado y pagado en Curicó 517). Esto es SOLO el plan de mantención reforzada + retiro. Cobro pendiente del refuerzo: 2 servicios todo incluido a $40.000 c/u = $80.000 neto + IVA = $95.200 (factura MAIR). Confirmar razón social y RUT al facturar.</p></div>
-        <div class="acciones"><a class="btn" href="https://wa.me/56933800237" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 3380 0237" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
-      </div>
-    </details>
-    <details class="card" data-id="2026-06-26-villagra-conchali" data-fecha="2026-06-26" data-estado-orig="pendiente">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">Sr. Villagra</span>
-          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
-        </div>
-        <div class="resumen-sub">
-          <span class="banos">🚽</span>
-          <span class="dir">📍 Campanario 1749, Conchalí, Región Metropolitana</span>
-          <span class="hora">🕐 Durante el día</span>
-          <span class="monto">💵 $170.000</span>
-        </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-26"></label><div class="comision-mini">💰 Tu comisión: <b>$34.000</b><span class="cm-base">20% de $170.000 neto</span></div></div>
-        <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$170.000</span><span class="cobro-nota">$170.000 todo incluido (oferta mensual). SIN factura, se emite BOLETA — no lleva IVA adicional. Cobrar al entregar.</span></div>
-        <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
-        
-        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 3300 3076</p></div>
-        
-        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado ida y vuelta incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Aseo semanal incluido (cada 7 a 10 días).</li></ul></div>
-        <div class="bloque"><span class="etq">Notas</span><p>Lo contacta el repartidor. Arriendo mensual (30 días), puede extenderse si lo pide. Confirmar acceso al llegar.</p></div>
-        <div class="acciones"><a class="btn" href="https://wa.me/56933003076" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 3300 3076" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Campanario%201749%2C%20Conchal%C3%AD%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
-      </div>
-    </details>
-    <details class="card" data-id="2026-06-26-gamarra-santiago" data-fecha="2026-06-26" data-estado-orig="pendiente">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">Sr. Gamarra</span>
-          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
-        </div>
-        <div class="resumen-sub">
-          <span class="banos">🚽</span>
-          <span class="dir">📍 San Isidro 1948, Santiago, Región Metropolitana</span>
-          <span class="hora">🕐 Durante el día (horario por confirmar con el cliente)</span>
-          <span class="monto">💵 $190.400</span>
-        </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-26"></label><div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div></div>
-        <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400 al mes, todo incluido. Se emite FACTURA. Arriendo 2 meses (prolongable a 3). Cobrar el primer mes ($190.400) al entregar.</span></div>
-        <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
-        
-        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 9454 2997</p></div>
-        <div class="bloque"><span class="etq">🧾 Factura</span><p>Requiere factura.</p></div>
-        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado ida y vuelta incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Aseo semanal incluido (cada 7 a 10 días).</li></ul></div>
-        <div class="bloque"><span class="etq">Notas</span><p>Lo contacta el repartidor para coordinar horario. PEDIR LOS DATOS DE FACTURACIÓN al coordinar la entrega (razón social, RUT, giro, dirección). Arriendo por 2 meses con prolongación a 3. Confirmar acceso al llegar.</p></div>
-        <div class="acciones"><a class="btn" href="https://wa.me/56994542997" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9454 2997" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=San%20Isidro%201948%2C%20Santiago%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
-      </div>
-    </details></section><section data-fecha="2026-06-30"><h2 class="fecha-titulo">Martes 30 de junio<span class="conteo">1</span></h2>
-    <details class="card" data-id="2026-06-30-innovators-conveyor-belt" data-fecha="2026-06-30" data-estado-orig="pendiente">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">Suyen Guíñez — Innovators Conveyor Belt</span>
-          <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
-        </div>
-        <div class="resumen-sub">
-          <span class="banos">🚽</span>
-          <span class="dir">📍 Camino El Alba, Las Condes, Región Metropolitana (obra)</span>
+      </details>
+    </div>
+    <div class="card-wrap is-cobrado" data-id="2026-06-23-grupo-b-nunoa" data-fecha="2026-06-23" data-estado-orig="cobrado">
+      <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-23" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span></div>
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">Grupo B SpA (obra Ñuñoa)</span>
+            <span class="badge" style="color:#92600A;background:#FEF3C7">Cliente ya pagó</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">🚽</span>
+            <span class="dir">📍 Pasaje Juan Moya 368, Ñuñoa, Región Metropolitana</span>
+            <span class="hora">🕐 Entregado a primera hora</span>
+            <span class="monto">💵 $190.400</span>
+          </div>
+        </summary>
+        <div class="detalle">
+          <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400 al mes. Factura a Grupo B SpA. Ya entregado y cobrado.</span></div>
+          <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (2 meses)</p></div>
+          <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           
-          <span class="monto">💵 $190.400</span>
+          <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 5083 1752</p></div>
+          <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> Grupo B SpA</li><li><b>RUT:</b> 76.743.140-6</li><li><b>Giro:</b> Inmobiliaria</li><li><b>Dirección:</b> Benvenuto Cellini 8082, Las Condes</li></ul></div>
+          <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Aseo semanal incluido (cada 7 a 10 días).</li><li>Limpieza extra opcional: $30.000 c/u si pide más frecuencia.</li></ul></div>
+          <div class="bloque"><span class="etq">Notas</span><p>Persona en terreno: Jonathan Bastías +56 9 5083 1752. Persona con la que se cerró el negocio: +56 9 9538 4264. Arriendo por 2 meses. ENTREGADO Y COBRADO. Comisión de Alejandro ($32.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).</p></div>
+          <div class="acciones"><a class="btn" href="https://wa.me/56950831752" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 5083 1752" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Pasaje%20Juan%20Moya%20368%2C%20%C3%91u%C3%B1oa%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
         </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-30"></label><div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div></div>
-        <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">Mensual. Cobrar al entregar. $160.000 neto + IVA (lleva factura).</span></div>
-        <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (hasta 30 días)</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
-        
-        <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 7806 8907</p></div>
-        <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> Innovators Conveyor Belt</li><li><b>Email:</b> suyen.guinez@innovatorsconveyorbelt.cl</li></ul></div>
-        <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico en la obra (Camino El Alba, Las Condes).</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Reserva confirmada para el martes 30.</li></ul></div>
-        <div class="bloque"><span class="etq">Notas</span><p>Confirmar dirección exacta / número y punto de instalación con la clienta antes de llegar. Falta RUT para la factura.</p></div>
-        <div class="acciones"><a class="btn" href="https://wa.me/56978068907" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 7806 8907" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Camino%20El%20Alba%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana%20%28obra%29" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
-      </div>
-    </details></section><section class="agregado"><h2 class="fecha-titulo">🧽 Limpiezas a realizar<span class="conteo">3</span></h2><ul class="ag-lista"><li class="ag-item"><span class="ag-fecha">vie 26 jun</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 1</span><span class="ag-sub">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="ag-item"><span class="ag-fecha">mar 30 jun</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 2</span><span class="ag-sub">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="ag-item"><span class="ag-fecha">vie 3 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 3</span><span class="ag-sub">Aseo incluido en el arriendo.</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></section><section class="agregado"><h2 class="fecha-titulo">📦 Retiros<span class="conteo">5</span></h2><ul class="ag-lista"><li class="ag-item"><span class="ag-fecha">mar 30 jun</span><span class="ag-main"><b>Gino Muñoz (Constructora GMP)</b><span class="ag-dir">📍 Condominio Polo de Manquehue 2, Chicureo, Colina, Región Metropolitana</span><span class="ag-sub">Al finalizar la semana (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mar 7 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Retiro de la unidad (sin limpieza).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mar 7 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR)</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mié 8 jul</span><span class="ag-main"><b>Cliente — Loreley 190 (La Reina)</b><span class="ag-dir">📍 Loreley 190, La Reina, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">jue 9 jul</span><span class="ag-main"><b>Tania (obra Soria 768, Las Condes)</b><span class="ag-dir">📍 Soria 768, Las Condes, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li></ul></section></div><div class="vista" data-vista="comision" hidden><div id="comision-panel" class="comision-panel"></div></div>
+      </details>
+    </div>
+    <div class="card-wrap is-cobrado" data-id="2026-06-23-b-carcamo-mair" data-fecha="2026-06-23" data-estado-orig="cobrado">
+      <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-23" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span></div>
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">B. Cárcamo (MAIR)</span>
+            <span class="badge" style="color:#92600A;background:#FEF3C7">Cliente ya pagó</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">🚽</span>
+            <span class="dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span>
+            <span class="hora">🕐 Hoy</span>
+            <span class="monto">💵 $154.700</span>
+          </div>
+        </summary>
+        <div class="detalle">
+          <div class="comision-mini">💰 Tu comisión: <b>$26.000</b><span class="cm-base">20% de $130.000 neto</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$154.700</span><span class="cobro-nota">PAGADO el baño ($130.000 neto + IVA = $154.700). Pendiente aparte: aseo extra / plan de mantención (por definir y cobrar).</span></div>
+          <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
+          <div class="bloque"><span class="etq">Aseo</span><p>Incluye aseo gratis semanal (1 por semana = 2 en las 2 semanas). El cliente quiere reforzar a 2 limpiezas/semana + recarga de agua → ese refuerzo es el aseo extra pendiente de cobrar.</p></div>
+          
+          <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 3380 0237</p></div>
+          <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> PENDIENTE — MAIR (el cliente enviará los datos de la empresa)</li><li><b>RUT:</b> PENDIENTE</li><li><b>Email:</b> bcarcamo@mair.cl</li></ul></div>
+          <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>IMPORTANTE: el baño debe ir lo más presentable/impecable posible (el cliente lo pidió expresamente).</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Retiro al finalizar las 2 semanas (aprox. 07 de julio).</li></ul></div>
+          <div class="bloque"><span class="etq">Notas</span><p>Baño PAGADO. Pendiente: coordinar y cobrar el aseo extra / plan de mantención (2 limpiezas/sem + recarga de agua). Cliente con factura (empresa MAIR) — confirmar razón social y RUT. Comuna de &#x27;Curicó 517&#x27; por confirmar. Apodo del repartidor: &#x27;Líder&#x27; (se instala casi dentro de un Líder). Comisión ($26.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).</p></div>
+          <div class="acciones"><a class="btn" href="https://wa.me/56933800237" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 3380 0237" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
+        </div>
+      </details>
+    </div>
+    <div class="card-wrap is-cobrado" data-id="2026-06-23-pilar-casanueva" data-fecha="2026-06-23" data-estado-orig="cobrado">
+      <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-23" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span></div>
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">Pilar Casanueva (MDA Constructora)</span>
+            <span class="badge" style="color:#92600A;background:#FEF3C7">Cliente ya pagó</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">🚽</span>
+            <span class="dir">📍 El Rincón 12382, casa 5, Lo Barnechea, Región Metropolitana</span>
+            <span class="hora">🕐 Lo antes posible (hoy; mañana temprano si no alcanza)</span>
+            <span class="monto">💵 $190.400</span>
+          </div>
+        </summary>
+        <div class="detalle">
+          <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (oferta de la semana; incluye traslado ida y vuelta y aseo semanal). Se emite factura. Cobrar al entregar.</span></div>
+          <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (obra)</p></div>
+          <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
+          
+          <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 8805 1486</p></div>
+          <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> MDA Constructora</li><li><b>RUT:</b> 76.867.755-7</li></ul></div>
+          <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado ida y vuelta incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Aseo semanal incluido (cada 7 a 10 días).</li></ul></div>
+          <div class="bloque"><span class="etq">Notas</span><p>Preguntar por PILAR CASANUEVA al llegar. Jefe de obra en terreno: David Durán, +56 9 8805 1486. Contacto que coordinó por WhatsApp: +56 9 4550 7354. Cliente necesita el baño HOY (trabajadores ya en obra). Arriendo mensual, puede extenderse. ENTREGADO Y COBRADO. Comisión ($32.000, apodo &#x27;Barnechea&#x27;) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).</p></div>
+          <div class="acciones"><a class="btn" href="https://wa.me/56988051486" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 8805 1486" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=El%20Rinc%C3%B3n%2012382%2C%20casa%205%2C%20Lo%20Barnechea%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
+        </div>
+      </details>
+    </div></section><section data-fecha="2026-06-24"><h2 class="fecha-titulo">Miércoles 24 de junio<span class="conteo">1</span></h2>
+    <div class="card-wrap" data-id="2026-06-24-loreley-190-la-reina" data-fecha="2026-06-24" data-estado-orig="pendiente">
+      <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-24" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span></div>
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">Cliente — Loreley 190 (La Reina)</span>
+            <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">🚽</span>
+            <span class="dir">📍 Loreley 190, La Reina, Región Metropolitana</span>
+            <span class="hora">🕐 Lo más temprano posible</span>
+            <span class="monto">💵 $130.000</span>
+          </div>
+        </summary>
+        <div class="detalle">
+          <div class="comision-mini">💰 Tu comisión: <b>$26.000</b><span class="cm-base">20% de $130.000 neto</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 neto por las 2 semanas. Sin factura. Cobrar al entregar.</span></div>
+          <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
+          <div class="bloque"><span class="etq">Aseo</span><p>Incluye 1 limpieza.</p></div>
+          
+          <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 4210 7260</p></div>
+          
+          <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Incluye 1 limpieza.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Entregar lo más temprano posible.</li><li>Retiro al finalizar las 2 semanas (aprox. 08 de julio).</li></ul></div>
+          <div class="bloque"><span class="etq">Notas</span><p>ADULTOS MAYORES — tener paciencia y buen trato. No se tiene el nombre de la persona. Teléfono principal +56 9 4210 7260 sirve para WhatsApp y llamada; 2º teléfono +56 9 9694 0919 es SOLO para llamada (no WhatsApp).</p></div>
+          <div class="acciones"><a class="btn" href="https://wa.me/56942107260" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 4210 7260" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Loreley%20190%2C%20La%20Reina%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
+        </div>
+      </details>
+    </div></section><section data-fecha="2026-06-25"><h2 class="fecha-titulo">Jueves 25 de junio<span class="conteo">3</span></h2>
+    <div class="card-wrap" data-id="2026-06-25-hercha-ingenieria" data-fecha="2026-06-25" data-estado-orig="pendiente">
+      <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-25" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span></div>
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">Don Eliecer (HERCHA Ingeniería)</span>
+            <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">🚽</span>
+            <span class="dir">📍 Planta de Tratamiento de Aguas Servidas Aguas Andinas, Camino El Trebal 2095, Padre Hurtado, Región Metropolitana</span>
+            <span class="hora">🕐 10:00 a 11:30 AM</span>
+            <span class="monto">💵 $190.400</span>
+          </div>
+        </summary>
+        <div class="detalle">
+          <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA. Se emite factura a HERCHA.</span></div>
+          <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
+          <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
+          
+          <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 9450 4902</p></div>
+          <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> HERCHA INGENIERIA Y SERVICIOS SpA</li><li><b>RUT:</b> 77.735.148-6</li><li><b>Giro:</b> Instalación de sistemas de seguridad</li><li><b>Dirección:</b> Progreso 4420, La Florida, Santiago</li></ul></div>
+          <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li></ul></div>
+          <div class="bloque"><span class="etq">Notas</span><p>Lo contacta el repartidor. Confirmar ubicación exacta y acceso con Don Eliecer al llegar.</p></div>
+          <div class="acciones"><a class="btn" href="https://wa.me/56994504902" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9450 4902" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Planta%20de%20Tratamiento%20de%20Aguas%20Servidas%20Aguas%20Andinas%2C%20Camino%20El%20Trebal%202095%2C%20Padre%20Hurtado%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
+        </div>
+      </details>
+    </div>
+    <div class="card-wrap" data-id="2026-06-25-tania-soria-768" data-fecha="2026-06-25" data-estado-orig="pendiente">
+      <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-25" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span></div>
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">Tania (obra Soria 768, Las Condes)</span>
+            <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">🚽</span>
+            <span class="dir">📍 Soria 768, Las Condes, Región Metropolitana</span>
+            <span class="hora">🕐 9:00 AM (o cuando puedan en la mañana)</span>
+            <span class="monto">💵 $130.000</span>
+          </div>
+        </summary>
+        <div class="detalle">
+          <div class="comision-mini">💰 Tu comisión: <b>$26.000</b><span class="cm-base">20% de $130.000 neto</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 total. SIN factura (boleta), sin IVA. Paga al entregar: transferencia o efectivo.</span></div>
+          <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
+          <div class="bloque"><span class="etq">Aseo</span><p>Incluye 1 aseo durante el período. Aseo extra opcional: $40.000 c/u.</p></div>
+          
+          <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 5911 4408</p></div>
+          
+          <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Incluye 1 aseo durante las 2 semanas.</li><li>Retiro al finalizar (aprox. 09 de julio).</li></ul></div>
+          <div class="bloque"><span class="etq">Notas</span><p>Obra de construcción. Recibe a las 9:00 AM, lo más tardar cuando puedan en la mañana. SIN factura (boleta). Cobrar al entregar: transferencia o efectivo. Cliente: Tania.</p></div>
+          <div class="acciones"><a class="btn" href="https://wa.me/56959114408" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 5911 4408" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Soria%20768%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
+        </div>
+      </details>
+    </div>
+    <div class="card-wrap" data-id="2026-06-25-stock-diseno-chicureo" data-fecha="2026-06-25" data-estado-orig="pendiente">
+      <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-25" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span></div>
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">Stock Diseño Ltda. (Local Astop Aramco, Chicureo)</span>
+            <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">🚽</span>
+            <span class="dir">📍 Av. Chicureo 2300, Chicureo, Región Metropolitana (Local Astop Aramco)</span>
+            <span class="hora">🕐 Hoy (confirmar hora de recepción con el cliente)</span>
+            <span class="monto">💵 $190.400</span>
+          </div>
+        </summary>
+        <div class="detalle">
+          <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400. Se emite factura a Stock Diseño Ltda. Cobrar al entregar.</span></div>
+          <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
+          <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
+          
+          <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 9918 9274</p></div>
+          <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> Stock Diseño Ltda.</li><li><b>RUT:</b> 76.327.169-2</li></ul></div>
+          <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Aseo semanal incluido (cada 7 a 10 días).</li></ul></div>
+          <div class="bloque"><span class="etq">Notas</span><p>Cliente necesita el baño HOY. PENDIENTE: confirmar hora de recepción al coordinar (el cliente aún no la dio). Factura a Stock Diseño Ltda. (RUT 76.327.169-2). Ubicación: Local Astop Aramco (estación de servicio).</p></div>
+          <div class="acciones"><a class="btn" href="https://wa.me/56999189274" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9918 9274" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Chicureo%202300%2C%20Chicureo%2C%20Regi%C3%B3n%20Metropolitana%20%28Local%20Astop%20Aramco%29" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
+        </div>
+      </details>
+    </div></section><section data-fecha="2026-06-26"><h2 class="fecha-titulo">Viernes 26 de junio<span class="conteo">3</span></h2>
+    <div class="card-wrap" data-id="2026-06-26-b-carcamo-mair-mantencion" data-fecha="2026-06-26" data-estado-orig="pendiente">
+      <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-26" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span></div>
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">B. Cárcamo (MAIR) — mantención reforzada + retiro</span>
+            <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">🚽</span>
+            <span class="dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span>
+            
+            <span class="monto">💵 $95.200</span>
+          </div>
+        </summary>
+        <div class="detalle">
+          <div class="comision-mini comision-no">Sin comisión (servicio extra)</div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$95.200</span><span class="cobro-nota">Servicio adicional: 2 servicios de mantención (limpieza + recarga de agua, todo incluido) a $40.000 c/u = $80.000 neto + IVA = $95.200. Se factura a MAIR. (El arriendo del baño ya fue pagado por separado).</span></div>
+          <div class="bloque"><span class="etq">Servicio</span><p>🚽 Plan de mantención reforzada (2 limpiezas extra + recarga de agua) y retiro del baño ya instalado</p></div>
+          <div class="bloque"><span class="etq">Aseo</span><p>Plan de mantención reforzada (ver detalle en Limpiezas). Retiro: martes 7 jul (sin limpieza).</p></div>
+          <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">vie 26 jun</span><span class="lp-etq">Limpieza 1<span class="lp-nota">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mar 30 jun</span><span class="lp-etq">Limpieza 2<span class="lp-nota">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">vie 3 jul</span><span class="lp-etq">Limpieza 3<span class="lp-nota">Aseo incluido en el arriendo.</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul><div class="lp-total">2 limpieza(s) extra · <b>$80.000 neto</b></div></div>
+          <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 3380 0237</p></div>
+          <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> PENDIENTE — MAIR (el cliente enviará los datos de la empresa)</li><li><b>RUT:</b> PENDIENTE</li><li><b>Email:</b> bcarcamo@mair.cl</li></ul></div>
+          <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Visita 1 — viernes 26 jun: limpieza del baño.</li><li>Visita 2 — martes 30 jun: limpieza del baño.</li><li>Visita 3 — viernes 3 jul: limpieza del baño.</li><li>Retiro — martes 7 jul: retirar la unidad (sin limpieza).</li><li>Recarga de agua del lavamanos según corresponda.</li><li>El baño debe mantenerse lo más presentable/impecable posible (lo pidió el cliente).</li></ul></div>
+          <div class="bloque"><span class="etq">Notas</span><p>Cliente existente (baño ya instalado y pagado en Curicó 517). Esto es SOLO el plan de mantención reforzada + retiro. Cobro pendiente del refuerzo: 2 servicios todo incluido a $40.000 c/u = $80.000 neto + IVA = $95.200 (factura MAIR). Confirmar razón social y RUT al facturar.</p></div>
+          <div class="acciones"><a class="btn" href="https://wa.me/56933800237" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 3380 0237" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
+        </div>
+      </details>
+    </div>
+    <div class="card-wrap" data-id="2026-06-26-villagra-conchali" data-fecha="2026-06-26" data-estado-orig="pendiente">
+      <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-26" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span></div>
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">Sr. Villagra</span>
+            <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">🚽</span>
+            <span class="dir">📍 Campanario 1749, Conchalí, Región Metropolitana</span>
+            <span class="hora">🕐 Durante el día</span>
+            <span class="monto">💵 $170.000</span>
+          </div>
+        </summary>
+        <div class="detalle">
+          <div class="comision-mini">💰 Tu comisión: <b>$34.000</b><span class="cm-base">20% de $170.000 neto</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$170.000</span><span class="cobro-nota">$170.000 todo incluido (oferta mensual). SIN factura, se emite BOLETA — no lleva IVA adicional. Cobrar al entregar.</span></div>
+          <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
+          <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
+          
+          <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 3300 3076</p></div>
+          
+          <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado ida y vuelta incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Aseo semanal incluido (cada 7 a 10 días).</li></ul></div>
+          <div class="bloque"><span class="etq">Notas</span><p>Lo contacta el repartidor. Arriendo mensual (30 días), puede extenderse si lo pide. Confirmar acceso al llegar.</p></div>
+          <div class="acciones"><a class="btn" href="https://wa.me/56933003076" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 3300 3076" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Campanario%201749%2C%20Conchal%C3%AD%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
+        </div>
+      </details>
+    </div>
+    <div class="card-wrap" data-id="2026-06-26-gamarra-santiago" data-fecha="2026-06-26" data-estado-orig="pendiente">
+      <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-26" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span></div>
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">Sr. Gamarra</span>
+            <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">🚽</span>
+            <span class="dir">📍 San Isidro 1948, Santiago, Región Metropolitana</span>
+            <span class="hora">🕐 Durante el día (horario por confirmar con el cliente)</span>
+            <span class="monto">💵 $190.400</span>
+          </div>
+        </summary>
+        <div class="detalle">
+          <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400 al mes, todo incluido. Se emite FACTURA. Arriendo 2 meses (prolongable a 3). Cobrar el primer mes ($190.400) al entregar.</span></div>
+          <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
+          <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
+          
+          <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 9454 2997</p></div>
+          <div class="bloque"><span class="etq">🧾 Factura</span><p>Requiere factura.</p></div>
+          <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado ida y vuelta incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Aseo semanal incluido (cada 7 a 10 días).</li></ul></div>
+          <div class="bloque"><span class="etq">Notas</span><p>Lo contacta el repartidor para coordinar horario. PEDIR LOS DATOS DE FACTURACIÓN al coordinar la entrega (razón social, RUT, giro, dirección). Arriendo por 2 meses con prolongación a 3. Confirmar acceso al llegar.</p></div>
+          <div class="acciones"><a class="btn" href="https://wa.me/56994542997" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9454 2997" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=San%20Isidro%201948%2C%20Santiago%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
+        </div>
+      </details>
+    </div></section><section data-fecha="2026-06-30"><h2 class="fecha-titulo">Martes 30 de junio<span class="conteo">1</span></h2>
+    <div class="card-wrap" data-id="2026-06-30-innovators-conveyor-belt" data-fecha="2026-06-30" data-estado-orig="pendiente">
+      <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-30" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span></div>
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">Suyen Guíñez — Innovators Conveyor Belt</span>
+            <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">🚽</span>
+            <span class="dir">📍 Camino El Alba, Las Condes, Región Metropolitana (obra)</span>
+            
+            <span class="monto">💵 $190.400</span>
+          </div>
+        </summary>
+        <div class="detalle">
+          <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">Mensual. Cobrar al entregar. $160.000 neto + IVA (lleva factura).</span></div>
+          <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (hasta 30 días)</p></div>
+          <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
+          
+          <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 7806 8907</p></div>
+          <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> Innovators Conveyor Belt</li><li><b>Email:</b> suyen.guinez@innovatorsconveyorbelt.cl</li></ul></div>
+          <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico en la obra (Camino El Alba, Las Condes).</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Reserva confirmada para el martes 30.</li></ul></div>
+          <div class="bloque"><span class="etq">Notas</span><p>Confirmar dirección exacta / número y punto de instalación con la clienta antes de llegar. Falta RUT para la factura.</p></div>
+          <div class="acciones"><a class="btn" href="https://wa.me/56978068907" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 7806 8907" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Camino%20El%20Alba%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana%20%28obra%29" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
+        </div>
+      </details>
+    </div></section><section class="agregado"><h2 class="fecha-titulo">🧽 Limpiezas a realizar<span class="conteo">3</span></h2><ul class="ag-lista"><li class="ag-item"><span class="ag-fecha">vie 26 jun</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 1</span><span class="ag-sub">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="ag-item"><span class="ag-fecha">mar 30 jun</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 2</span><span class="ag-sub">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="ag-item"><span class="ag-fecha">vie 3 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 3</span><span class="ag-sub">Aseo incluido en el arriendo.</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></section><section class="agregado"><h2 class="fecha-titulo">📦 Retiros<span class="conteo">5</span></h2><ul class="ag-lista"><li class="ag-item"><span class="ag-fecha">mar 30 jun</span><span class="ag-main"><b>Gino Muñoz (Constructora GMP)</b><span class="ag-dir">📍 Condominio Polo de Manquehue 2, Chicureo, Colina, Región Metropolitana</span><span class="ag-sub">Al finalizar la semana (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mar 7 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Retiro de la unidad (sin limpieza).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mar 7 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR)</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mié 8 jul</span><span class="ag-main"><b>Cliente — Loreley 190 (La Reina)</b><span class="ag-dir">📍 Loreley 190, La Reina, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">jue 9 jul</span><span class="ag-main"><b>Tania (obra Soria 768, Las Condes)</b><span class="ag-dir">📍 Soria 768, Las Condes, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li></ul></section></div><div class="vista" data-vista="comision" hidden><div id="comision-panel" class="comision-panel"></div><div id="barra-pagar" class="barra-pagar" hidden><button type="button" class="btn-pagar" disabled>Selecciona comisiones</button></div></div>
   </main>
   <footer>Toca una entrega para ver el detalle · Destape Rápido</footer>
-  <script>window.__APP__ = {"url": "https://abmzkzraptmjgebwjzys.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho", "entregas": [{"id": "2026-06-30-innovators-conveyor-belt", "cliente": "Suyen Guíñez — Innovators Conveyor Belt", "fecha": "2026-06-30", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-26-b-carcamo-mair-mantencion", "cliente": "B. Cárcamo (MAIR) — mantención reforzada + retiro", "fecha": "2026-06-26", "neto": 80000, "comision": 0, "comisiona": false, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-25-stock-diseno-chicureo", "cliente": "Stock Diseño Ltda. (Local Astop Aramco, Chicureo)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-25-tania-soria-768", "cliente": "Tania (obra Soria 768, Las Condes)", "fecha": "2026-06-25", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-24-loreley-190-la-reina", "cliente": "Cliente — Loreley 190 (La Reina)", "fecha": "2026-06-24", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-23-b-carcamo-mair", "cliente": "B. Cárcamo (MAIR)", "fecha": "2026-06-23", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "cobrado", "comision_pagada": true}, {"id": "2026-06-23-gino-munoz", "cliente": "Gino Muñoz (Constructora GMP)", "fecha": "2026-06-23", "neto": 100000, "comision": 20000, "comisiona": true, "estado": "cobrado", "comision_pagada": true}, {"id": "2026-06-23-don-daniel", "cliente": "Don Daniel", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-25-hercha-ingenieria", "cliente": "Don Eliecer (HERCHA Ingeniería)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-23-pilar-casanueva", "cliente": "Pilar Casanueva (MDA Constructora)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "cobrado", "comision_pagada": true}, {"id": "2026-06-26-villagra-conchali", "cliente": "Sr. Villagra", "fecha": "2026-06-26", "neto": 170000, "comision": 34000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-26-gamarra-santiago", "cliente": "Sr. Gamarra", "fecha": "2026-06-26", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-23-grupo-b-nunoa", "cliente": "Grupo B SpA (obra Ñuñoa)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "cobrado", "comision_pagada": true}]};</script>
-  <script>
-(function () {
-  var ahora = new Date();
-  var hoyISO = ahora.getFullYear() + '-' +
-    String(ahora.getMonth() + 1).padStart(2, '0') + '-' +
-    String(ahora.getDate()).padStart(2, '0');
-  var pasadas = [];
-  document.querySelectorAll('section[data-fecha]').forEach(function (s) {
-    var f = s.getAttribute('data-fecha');
-    if (f && f < hoyISO) { s.classList.add('pasada'); pasadas.push(s); }
-  });
-  var btn = document.getElementById('toggle-anteriores');
-  if (!btn) { return; }
-  if (pasadas.length === 0) { btn.remove(); return; }
-  var abierto = false;
-  function pintar() {
-    pasadas.forEach(function (s) { s.classList.toggle('mostrar', abierto); });
-    btn.textContent = abierto
-      ? '\u25B4 Ocultar anteriores'
-      : '\u25BE Ver anteriores (' + pasadas.length + ')';
-  }
-  btn.hidden = false;
-  btn.addEventListener('click', function () { abierto = !abierto; pintar(); });
-  pintar();
-})();
-</script>
+  <script>window.__APP__ = {"url": "https://abmzkzraptmjgebwjzys.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho", "whatsapp": "56930153632", "banco": {"titular": "Alejandro Rivera Carrasco", "banco": "BancoEstado", "tipo": "Cuenta RUT", "cuenta": "000019955346", "rut": "19.955.346-1", "email": "rivera.ale982@gmail.com"}, "entregas": [{"id": "2026-06-30-innovators-conveyor-belt", "cliente": "Suyen Guíñez — Innovators Conveyor Belt", "fecha": "2026-06-30", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-26-b-carcamo-mair-mantencion", "cliente": "B. Cárcamo (MAIR) — mantención reforzada + retiro", "fecha": "2026-06-26", "neto": 80000, "comision": 0, "comisiona": false, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-25-stock-diseno-chicureo", "cliente": "Stock Diseño Ltda. (Local Astop Aramco, Chicureo)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-25-tania-soria-768", "cliente": "Tania (obra Soria 768, Las Condes)", "fecha": "2026-06-25", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-24-loreley-190-la-reina", "cliente": "Cliente — Loreley 190 (La Reina)", "fecha": "2026-06-24", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-23-b-carcamo-mair", "cliente": "B. Cárcamo (MAIR)", "fecha": "2026-06-23", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "cobrado", "comision_pagada": true}, {"id": "2026-06-23-gino-munoz", "cliente": "Gino Muñoz (Constructora GMP)", "fecha": "2026-06-23", "neto": 100000, "comision": 20000, "comisiona": true, "estado": "cobrado", "comision_pagada": true}, {"id": "2026-06-23-don-daniel", "cliente": "Don Daniel", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-25-hercha-ingenieria", "cliente": "Don Eliecer (HERCHA Ingeniería)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-23-pilar-casanueva", "cliente": "Pilar Casanueva (MDA Constructora)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "cobrado", "comision_pagada": true}, {"id": "2026-06-26-villagra-conchali", "cliente": "Sr. Villagra", "fecha": "2026-06-26", "neto": 170000, "comision": 34000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-26-gamarra-santiago", "cliente": "Sr. Gamarra", "fecha": "2026-06-26", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false}, {"id": "2026-06-23-grupo-b-nunoa", "cliente": "Grupo B SpA (obra Ñuñoa)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "cobrado", "comision_pagada": true}]};</script>
+  
   <script>
 (function () {
   var APP = window.__APP__ || {};
   var SUPA = { url: APP.url, key: APP.key };
+  var WA = APP.whatsapp || '';
+  var BANCO = APP.banco || {};
   var META = {};
   (APP.entregas || []).forEach(function (e) { META[e.id] = e; });
-  var estado = {}; // id -> {id, estado, fecha, comision_pagada}
+  var estado = {}; // id -> {id, estado, fecha, comision_pagada, pagada_at}
+  var anterioresColapsado = true;
+  var comSel = null; // Set de ids seleccionados para pagar (persistido en localStorage)
+  var SEL_KEY = 'comision_sel_v1';
 
+  // Etiqueta + colores del badge según estado.
   var ESTADOS = {
     'pendiente': ['Pendiente', '#B45309', '#FEF3C7'],
     'en-camino': ['En camino', '#1E40AF', '#DBEAFE'],
-    'entregado': ['Entregado', '#166534', '#DCFCE7'],
-    'cobrado':   ['✓ Cobrado', '#065F46', '#A7F3D0']
+    'entregado': ['Entregado', '#1E40AF', '#DBEAFE'],
+    'cobrado':   ['Cliente ya pagó', '#92600A', '#FEF3C7']
   };
   var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 
@@ -569,11 +630,16 @@
     if (p.length !== 3) return iso;
     return parseInt(p[2], 10) + ' ' + (MESES[parseInt(p[1], 10) - 1] || '') + ' ' + p[0];
   }
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
   function headers(extra) {
     var h = { 'apikey': SUPA.key, 'Authorization': 'Bearer ' + SUPA.key };
     if (extra) { for (var k in extra) h[k] = extra[k]; }
     return h;
   }
+  function qCard(id) { return document.querySelector('.card-wrap[data-id="' + String(id).replace(/"/g, '\\"') + '"]'); }
 
   function estadoDe(id) {
     var st = estado[id];
@@ -594,67 +660,60 @@
   function pintarCard(card) {
     var id = card.getAttribute('data-id');
     var est = estadoDe(id);
-    var info = ESTADOS[est] || ESTADOS['pendiente'];
-    var badge = card.querySelector('.badge');
-    if (badge) { badge.textContent = info[0]; badge.style.color = info[1]; badge.style.background = info[2]; }
-    card.querySelectorAll('.est-btn').forEach(function (b) {
-      b.classList.toggle('activo', b.getAttribute('data-estado') === est);
-    });
-    var input = card.querySelector('.fecha-input');
     var fOrig = card.getAttribute('data-fecha');
     var fAct = fechaDe(id);
+    var reagendado = !!(fAct && fOrig && fAct !== fOrig);
+    var info = ESTADOS[est] || ESTADOS['pendiente'];
+
+    var badge = card.querySelector('.badge');
+    if (badge) { badge.textContent = info[0]; badge.style.color = info[1]; badge.style.background = info[2]; }
+
+    // Color de la card según prioridad: cobrado > entregado > reagendado.
+    card.classList.toggle('is-cobrado', est === 'cobrado');
+    card.classList.toggle('is-entregado', est === 'entregado');
+    card.classList.toggle('is-reagendado', reagendado && est !== 'cobrado' && est !== 'entregado');
+
+    // Botones de estado.
+    card.querySelectorAll('.est-btn').forEach(function (b) {
+      var e = b.getAttribute('data-estado');
+      var activo = (e === 'entregado' && (est === 'entregado' || est === 'cobrado')) || (e === 'cobrado' && est === 'cobrado');
+      b.classList.toggle('activo', activo);
+      if (e === 'cobrado') { b.textContent = (est === 'cobrado') ? 'Cliente ya pagó' : 'Cobrado'; }
+    });
+
+    // Reagendar: input + chip; oculta toda la gestión en entregas FUTURAS (gate por fecha original).
+    var input = card.querySelector('.fecha-input');
     if (input && fAct) { input.value = fAct; }
     var chip = card.querySelector('.reagendada-chip');
     if (chip) {
-      if (fAct && fAct !== fOrig) { chip.hidden = false; chip.textContent = '📅 Reagendada: ' + fechaLarga(fAct); }
+      if (reagendado) { chip.hidden = false; chip.textContent = '📅 Reagendada para ' + fechaLarga(fAct); }
       else { chip.hidden = true; }
     }
+    var top = card.querySelector('.gestion-top');
+    if (top) { top.hidden = !!(fOrig && fOrig > todayISO()); }
   }
-  function pintarTodo() { document.querySelectorAll('.card[data-id]').forEach(pintarCard); }
+  function pintarTodo() { document.querySelectorAll('.card-wrap[data-id]').forEach(pintarCard); }
 
-  function renderPanel() {
-    var panel = document.getElementById('comision-panel');
-    if (!panel) return;
-    var rows = [], teDeben = 0, porCobrar = 0, yaPagada = 0;
-    Object.keys(META).forEach(function (id) {
-      var m = META[id];
-      if (!m.comisiona || !m.comision) return;
-      var est = estadoDe(id), pagada = pagadaDe(id), cobrada = (est === 'cobrado');
-      if (cobrada && !pagada) teDeben += m.comision;
-      else if (cobrada && pagada) yaPagada += m.comision;
-      else porCobrar += m.comision;
-      rows.push({ id: id, cliente: m.cliente, comision: m.comision, est: est, pagada: pagada, cobrada: cobrada });
+  // ---- Ocultar anteriores: solo se pueden ocultar las COBRADAS de días pasados ----
+  function aplicarAnteriores() {
+    var hoy = todayISO();
+    var ocultables = [];
+    document.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
+      var id = cw.getAttribute('data-id');
+      var eff = fechaDe(id);
+      var ocultable = !!(eff && eff < hoy) && estadoDe(id) === 'cobrado';
+      if (ocultable) { ocultables.push(cw); }
+      cw.classList.toggle('oculto-anterior', ocultable && anterioresColapsado);
     });
-    rows.sort(function (a, b) { return b.comision - a.comision; });
-
-    var lis = rows.map(function (r) {
-      var info = ESTADOS[r.est] || ESTADOS['pendiente'];
-      var chip = r.pagada
-        ? '<span class="cp-chip cp-pagada">✓ Pagada</span>'
-        : '<span class="cp-chip" style="color:' + info[1] + ';background:' + info[2] + '">' + info[0] + '</span>';
-      var accion = r.cobrada
-        ? '<button type="button" class="cp-toggle' + (r.pagada ? ' on' : '') + '" data-id="' + escapeHtml(r.id) + '">' + (r.pagada ? 'Pagada' : 'Marcar pagada') + '</button>'
-        : '';
-      return '<li class="cp-row' + (r.pagada ? ' cp-row-pagada' : '') + '">'
-        + '<span class="cp-cli">' + escapeHtml(r.cliente) + '</span>' + chip
-        + '<span class="cp-monto">' + clp(r.comision) + '</span>' + accion + '</li>';
-    }).join('');
-    if (!rows.length) { lis = '<p class="cp-vacio">No hay entregas que generen comisión.</p>'; }
-
-    panel.innerHTML =
-      '<div class="cp-head"><span class="cp-titulo">💰 Comisión a pagar</span></div>'
-      + '<div class="cp-total"><span class="cp-total-lbl">Te deben ahora</span>'
-      + '<span class="cp-total-val">' + clp(teDeben) + '</span></div>'
-      + '<div class="cp-sub">Por cobrar (pendientes): <b>' + clp(porCobrar) + '</b>'
-      + (yaPagada ? ' · Ya pagada: ' + clp(yaPagada) : '') + '</div>'
-      + '<ul class="cp-lista">' + lis + '</ul>';
-    panel.hidden = false;
-    panel.querySelectorAll('.cp-toggle').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var id = b.getAttribute('data-id');
-        upsert(id, { comision_pagada: !pagadaDe(id) });
-      });
+    document.querySelectorAll('.vista[data-vista="entregas"] section[data-fecha]').forEach(function (sec) {
+      var vis = sec.querySelectorAll('.card-wrap:not(.oculto-anterior)').length;
+      sec.style.display = vis ? '' : 'none';
     });
+    var btn = document.getElementById('toggle-anteriores');
+    if (!btn) return;
+    if (!ocultables.length) { btn.hidden = true; return; }
+    btn.hidden = false;
+    btn.textContent = (anterioresColapsado ? '▾ Ver cobradas anteriores (' : '▴ Ocultar cobradas anteriores (') + ocultables.length + ')';
   }
 
   function bannerOnline(ok) {
@@ -665,15 +724,20 @@
   }
 
   function upsert(id, patch) {
-    var row = { id: id, estado: estadoDe(id), fecha: fechaDe(id) || null, comision_pagada: pagadaDe(id) };
+    var prev = estado[id] || {};
+    var row = {
+      id: id, estado: estadoDe(id), fecha: fechaDe(id) || null,
+      comision_pagada: pagadaDe(id), pagada_at: prev.pagada_at || null
+    };
     for (var k in patch) { row[k] = patch[k]; }
     if (row.fecha === '') { row.fecha = null; }
     estado[id] = row;
-    var card = document.querySelector('.card[data-id="' + String(id).replace(/"/g, '\\"') + '"]');
+    var card = qCard(id);
     if (card) { pintarCard(card); }
-    renderPanel();
-    if (!SUPA.url || !SUPA.key) return;
-    fetch(SUPA.url + '/rest/v1/entrega_estado', {
+    aplicarAnteriores();
+    renderComision();
+    if (!SUPA.url || !SUPA.key) return Promise.resolve();
+    return fetch(SUPA.url + '/rest/v1/entrega_estado', {
       method: 'POST',
       headers: headers({ 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
       body: JSON.stringify(row)
@@ -683,30 +747,175 @@
     }).catch(function (e) { console.warn('No se pudo guardar', e); bannerOnline(false); });
   }
 
+  // ====================== VISTA COMISIÓN (flujo de pago) ======================
+  function loadSel() { try { return JSON.parse(localStorage.getItem(SEL_KEY)); } catch (e) { return null; } }
+  function saveSel() { try { localStorage.setItem(SEL_KEY, JSON.stringify(Array.from(comSel))); } catch (e) {} }
+
+  function comisionables() {
+    var ids = Object.keys(META).filter(function (id) {
+      var m = META[id];
+      return m.comisiona && m.comision && estadoDe(id) === 'cobrado';
+    });
+    ids.sort(function (a, b) { return (fechaDe(a) || '').localeCompare(fechaDe(b) || ''); });
+    return ids;
+  }
+
+  function renderComision() {
+    var cont = document.getElementById('comision-panel');
+    if (!cont) return;
+    var ids = comisionables();
+    var porPagar = ids.filter(function (id) { return !pagadaDe(id); });
+    var pagadas = ids.filter(function (id) { return pagadaDe(id); });
+
+    // Selección: por defecto todas las por pagar; respeta lo guardado.
+    if (comSel === null) {
+      var stored = loadSel();
+      comSel = new Set(stored ? stored.filter(function (id) { return porPagar.indexOf(id) >= 0; }) : porPagar);
+    } else {
+      comSel.forEach(function (id) { if (porPagar.indexOf(id) < 0) comSel.delete(id); });
+    }
+
+    var deuda = porPagar.reduce(function (s, id) { return s + META[id].comision; }, 0);
+    var yaPagada = pagadas.reduce(function (s, id) { return s + META[id].comision; }, 0);
+
+    function card(id, paid) {
+      var m = META[id];
+      var check = paid
+        ? '<span class="com-pagada-tag">✓ Pagada</span>'
+        : '<input type="checkbox" class="com-check" data-id="' + escapeHtml(id) + '"' + (comSel.has(id) ? ' checked' : '') + '>';
+      var rev = paid ? '<button type="button" class="com-revocar" data-id="' + escapeHtml(id) + '">Revocar</button>' : '';
+      return '<div class="com-card' + (paid ? ' com-pagada' : '') + '">' + check
+        + '<div class="com-main"><div class="com-cli">' + escapeHtml(m.cliente) + '</div>'
+        + '<div class="com-dir">📍 ' + escapeHtml(m.direccion || '') + ' · ' + fechaLarga(fechaDe(id)) + '</div></div>'
+        + '<div class="com-monto">' + clp(m.comision) + '</div>' + rev + '</div>';
+    }
+
+    var html = '<div class="cp-head"><span class="cp-titulo">💰 Comisión a pagar</span></div>'
+      + '<div class="com-deuda"><span>Te deben (cobradas sin pagar)</span><b>' + clp(deuda) + '</b></div>';
+    if (porPagar.length) {
+      html += '<div class="com-sec-tit">Selecciona las que vas a pagar</div>'
+        + porPagar.map(function (id) { return card(id, false); }).join('');
+    } else {
+      html += '<p class="cp-vacio">No hay comisiones pendientes de pago. 🎉</p>';
+    }
+    if (pagadas.length) {
+      html += '<div class="com-sec-tit">Ya pagadas · ' + clp(yaPagada) + '</div>'
+        + pagadas.map(function (id) { return card(id, true); }).join('');
+    }
+    cont.innerHTML = html;
+
+    cont.querySelectorAll('.com-check').forEach(function (ch) {
+      ch.addEventListener('change', function () {
+        var id = ch.getAttribute('data-id');
+        if (ch.checked) comSel.add(id); else comSel.delete(id);
+        saveSel(); updateBarra();
+      });
+    });
+    cont.querySelectorAll('.com-revocar').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (confirm('¿Revocar el pago de esta comisión? Volverá a quedar como pendiente.')) {
+          upsert(b.getAttribute('data-id'), { comision_pagada: false, pagada_at: null });
+        }
+      });
+    });
+    updateBarra();
+  }
+
+  function seleccionTotal() {
+    var t = 0; if (!comSel) return 0;
+    comSel.forEach(function (id) { if (META[id] && !pagadaDe(id)) t += META[id].comision; });
+    return t;
+  }
+  function updateBarra() {
+    var barra = document.getElementById('barra-pagar');
+    if (!barra) return;
+    var n = 0; if (comSel) comSel.forEach(function (id) { if (!pagadaDe(id)) n++; });
+    var total = seleccionTotal();
+    var btn = barra.querySelector('.btn-pagar');
+    btn.disabled = (n === 0);
+    btn.textContent = n ? ('Pagar ' + clp(total) + ' · ' + n + ' selec.') : 'Selecciona comisiones';
+    barra.hidden = false;
+  }
+
+  function abrirModalPago() {
+    var seleccion = [];
+    comSel.forEach(function (id) { if (!pagadaDe(id)) seleccion.push(id); });
+    if (!seleccion.length) return;
+    var total = seleccionTotal();
+    var detalle = seleccion.map(function (id) { return '<div class="bank-row"><span>' + escapeHtml(META[id].cliente) + '</span><b>' + clp(META[id].comision) + '</b></div>'; }).join('');
+    var bg = document.createElement('div');
+    bg.className = 'modal-bg';
+    bg.innerHTML =
+      '<div class="modal"><h3>Pagar comisión</h3>'
+      + '<p class="modal-sub">Transfiere el total y mándame el comprobante por WhatsApp. Queda registrada la hora del pago.</p>'
+      + '<div class="bank">' + detalle + '<div class="bank-row bank-total"><span>Total</span><b>' + clp(total) + '</b></div></div>'
+      + '<div class="bank"><div class="bank-row"><span>Titular</span><b>' + escapeHtml(BANCO.titular || '') + '</b></div>'
+      + '<div class="bank-row"><span>Banco</span><b>' + escapeHtml(BANCO.banco || '') + '</b></div>'
+      + '<div class="bank-row"><span>Tipo</span><b>' + escapeHtml(BANCO.tipo || '') + '</b></div>'
+      + '<div class="bank-row"><span>N° cuenta</span><b>' + escapeHtml(BANCO.cuenta || '') + '</b></div>'
+      + '<div class="bank-row"><span>RUT</span><b>' + escapeHtml(BANCO.rut || '') + '</b></div>'
+      + (BANCO.email ? '<div class="bank-row"><span>Email</span><b>' + escapeHtml(BANCO.email) + '</b></div>' : '') + '</div>'
+      + '<label class="file-comp">📎 Adjuntar comprobante (opcional)<input type="file" accept="image/*" class="comp-input"></label>'
+      + '<img class="comp-preview" alt="comprobante">'
+      + '<div class="modal-acciones"><button type="button" class="btn-modal cancelar">Cancelar</button>'
+      + '<button type="button" class="btn-modal primary confirmar">Marcar pagadas y abrir WhatsApp</button></div></div>';
+    document.body.appendChild(bg);
+    bg.addEventListener('click', function (ev) { if (ev.target === bg) document.body.removeChild(bg); });
+    bg.querySelector('.cancelar').addEventListener('click', function () { document.body.removeChild(bg); });
+    var fileInput = bg.querySelector('.comp-input');
+    var preview = bg.querySelector('.comp-preview');
+    fileInput.addEventListener('change', function () {
+      var f = fileInput.files && fileInput.files[0];
+      if (f) { preview.src = URL.createObjectURL(f); preview.style.display = 'block'; }
+    });
+    bg.querySelector('.confirmar').addEventListener('click', function () {
+      var ahora = new Date().toISOString();
+      Promise.all(seleccion.map(function (id) { return upsert(id, { comision_pagada: true, pagada_at: ahora }); }))
+        .then(function () {
+          var lineas = seleccion.map(function (id) { return '• ' + META[id].cliente + ': ' + clp(META[id].comision); });
+          var texto = 'Hola Alejandro, te transfiero la comisión:\n' + lineas.join('\n')
+            + '\nTotal: ' + clp(total) + '\nFecha: ' + new Date().toLocaleString('es-CL')
+            + '\n(Te adjunto el comprobante.)';
+          comSel = new Set(); saveSel();
+          if (document.body.contains(bg)) document.body.removeChild(bg);
+          if (WA) { window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(texto), '_blank'); }
+        });
+    });
+  }
+
   function load() {
-    if (!SUPA.url || !SUPA.key) { pintarTodo(); renderPanel(); return; }
+    var done = function () { pintarTodo(); aplicarAnteriores(); renderComision(); };
+    if (!SUPA.url || !SUPA.key) { done(); return; }
     fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) { rows.forEach(function (row) { estado[row.id] = row; }); })
       .catch(function (e) { console.warn(e); })
-      .then(function () { pintarTodo(); renderPanel(); });
+      .then(done);
   }
 
   function wire() {
-    document.querySelectorAll('.card[data-id]').forEach(function (card) {
+    document.querySelectorAll('.card-wrap[data-id]').forEach(function (card) {
       var id = card.getAttribute('data-id');
       card.querySelectorAll('.est-btn').forEach(function (b) {
         b.addEventListener('click', function (ev) {
           ev.preventDefault(); ev.stopPropagation();
-          upsert(id, { estado: b.getAttribute('data-estado') });
+          var e = b.getAttribute('data-estado');
+          var act = estadoDe(id);
+          var next;
+          if (e === 'entregado') { next = (act === 'entregado') ? 'pendiente' : 'entregado'; }
+          else { next = (act === 'cobrado') ? 'entregado' : 'cobrado'; }
+          upsert(id, { estado: next });
         });
       });
       var input = card.querySelector('.fecha-input');
       if (input) {
-        input.addEventListener('click', function (ev) { ev.stopPropagation(); });
         input.addEventListener('change', function () { upsert(id, { fecha: input.value || null }); });
       }
     });
+    var ta = document.getElementById('toggle-anteriores');
+    if (ta) { ta.addEventListener('click', function () { anterioresColapsado = !anterioresColapsado; aplicarAnteriores(); }); }
+    var bp = document.getElementById('barra-pagar');
+    if (bp) { bp.querySelector('.btn-pagar').addEventListener('click', abrirModalPago); }
   }
 
   function wireVistas() {

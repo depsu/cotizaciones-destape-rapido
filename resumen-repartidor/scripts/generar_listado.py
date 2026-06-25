@@ -41,6 +41,17 @@ SUPABASE_ANON_KEY = (
 TASA_COMISION = 0.20
 IVA = 1.19
 
+# Pago de la comisión: el repartidor le transfiere a Alejandro y avisa por WhatsApp.
+WHATSAPP_COMISION = "56930153632"
+DATOS_BANCARIOS = {
+    "titular": "Alejandro Rivera Carrasco",
+    "banco": "BancoEstado",
+    "tipo": "Cuenta RUT",
+    "cuenta": "000019955346",
+    "rut": "19.955.346-1",
+    "email": "rivera.ale982@gmail.com",
+}
+
 MESES = [
     "enero", "febrero", "marzo", "abril", "mayo", "junio",
     "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
@@ -53,8 +64,12 @@ ASEO_DEFAULT = "Aseo semanal (cada 7 a 10 días)"
 ESTADOS = {
     "pendiente": ("Pendiente", "#B45309", "#FEF3C7"),
     "en-camino": ("En camino", "#1E40AF", "#DBEAFE"),
-    "entregado": ("Entregado", "#166534", "#DCFCE7"),
+    "entregado": ("Entregado", "#1E40AF", "#DBEAFE"),
+    "cobrado": ("Cliente ya pagó", "#92600A", "#FEF3C7"),
 }
+
+# Clase de color de la card según estado (coincide con el JS).
+CLASE_ESTADO = {"entregado": " is-entregado", "cobrado": " is-cobrado"}
 
 # Tipo de limpieza: "incluida" (parte del arriendo) o "extra" (se cobra aparte).
 TIPO_LIMPIEZA = {
@@ -216,7 +231,7 @@ def tarjeta(e: dict) -> str:
     ent_id = e.get("id", "")
     fecha_iso = e.get("fecha", "")
 
-    # Bloque de gestión: estado (lo cambia el repartidor), reagendar y comisión.
+    # Comisión (informativa, dentro del despliegue).
     neto = neto_de(e)
     com = comision_de(e)
     if comisiona(e):
@@ -226,16 +241,20 @@ def tarjeta(e: dict) -> str:
         )
     else:
         comision_mini = '<div class="comision-mini comision-no">Sin comisión (servicio extra)</div>'
-    gestion_html = (
-        '<div class="gestion"><span class="etq">Gestión</span>'
-        '<div class="estado-control" role="group" aria-label="Estado de la entrega">'
-        '<button type="button" class="est-btn" data-estado="pendiente">Pendiente</button>'
-        '<button type="button" class="est-btn" data-estado="entregado">Entregado</button>'
-        '<button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button>'
+
+    # Barra de gestión ARRIBA de la card (fuera del despliegue). El JS la oculta
+    # en las entregas futuras (solo aplica de hoy hacia atrás). Reagendar va primero.
+    gestion_top = (
+        '<div class="gestion-top">'
+        '<label class="gt-fecha"><span class="gt-ico">📅</span>'
+        '<span class="gt-rg-txt">Reagendar</span>'
+        f'<input type="date" class="fecha-input" value="{esc(fecha_iso)}" aria-label="Reagendar entrega"></label>'
+        '<div class="gt-estados" role="group" aria-label="Estado de la entrega">'
+        '<button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button>'
+        '<button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button>'
         '</div>'
-        '<label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span>'
-        f'<input type="date" class="fecha-input" value="{esc(fecha_iso)}"></label>'
-        f'{comision_mini}</div>'
+        '<span class="reagendada-chip" hidden></span>'
+        '</div>'
     )
 
     # Pago: lo que el repartidor (dueño) le cobra al cliente.
@@ -292,56 +311,66 @@ def tarjeta(e: dict) -> str:
     hora_chip = f'<span class="hora">🕐 {hora}</span>' if hora else ""
 
     return f"""
-    <details class="card" data-id="{esc(ent_id)}" data-fecha="{esc(fecha_iso)}" data-estado-orig="{esc(estado)}">
-      <summary>
-        <div class="resumen-top">
-          <span class="cliente">{cliente}</span>
-          <span class="badge" style="color:{color_txt};background:{color_bg}">{etiqueta}</span>
+    <div class="card-wrap{CLASE_ESTADO.get(estado, "")}" data-id="{esc(ent_id)}" data-fecha="{esc(fecha_iso)}" data-estado-orig="{esc(estado)}">
+      {gestion_top}
+      <details class="card">
+        <summary>
+          <div class="resumen-top">
+            <span class="cliente">{cliente}</span>
+            <span class="badge" style="color:{color_txt};background:{color_bg}">{etiqueta}</span>
+          </div>
+          <div class="resumen-sub">
+            <span class="banos">{banos_icono}</span>
+            <span class="dir">📍 {esc(direccion)}</span>
+            {hora_chip}
+            {monto_chip}
+          </div>
+        </summary>
+        <div class="detalle">
+          {comision_mini}
+          {cobro_html}
+          {f'<div class="bloque"><span class="etq">Servicio</span><p>{banos_icono} {servicio}</p></div>' if servicio else ""}
+          <div class="bloque"><span class="etq">Aseo</span><p>{aseo}</p></div>
+          {limpiezas_bloque}
+          {f'<div class="bloque"><span class="etq">Teléfono</span><p>{esc(telefono)}</p></div>' if telefono else ""}
+          {factura_html}
+          {detalle_html}
+          {notas_html}
+          {botones_html}
         </div>
-        <div class="resumen-sub">
-          <span class="banos">{banos_icono}</span>
-          <span class="dir">📍 {esc(direccion)}</span>
-          {hora_chip}
-          {monto_chip}
-        </div>
-        <div class="reagendada-chip" hidden></div>
-      </summary>
-      <div class="detalle">
-        {gestion_html}
-        {cobro_html}
-        {f'<div class="bloque"><span class="etq">Servicio</span><p>{banos_icono} {servicio}</p></div>' if servicio else ""}
-        <div class="bloque"><span class="etq">Aseo</span><p>{aseo}</p></div>
-        {limpiezas_bloque}
-        {f'<div class="bloque"><span class="etq">Teléfono</span><p>{esc(telefono)}</p></div>' if telefono else ""}
-        {factura_html}
-        {detalle_html}
-        {notas_html}
-        {botones_html}
-      </div>
-    </details>"""
+      </details>
+    </div>"""
 
 
 # CSS extra (gestión por tarjeta + panel de comisión). Se inyecta como variable
 # para evitar duplicar llaves dentro del f-string del <style>.
 ESTILOS_EXTRA = """
-  /* Gestión por tarjeta */
-  .gestion { margin-top:4px; padding:12px 14px; background:#F8FAFC; border:1px solid var(--linea); border-radius:12px; }
-  .estado-control { display:flex; gap:6px; margin-top:4px; }
-  .est-btn { flex:1 1 0; padding:9px 6px; border:1px solid var(--linea); background:#fff; color:var(--gris);
-    font-size:13px; font-weight:600; border-radius:9px; cursor:pointer; font-family:inherit; min-height:42px; }
+  /* Gestión ARRIBA de la card */
+  .card-wrap { margin-bottom:10px; }
+  .gestion-top { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 12px;
+    background:#fff; border:1px solid var(--linea); border-bottom:none; border-radius:14px 14px 0 0; }
+  .card-wrap > .card { margin-bottom:0; border-top:none; border-radius:0 0 14px 14px; }
+  .gt-fecha { display:flex; align-items:center; gap:5px; font-size:13px; color:var(--gris); font-weight:600; }
+  .gt-rg-txt { display:none; }
+  .fecha-input { font-family:inherit; font-size:14px; padding:6px 8px; border:1px solid var(--linea);
+    border-radius:8px; background:#fff; color:var(--tinta); min-height:36px; }
+  .gt-estados { display:flex; gap:6px; margin-left:auto; }
+  .est-btn { padding:8px 12px; border:1px solid var(--linea); background:#fff; color:var(--gris);
+    font-size:13px; font-weight:700; border-radius:9px; cursor:pointer; font-family:inherit; min-height:38px; }
   .est-btn:active { filter:brightness(.96); }
-  .est-btn.activo { background:var(--azul); color:#fff; border-color:var(--azul); }
-  .est-btn.est-cobrado.activo { background:#065F46; border-color:#065F46; }
-  .reagendar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; font-size:14px; }
-  .rg-lbl { color:var(--gris); font-weight:600; }
-  .fecha-input { font-family:inherit; font-size:15px; padding:8px 10px; border:1px solid var(--linea);
-    border-radius:9px; background:#fff; color:var(--tinta); min-height:40px; }
-  .comision-mini { margin-top:10px; font-size:14px; color:#7C3AED; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
+  .est-btn.est-entregado.activo { background:#1E40AF; color:#fff; border-color:#1E40AF; }
+  .est-btn.est-cobrado.activo { background:#B8860B; color:#fff; border-color:#B8860B; }
+  .reagendada-chip { width:100%; font-size:12px; font-weight:700; color:#475569; background:#F1F5F9;
+    padding:3px 9px; border-radius:20px; box-sizing:border-box; }
+  /* Colores de la card según estado */
+  .card-wrap.is-entregado > .card, .card-wrap.is-entregado > .gestion-top { border-color:#93C5FD; background:#EFF6FF; }
+  .card-wrap.is-cobrado > .card, .card-wrap.is-cobrado > .gestion-top { border-color:#FCD34D; background:#FFFBEB; }
+  .card-wrap.is-reagendado > .card, .card-wrap.is-reagendado > .gestion-top { border-color:#CBD5E1; background:#F1F5F9; }
+  .card-wrap.oculto-anterior { display:none; }
+  .comision-mini { margin-top:2px; font-size:14px; color:#92600A; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
   .comision-mini b { font-size:16px; }
   .comision-mini .cm-base { color:var(--gris); font-size:12px; }
   .comision-mini.comision-no { color:var(--gris); }
-  .reagendada-chip { margin-top:6px; font-size:12px; font-weight:700; color:#B45309; background:#FEF3C7;
-    display:inline-block; padding:3px 9px; border-radius:20px; }
   /* Panel de comisión */
   .comision-panel { background:#fff; border:1px solid var(--linea); border-radius:16px; padding:16px;
     margin:6px 0 16px; box-shadow:0 2px 10px rgba(124,58,237,.08); border-top:4px solid #7C3AED; }
@@ -382,6 +411,52 @@ ESTILOS_EXTRA = """
   .ag-sub { color:var(--gris); font-size:13px; }
   .agregado .lp-badge { align-self:center; }
   .agregado .lp-valor { align-self:center; }
+  /* Vista comisión: flujo de pago */
+  .comision-panel { border-top-color:#B8860B; box-shadow:0 2px 10px rgba(184,134,11,.10); }
+  .cp-titulo { color:#92600A; }
+  .com-deuda { display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    background:#FFFBEB; border:1px solid #FCD34D; border-radius:12px; padding:12px 14px; margin-top:12px; }
+  .com-deuda b { font-size:24px; font-weight:800; color:#92600A; font-variant-numeric:tabular-nums; }
+  .com-sec-tit { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--gris);
+    font-weight:700; margin:18px 2px 8px; }
+  .com-card { display:flex; align-items:center; gap:10px; padding:11px 13px; margin-bottom:8px;
+    background:#FFFBEB; border:1px solid #FCD34D; border-radius:12px; }
+  .com-card.com-pagada { background:#F0FDF4; border-color:#BBF7D0; opacity:.85; }
+  .com-check { width:22px; height:22px; flex:none; accent-color:#16A34A; }
+  .com-main { flex:1 1 auto; min-width:0; }
+  .com-cli { font-weight:700; }
+  .com-dir { color:var(--gris); font-size:13px; overflow-wrap:anywhere; }
+  .com-monto { font-weight:800; color:#92600A; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .com-pagada .com-monto { color:#166534; }
+  .com-pagada-tag { font-size:10px; font-weight:700; color:#166534; background:#DCFCE7; padding:3px 8px;
+    border-radius:20px; flex:none; text-transform:uppercase; letter-spacing:.4px; }
+  .com-revocar { font-size:12px; font-weight:600; padding:6px 9px; border:1px solid var(--linea);
+    background:#fff; border-radius:8px; color:#B91C1C; cursor:pointer; flex:none; }
+  /* Barra y botón pagar */
+  .barra-pagar { position:sticky; bottom:0; margin:10px -12px 0; padding:12px;
+    background:rgba(255,255,255,.96); border-top:1px solid var(--linea); }
+  .btn-pagar { width:100%; background:#16A34A; color:#fff; border:none; font-family:inherit;
+    font-size:16px; font-weight:800; padding:15px; border-radius:13px; cursor:pointer; min-height:54px; }
+  .btn-pagar:disabled { background:#CBD5E1; cursor:default; }
+  /* Modal de pago */
+  .modal-bg { position:fixed; inset:0; background:rgba(15,23,42,.55); display:flex;
+    align-items:flex-end; justify-content:center; z-index:50; }
+  .modal { background:#fff; width:100%; max-width:520px; border-radius:18px 18px 0 0; padding:20px 18px;
+    max-height:92vh; overflow:auto; box-shadow:0 -4px 24px rgba(15,23,42,.25); }
+  .modal h3 { margin:0 0 4px; font-size:19px; }
+  .modal-sub { margin:0 0 8px; font-size:13px; color:var(--gris); }
+  .bank { background:#F8FAFC; border:1px solid var(--linea); border-radius:12px; padding:10px 14px; margin:10px 0; font-size:14px; }
+  .bank-row { display:flex; justify-content:space-between; gap:12px; padding:4px 0; }
+  .bank-row span { color:var(--gris); }
+  .bank-row b { font-variant-numeric:tabular-nums; text-align:right; overflow-wrap:anywhere; }
+  .bank-total { border-top:1px solid var(--linea); margin-top:4px; padding-top:8px; font-size:16px; }
+  .file-comp { display:block; margin-top:10px; font-size:14px; font-weight:600; color:var(--azul); }
+  .file-comp input { display:block; margin-top:6px; font-weight:400; }
+  .comp-preview { display:none; margin-top:10px; max-width:100%; border-radius:10px; }
+  .modal-acciones { display:flex; gap:10px; margin-top:16px; }
+  .btn-modal { flex:1 1 0; padding:13px; border-radius:11px; font-family:inherit; font-weight:700;
+    font-size:15px; cursor:pointer; border:1px solid var(--linea); background:#fff; color:var(--tinta); }
+  .btn-modal.primary { background:#16A34A; color:#fff; border-color:#16A34A; }
 """
 
 # JS que carga el estado desde Supabase, cablea los controles de cada tarjeta y
@@ -390,15 +465,21 @@ SCRIPT_ESTADO = r"""<script>
 (function () {
   var APP = window.__APP__ || {};
   var SUPA = { url: APP.url, key: APP.key };
+  var WA = APP.whatsapp || '';
+  var BANCO = APP.banco || {};
   var META = {};
   (APP.entregas || []).forEach(function (e) { META[e.id] = e; });
-  var estado = {}; // id -> {id, estado, fecha, comision_pagada}
+  var estado = {}; // id -> {id, estado, fecha, comision_pagada, pagada_at}
+  var anterioresColapsado = true;
+  var comSel = null; // Set de ids seleccionados para pagar (persistido en localStorage)
+  var SEL_KEY = 'comision_sel_v1';
 
+  // Etiqueta + colores del badge según estado.
   var ESTADOS = {
     'pendiente': ['Pendiente', '#B45309', '#FEF3C7'],
     'en-camino': ['En camino', '#1E40AF', '#DBEAFE'],
-    'entregado': ['Entregado', '#166534', '#DCFCE7'],
-    'cobrado':   ['✓ Cobrado', '#065F46', '#A7F3D0']
+    'entregado': ['Entregado', '#1E40AF', '#DBEAFE'],
+    'cobrado':   ['Cliente ya pagó', '#92600A', '#FEF3C7']
   };
   var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 
@@ -413,11 +494,16 @@ SCRIPT_ESTADO = r"""<script>
     if (p.length !== 3) return iso;
     return parseInt(p[2], 10) + ' ' + (MESES[parseInt(p[1], 10) - 1] || '') + ' ' + p[0];
   }
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
   function headers(extra) {
     var h = { 'apikey': SUPA.key, 'Authorization': 'Bearer ' + SUPA.key };
     if (extra) { for (var k in extra) h[k] = extra[k]; }
     return h;
   }
+  function qCard(id) { return document.querySelector('.card-wrap[data-id="' + String(id).replace(/"/g, '\\"') + '"]'); }
 
   function estadoDe(id) {
     var st = estado[id];
@@ -438,67 +524,60 @@ SCRIPT_ESTADO = r"""<script>
   function pintarCard(card) {
     var id = card.getAttribute('data-id');
     var est = estadoDe(id);
-    var info = ESTADOS[est] || ESTADOS['pendiente'];
-    var badge = card.querySelector('.badge');
-    if (badge) { badge.textContent = info[0]; badge.style.color = info[1]; badge.style.background = info[2]; }
-    card.querySelectorAll('.est-btn').forEach(function (b) {
-      b.classList.toggle('activo', b.getAttribute('data-estado') === est);
-    });
-    var input = card.querySelector('.fecha-input');
     var fOrig = card.getAttribute('data-fecha');
     var fAct = fechaDe(id);
+    var reagendado = !!(fAct && fOrig && fAct !== fOrig);
+    var info = ESTADOS[est] || ESTADOS['pendiente'];
+
+    var badge = card.querySelector('.badge');
+    if (badge) { badge.textContent = info[0]; badge.style.color = info[1]; badge.style.background = info[2]; }
+
+    // Color de la card según prioridad: cobrado > entregado > reagendado.
+    card.classList.toggle('is-cobrado', est === 'cobrado');
+    card.classList.toggle('is-entregado', est === 'entregado');
+    card.classList.toggle('is-reagendado', reagendado && est !== 'cobrado' && est !== 'entregado');
+
+    // Botones de estado.
+    card.querySelectorAll('.est-btn').forEach(function (b) {
+      var e = b.getAttribute('data-estado');
+      var activo = (e === 'entregado' && (est === 'entregado' || est === 'cobrado')) || (e === 'cobrado' && est === 'cobrado');
+      b.classList.toggle('activo', activo);
+      if (e === 'cobrado') { b.textContent = (est === 'cobrado') ? 'Cliente ya pagó' : 'Cobrado'; }
+    });
+
+    // Reagendar: input + chip; oculta toda la gestión en entregas FUTURAS (gate por fecha original).
+    var input = card.querySelector('.fecha-input');
     if (input && fAct) { input.value = fAct; }
     var chip = card.querySelector('.reagendada-chip');
     if (chip) {
-      if (fAct && fAct !== fOrig) { chip.hidden = false; chip.textContent = '📅 Reagendada: ' + fechaLarga(fAct); }
+      if (reagendado) { chip.hidden = false; chip.textContent = '📅 Reagendada para ' + fechaLarga(fAct); }
       else { chip.hidden = true; }
     }
+    var top = card.querySelector('.gestion-top');
+    if (top) { top.hidden = !!(fOrig && fOrig > todayISO()); }
   }
-  function pintarTodo() { document.querySelectorAll('.card[data-id]').forEach(pintarCard); }
+  function pintarTodo() { document.querySelectorAll('.card-wrap[data-id]').forEach(pintarCard); }
 
-  function renderPanel() {
-    var panel = document.getElementById('comision-panel');
-    if (!panel) return;
-    var rows = [], teDeben = 0, porCobrar = 0, yaPagada = 0;
-    Object.keys(META).forEach(function (id) {
-      var m = META[id];
-      if (!m.comisiona || !m.comision) return;
-      var est = estadoDe(id), pagada = pagadaDe(id), cobrada = (est === 'cobrado');
-      if (cobrada && !pagada) teDeben += m.comision;
-      else if (cobrada && pagada) yaPagada += m.comision;
-      else porCobrar += m.comision;
-      rows.push({ id: id, cliente: m.cliente, comision: m.comision, est: est, pagada: pagada, cobrada: cobrada });
+  // ---- Ocultar anteriores: solo se pueden ocultar las COBRADAS de días pasados ----
+  function aplicarAnteriores() {
+    var hoy = todayISO();
+    var ocultables = [];
+    document.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
+      var id = cw.getAttribute('data-id');
+      var eff = fechaDe(id);
+      var ocultable = !!(eff && eff < hoy) && estadoDe(id) === 'cobrado';
+      if (ocultable) { ocultables.push(cw); }
+      cw.classList.toggle('oculto-anterior', ocultable && anterioresColapsado);
     });
-    rows.sort(function (a, b) { return b.comision - a.comision; });
-
-    var lis = rows.map(function (r) {
-      var info = ESTADOS[r.est] || ESTADOS['pendiente'];
-      var chip = r.pagada
-        ? '<span class="cp-chip cp-pagada">✓ Pagada</span>'
-        : '<span class="cp-chip" style="color:' + info[1] + ';background:' + info[2] + '">' + info[0] + '</span>';
-      var accion = r.cobrada
-        ? '<button type="button" class="cp-toggle' + (r.pagada ? ' on' : '') + '" data-id="' + escapeHtml(r.id) + '">' + (r.pagada ? 'Pagada' : 'Marcar pagada') + '</button>'
-        : '';
-      return '<li class="cp-row' + (r.pagada ? ' cp-row-pagada' : '') + '">'
-        + '<span class="cp-cli">' + escapeHtml(r.cliente) + '</span>' + chip
-        + '<span class="cp-monto">' + clp(r.comision) + '</span>' + accion + '</li>';
-    }).join('');
-    if (!rows.length) { lis = '<p class="cp-vacio">No hay entregas que generen comisión.</p>'; }
-
-    panel.innerHTML =
-      '<div class="cp-head"><span class="cp-titulo">💰 Comisión a pagar</span></div>'
-      + '<div class="cp-total"><span class="cp-total-lbl">Te deben ahora</span>'
-      + '<span class="cp-total-val">' + clp(teDeben) + '</span></div>'
-      + '<div class="cp-sub">Por cobrar (pendientes): <b>' + clp(porCobrar) + '</b>'
-      + (yaPagada ? ' · Ya pagada: ' + clp(yaPagada) : '') + '</div>'
-      + '<ul class="cp-lista">' + lis + '</ul>';
-    panel.hidden = false;
-    panel.querySelectorAll('.cp-toggle').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var id = b.getAttribute('data-id');
-        upsert(id, { comision_pagada: !pagadaDe(id) });
-      });
+    document.querySelectorAll('.vista[data-vista="entregas"] section[data-fecha]').forEach(function (sec) {
+      var vis = sec.querySelectorAll('.card-wrap:not(.oculto-anterior)').length;
+      sec.style.display = vis ? '' : 'none';
     });
+    var btn = document.getElementById('toggle-anteriores');
+    if (!btn) return;
+    if (!ocultables.length) { btn.hidden = true; return; }
+    btn.hidden = false;
+    btn.textContent = (anterioresColapsado ? '▾ Ver cobradas anteriores (' : '▴ Ocultar cobradas anteriores (') + ocultables.length + ')';
   }
 
   function bannerOnline(ok) {
@@ -509,15 +588,20 @@ SCRIPT_ESTADO = r"""<script>
   }
 
   function upsert(id, patch) {
-    var row = { id: id, estado: estadoDe(id), fecha: fechaDe(id) || null, comision_pagada: pagadaDe(id) };
+    var prev = estado[id] || {};
+    var row = {
+      id: id, estado: estadoDe(id), fecha: fechaDe(id) || null,
+      comision_pagada: pagadaDe(id), pagada_at: prev.pagada_at || null
+    };
     for (var k in patch) { row[k] = patch[k]; }
     if (row.fecha === '') { row.fecha = null; }
     estado[id] = row;
-    var card = document.querySelector('.card[data-id="' + String(id).replace(/"/g, '\\"') + '"]');
+    var card = qCard(id);
     if (card) { pintarCard(card); }
-    renderPanel();
-    if (!SUPA.url || !SUPA.key) return;
-    fetch(SUPA.url + '/rest/v1/entrega_estado', {
+    aplicarAnteriores();
+    renderComision();
+    if (!SUPA.url || !SUPA.key) return Promise.resolve();
+    return fetch(SUPA.url + '/rest/v1/entrega_estado', {
       method: 'POST',
       headers: headers({ 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
       body: JSON.stringify(row)
@@ -527,30 +611,175 @@ SCRIPT_ESTADO = r"""<script>
     }).catch(function (e) { console.warn('No se pudo guardar', e); bannerOnline(false); });
   }
 
+  // ====================== VISTA COMISIÓN (flujo de pago) ======================
+  function loadSel() { try { return JSON.parse(localStorage.getItem(SEL_KEY)); } catch (e) { return null; } }
+  function saveSel() { try { localStorage.setItem(SEL_KEY, JSON.stringify(Array.from(comSel))); } catch (e) {} }
+
+  function comisionables() {
+    var ids = Object.keys(META).filter(function (id) {
+      var m = META[id];
+      return m.comisiona && m.comision && estadoDe(id) === 'cobrado';
+    });
+    ids.sort(function (a, b) { return (fechaDe(a) || '').localeCompare(fechaDe(b) || ''); });
+    return ids;
+  }
+
+  function renderComision() {
+    var cont = document.getElementById('comision-panel');
+    if (!cont) return;
+    var ids = comisionables();
+    var porPagar = ids.filter(function (id) { return !pagadaDe(id); });
+    var pagadas = ids.filter(function (id) { return pagadaDe(id); });
+
+    // Selección: por defecto todas las por pagar; respeta lo guardado.
+    if (comSel === null) {
+      var stored = loadSel();
+      comSel = new Set(stored ? stored.filter(function (id) { return porPagar.indexOf(id) >= 0; }) : porPagar);
+    } else {
+      comSel.forEach(function (id) { if (porPagar.indexOf(id) < 0) comSel.delete(id); });
+    }
+
+    var deuda = porPagar.reduce(function (s, id) { return s + META[id].comision; }, 0);
+    var yaPagada = pagadas.reduce(function (s, id) { return s + META[id].comision; }, 0);
+
+    function card(id, paid) {
+      var m = META[id];
+      var check = paid
+        ? '<span class="com-pagada-tag">✓ Pagada</span>'
+        : '<input type="checkbox" class="com-check" data-id="' + escapeHtml(id) + '"' + (comSel.has(id) ? ' checked' : '') + '>';
+      var rev = paid ? '<button type="button" class="com-revocar" data-id="' + escapeHtml(id) + '">Revocar</button>' : '';
+      return '<div class="com-card' + (paid ? ' com-pagada' : '') + '">' + check
+        + '<div class="com-main"><div class="com-cli">' + escapeHtml(m.cliente) + '</div>'
+        + '<div class="com-dir">📍 ' + escapeHtml(m.direccion || '') + ' · ' + fechaLarga(fechaDe(id)) + '</div></div>'
+        + '<div class="com-monto">' + clp(m.comision) + '</div>' + rev + '</div>';
+    }
+
+    var html = '<div class="cp-head"><span class="cp-titulo">💰 Comisión a pagar</span></div>'
+      + '<div class="com-deuda"><span>Te deben (cobradas sin pagar)</span><b>' + clp(deuda) + '</b></div>';
+    if (porPagar.length) {
+      html += '<div class="com-sec-tit">Selecciona las que vas a pagar</div>'
+        + porPagar.map(function (id) { return card(id, false); }).join('');
+    } else {
+      html += '<p class="cp-vacio">No hay comisiones pendientes de pago. 🎉</p>';
+    }
+    if (pagadas.length) {
+      html += '<div class="com-sec-tit">Ya pagadas · ' + clp(yaPagada) + '</div>'
+        + pagadas.map(function (id) { return card(id, true); }).join('');
+    }
+    cont.innerHTML = html;
+
+    cont.querySelectorAll('.com-check').forEach(function (ch) {
+      ch.addEventListener('change', function () {
+        var id = ch.getAttribute('data-id');
+        if (ch.checked) comSel.add(id); else comSel.delete(id);
+        saveSel(); updateBarra();
+      });
+    });
+    cont.querySelectorAll('.com-revocar').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (confirm('¿Revocar el pago de esta comisión? Volverá a quedar como pendiente.')) {
+          upsert(b.getAttribute('data-id'), { comision_pagada: false, pagada_at: null });
+        }
+      });
+    });
+    updateBarra();
+  }
+
+  function seleccionTotal() {
+    var t = 0; if (!comSel) return 0;
+    comSel.forEach(function (id) { if (META[id] && !pagadaDe(id)) t += META[id].comision; });
+    return t;
+  }
+  function updateBarra() {
+    var barra = document.getElementById('barra-pagar');
+    if (!barra) return;
+    var n = 0; if (comSel) comSel.forEach(function (id) { if (!pagadaDe(id)) n++; });
+    var total = seleccionTotal();
+    var btn = barra.querySelector('.btn-pagar');
+    btn.disabled = (n === 0);
+    btn.textContent = n ? ('Pagar ' + clp(total) + ' · ' + n + ' selec.') : 'Selecciona comisiones';
+    barra.hidden = false;
+  }
+
+  function abrirModalPago() {
+    var seleccion = [];
+    comSel.forEach(function (id) { if (!pagadaDe(id)) seleccion.push(id); });
+    if (!seleccion.length) return;
+    var total = seleccionTotal();
+    var detalle = seleccion.map(function (id) { return '<div class="bank-row"><span>' + escapeHtml(META[id].cliente) + '</span><b>' + clp(META[id].comision) + '</b></div>'; }).join('');
+    var bg = document.createElement('div');
+    bg.className = 'modal-bg';
+    bg.innerHTML =
+      '<div class="modal"><h3>Pagar comisión</h3>'
+      + '<p class="modal-sub">Transfiere el total y mándame el comprobante por WhatsApp. Queda registrada la hora del pago.</p>'
+      + '<div class="bank">' + detalle + '<div class="bank-row bank-total"><span>Total</span><b>' + clp(total) + '</b></div></div>'
+      + '<div class="bank"><div class="bank-row"><span>Titular</span><b>' + escapeHtml(BANCO.titular || '') + '</b></div>'
+      + '<div class="bank-row"><span>Banco</span><b>' + escapeHtml(BANCO.banco || '') + '</b></div>'
+      + '<div class="bank-row"><span>Tipo</span><b>' + escapeHtml(BANCO.tipo || '') + '</b></div>'
+      + '<div class="bank-row"><span>N° cuenta</span><b>' + escapeHtml(BANCO.cuenta || '') + '</b></div>'
+      + '<div class="bank-row"><span>RUT</span><b>' + escapeHtml(BANCO.rut || '') + '</b></div>'
+      + (BANCO.email ? '<div class="bank-row"><span>Email</span><b>' + escapeHtml(BANCO.email) + '</b></div>' : '') + '</div>'
+      + '<label class="file-comp">📎 Adjuntar comprobante (opcional)<input type="file" accept="image/*" class="comp-input"></label>'
+      + '<img class="comp-preview" alt="comprobante">'
+      + '<div class="modal-acciones"><button type="button" class="btn-modal cancelar">Cancelar</button>'
+      + '<button type="button" class="btn-modal primary confirmar">Marcar pagadas y abrir WhatsApp</button></div></div>';
+    document.body.appendChild(bg);
+    bg.addEventListener('click', function (ev) { if (ev.target === bg) document.body.removeChild(bg); });
+    bg.querySelector('.cancelar').addEventListener('click', function () { document.body.removeChild(bg); });
+    var fileInput = bg.querySelector('.comp-input');
+    var preview = bg.querySelector('.comp-preview');
+    fileInput.addEventListener('change', function () {
+      var f = fileInput.files && fileInput.files[0];
+      if (f) { preview.src = URL.createObjectURL(f); preview.style.display = 'block'; }
+    });
+    bg.querySelector('.confirmar').addEventListener('click', function () {
+      var ahora = new Date().toISOString();
+      Promise.all(seleccion.map(function (id) { return upsert(id, { comision_pagada: true, pagada_at: ahora }); }))
+        .then(function () {
+          var lineas = seleccion.map(function (id) { return '• ' + META[id].cliente + ': ' + clp(META[id].comision); });
+          var texto = 'Hola Alejandro, te transfiero la comisión:\n' + lineas.join('\n')
+            + '\nTotal: ' + clp(total) + '\nFecha: ' + new Date().toLocaleString('es-CL')
+            + '\n(Te adjunto el comprobante.)';
+          comSel = new Set(); saveSel();
+          if (document.body.contains(bg)) document.body.removeChild(bg);
+          if (WA) { window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(texto), '_blank'); }
+        });
+    });
+  }
+
   function load() {
-    if (!SUPA.url || !SUPA.key) { pintarTodo(); renderPanel(); return; }
+    var done = function () { pintarTodo(); aplicarAnteriores(); renderComision(); };
+    if (!SUPA.url || !SUPA.key) { done(); return; }
     fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) { rows.forEach(function (row) { estado[row.id] = row; }); })
       .catch(function (e) { console.warn(e); })
-      .then(function () { pintarTodo(); renderPanel(); });
+      .then(done);
   }
 
   function wire() {
-    document.querySelectorAll('.card[data-id]').forEach(function (card) {
+    document.querySelectorAll('.card-wrap[data-id]').forEach(function (card) {
       var id = card.getAttribute('data-id');
       card.querySelectorAll('.est-btn').forEach(function (b) {
         b.addEventListener('click', function (ev) {
           ev.preventDefault(); ev.stopPropagation();
-          upsert(id, { estado: b.getAttribute('data-estado') });
+          var e = b.getAttribute('data-estado');
+          var act = estadoDe(id);
+          var next;
+          if (e === 'entregado') { next = (act === 'entregado') ? 'pendiente' : 'entregado'; }
+          else { next = (act === 'cobrado') ? 'entregado' : 'cobrado'; }
+          upsert(id, { estado: next });
         });
       });
       var input = card.querySelector('.fecha-input');
       if (input) {
-        input.addEventListener('click', function (ev) { ev.stopPropagation(); });
         input.addEventListener('change', function () { upsert(id, { fecha: input.value || null }); });
       }
     });
+    var ta = document.getElementById('toggle-anteriores');
+    if (ta) { ta.addEventListener('click', function () { anterioresColapsado = !anterioresColapsado; aplicarAnteriores(); }); }
+    var bp = document.getElementById('barra-pagar');
+    if (bp) { bp.querySelector('.btn-pagar').addEventListener('click', abrirModalPago); }
   }
 
   function wireVistas() {
@@ -668,7 +897,13 @@ def construir_html(data: dict) -> str:
         for e in entregas
     ]
     config_json = json.dumps(
-        {"url": SUPABASE_URL, "key": SUPABASE_ANON_KEY, "entregas": meta},
+        {
+            "url": SUPABASE_URL,
+            "key": SUPABASE_ANON_KEY,
+            "whatsapp": WHATSAPP_COMISION,
+            "banco": DATOS_BANCARIOS,
+            "entregas": meta,
+        },
         ensure_ascii=False,
     ).replace("</", "<\\/")  # evita cerrar el <script> con datos
     config_script = f"<script>window.__APP__ = {config_json};</script>"
@@ -696,39 +931,16 @@ def construir_html(data: dict) -> str:
         f'<div class="vista" data-vista="entregas">{vista_entregas}</div>'
         '<div class="vista" data-vista="comision" hidden>'
         '<div id="comision-panel" class="comision-panel"></div>'
+        '<div id="barra-pagar" class="barra-pagar" hidden>'
+        '<button type="button" class="btn-pagar" disabled>Selecciona comisiones</button>'
+        '</div>'
         '</div>'
     )
     actualizado = date.today().strftime("%d/%m/%Y")
 
-    # JS: oculta las secciones de días anteriores (según la fecha REAL del celular)
-    # y muestra un botón "Ver anteriores" para desplegarlas. No es f-string: las
-    # llaves van literales (no se duplican).
-    script = """<script>
-(function () {
-  var ahora = new Date();
-  var hoyISO = ahora.getFullYear() + '-' +
-    String(ahora.getMonth() + 1).padStart(2, '0') + '-' +
-    String(ahora.getDate()).padStart(2, '0');
-  var pasadas = [];
-  document.querySelectorAll('section[data-fecha]').forEach(function (s) {
-    var f = s.getAttribute('data-fecha');
-    if (f && f < hoyISO) { s.classList.add('pasada'); pasadas.push(s); }
-  });
-  var btn = document.getElementById('toggle-anteriores');
-  if (!btn) { return; }
-  if (pasadas.length === 0) { btn.remove(); return; }
-  var abierto = false;
-  function pintar() {
-    pasadas.forEach(function (s) { s.classList.toggle('mostrar', abierto); });
-    btn.textContent = abierto
-      ? '\\u25B4 Ocultar anteriores'
-      : '\\u25BE Ver anteriores (' + pasadas.length + ')';
-  }
-  btn.hidden = false;
-  btn.addEventListener('click', function () { abierto = !abierto; pintar(); });
-  pintar();
-})();
-</script>"""
+    # La lógica de "ver/ocultar anteriores" ahora vive en SCRIPT_ESTADO (ocultar
+    # solo las cobradas de días pasados), porque depende del estado vivo.
+    script = ""
 
     return f"""<!DOCTYPE html>
 <html lang="es">
