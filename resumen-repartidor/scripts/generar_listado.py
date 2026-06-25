@@ -643,7 +643,7 @@ def construir_html(data: dict) -> str:
     for e in entregas_ordenadas:
         grupos.setdefault(e.get("fecha", ""), []).append(e)
 
-    pendientes = sum(1 for e in entregas if e.get("estado", "pendiente") != "entregado")
+    pendientes = sum(1 for e in entregas if e.get("estado", "pendiente") not in ("entregado", "cobrado"))
 
     secciones = []
     for fecha, items in grupos.items():

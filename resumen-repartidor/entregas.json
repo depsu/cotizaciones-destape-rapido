@@ -197,8 +197,9 @@
         "Dejar insumos: papel higiénico y desodorizante.",
         "Retiro al finalizar las 2 semanas (aprox. 07 de julio)."
       ],
-      "notas": "Baño PAGADO. Pendiente: coordinar y cobrar el aseo extra / plan de mantención (2 limpiezas/sem + recarga de agua). Cliente con factura (empresa MAIR) — confirmar razón social y RUT. Comuna de 'Curicó 517' por confirmar.",
-      "estado": "entregado"
+      "notas": "Baño PAGADO. Pendiente: coordinar y cobrar el aseo extra / plan de mantención (2 limpiezas/sem + recarga de agua). Cliente con factura (empresa MAIR) — confirmar razón social y RUT. Comuna de 'Curicó 517' por confirmar. Apodo del repartidor: 'Líder' (se instala casi dentro de un Líder). Comisión ($26.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).",
+      "estado": "cobrado",
+      "comision_pagada": true
     },
     {
       "id": "2026-06-23-gino-munoz",
@@ -228,8 +229,9 @@
         "Dejar insumos: papel higiénico y desodorizante.",
         "Retiro al finalizar la semana (aprox. 30 de junio)."
       ],
-      "notas": "Arriendo por 1 semana. Recibe durante el día, cualquier horario. El cliente manda ubicación exacta por WhatsApp. Factura a Gino Enrique Muñoz Pavez (persona natural con giro). Se paga al entregar.",
-      "estado": "pendiente"
+      "notas": "Arriendo por 1 semana. Recibe durante el día, cualquier horario. El cliente manda ubicación exacta por WhatsApp. Factura a Gino Enrique Muñoz Pavez (persona natural con giro). Se paga al entregar. Apodo del repartidor: 'El Valle'. ENTREGADO Y COBRADO. Comisión ($20.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).",
+      "estado": "cobrado",
+      "comision_pagada": true
     },
     {
       "id": "2026-06-23-don-daniel",
@@ -309,8 +311,9 @@
         "Dejar insumos: papel higiénico y desodorizante.",
         "Aseo semanal incluido (cada 7 a 10 días)."
       ],
-      "notas": "Preguntar por PILAR CASANUEVA al llegar. Jefe de obra en terreno: David Durán, +56 9 8805 1486. Contacto que coordinó por WhatsApp: +56 9 4550 7354. Cliente necesita el baño HOY (trabajadores ya en obra). Arriendo mensual, puede extenderse.",
-      "estado": "pendiente"
+      "notas": "Preguntar por PILAR CASANUEVA al llegar. Jefe de obra en terreno: David Durán, +56 9 8805 1486. Contacto que coordinó por WhatsApp: +56 9 4550 7354. Cliente necesita el baño HOY (trabajadores ya en obra). Arriendo mensual, puede extenderse. ENTREGADO Y COBRADO. Comisión ($32.000, apodo 'Barnechea') ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).",
+      "estado": "cobrado",
+      "comision_pagada": true
     },
     {
       "id": "2026-06-26-villagra-conchali",
