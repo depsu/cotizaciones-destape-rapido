@@ -94,6 +94,47 @@
   section.pasada.mostrar { display:block; }
   section.pasada .card { opacity:.72; }
   footer { text-align:center; color:var(--gris); font-size:12px; padding:24px 16px 40px; }
+
+  /* Gestión por tarjeta */
+  .gestion { margin-top:4px; padding:12px 14px; background:#F8FAFC; border:1px solid var(--linea); border-radius:12px; }
+  .estado-control { display:flex; gap:6px; margin-top:4px; }
+  .est-btn { flex:1 1 0; padding:9px 6px; border:1px solid var(--linea); background:#fff; color:var(--gris);
+    font-size:13px; font-weight:600; border-radius:9px; cursor:pointer; font-family:inherit; min-height:42px; }
+  .est-btn:active { filter:brightness(.96); }
+  .est-btn.activo { background:var(--azul); color:#fff; border-color:var(--azul); }
+  .est-btn.est-cobrado.activo { background:#065F46; border-color:#065F46; }
+  .reagendar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; font-size:14px; }
+  .rg-lbl { color:var(--gris); font-weight:600; }
+  .fecha-input { font-family:inherit; font-size:15px; padding:8px 10px; border:1px solid var(--linea);
+    border-radius:9px; background:#fff; color:var(--tinta); min-height:40px; }
+  .comision-mini { margin-top:10px; font-size:14px; color:#7C3AED; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
+  .comision-mini b { font-size:16px; }
+  .comision-mini .cm-base { color:var(--gris); font-size:12px; }
+  .comision-mini.comision-no { color:var(--gris); }
+  .reagendada-chip { margin-top:6px; font-size:12px; font-weight:700; color:#B45309; background:#FEF3C7;
+    display:inline-block; padding:3px 9px; border-radius:20px; }
+  /* Panel de comisión */
+  .comision-panel { background:#fff; border:1px solid var(--linea); border-radius:16px; padding:16px;
+    margin:6px 0 16px; box-shadow:0 2px 10px rgba(124,58,237,.08); border-top:4px solid #7C3AED; }
+  .cp-head { display:flex; align-items:center; justify-content:space-between; }
+  .cp-titulo { font-size:15px; font-weight:800; color:#5B21B6; text-transform:uppercase; letter-spacing:.5px; }
+  .cp-total { display:flex; align-items:baseline; justify-content:space-between; margin-top:10px; gap:10px; }
+  .cp-total-lbl { font-size:13px; color:var(--gris); font-weight:600; }
+  .cp-total-val { font-size:30px; font-weight:800; color:#5B21B6; font-variant-numeric:tabular-nums; }
+  .cp-sub { margin-top:4px; font-size:13px; color:var(--gris); }
+  .cp-lista { list-style:none; margin:14px 0 0; padding:0; }
+  .cp-row { display:flex; align-items:center; gap:8px; padding:9px 0; border-top:1px solid var(--linea); font-size:14px; }
+  .cp-cli { flex:1 1 auto; min-width:0; font-weight:600; overflow-wrap:anywhere; }
+  .cp-chip { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap; text-transform:uppercase; letter-spacing:.4px; }
+  .cp-chip.cp-pagada { color:#166534; background:#DCFCE7; }
+  .cp-monto { font-weight:800; color:#5B21B6; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .cp-row-pagada .cp-monto, .cp-row-pagada .cp-cli { opacity:.5; text-decoration:line-through; }
+  .cp-toggle { font-family:inherit; font-size:12px; font-weight:600; padding:6px 9px; border-radius:8px;
+    border:1px solid var(--linea); background:#fff; color:var(--azul); cursor:pointer; white-space:nowrap; }
+  .cp-toggle.on { background:#DCFCE7; border-color:#BBF7D0; color:#166534; }
+  .cp-vacio { color:var(--gris); font-size:13px; margin-top:10px; }
+  .estado-online { display:block; margin:0 0 12px; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:600;
+    background:#FEF2F2; color:#B91C1C; border:1px solid #FECACA; }
 </style>
 </head>
 <body>
@@ -102,8 +143,8 @@
     <div class="sub">11 pendiente(s) · Actualizado 25/06/2026</div>
   </header>
   <main>
-    <button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="conteo">4</span></h2>
-    <details class="card">
+    <div id="estado-online" class="estado-online" hidden></div><div id="comision-panel" class="comision-panel" hidden></div><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="conteo">4</span></h2>
+    <details class="card" data-id="2026-06-23-don-daniel" data-fecha="2026-06-23" data-estado-orig="pendiente">
       <summary>
         <div class="resumen-top">
           <span class="cliente">Don Daniel</span>
@@ -115,8 +156,10 @@
           
           <span class="monto">💵 $190.400</span>
         </div>
+        <div class="reagendada-chip" hidden></div>
       </summary>
       <div class="detalle">
+        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-23"></label><div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div></div>
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (descuento de la semana). Se emite factura. Cobrar al entregar.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (obra)</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
@@ -128,7 +171,7 @@
         <div class="acciones"><a class="btn" href="https://wa.me/56982291198" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 8229 1198" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Chapultepec%206047%2C%20Vitacura%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
     </details>
-    <details class="card">
+    <details class="card" data-id="2026-06-23-gino-munoz" data-fecha="2026-06-23" data-estado-orig="pendiente">
       <summary>
         <div class="resumen-top">
           <span class="cliente">Gino Muñoz (Constructora GMP)</span>
@@ -140,8 +183,10 @@
           <span class="hora">🕐 Durante el día (cualquier horario, están trabajando)</span>
           <span class="monto">💵 $119.000</span>
         </div>
+        <div class="reagendada-chip" hidden></div>
       </summary>
       <div class="detalle">
+        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-23"></label><div class="comision-mini">💰 Tu comisión: <b>$20.000</b><span class="cm-base">20% de $100.000 neto</span></div></div>
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$119.000</span><span class="cobro-nota">$100.000 neto + IVA (incluye traslado; limpieza al finalizar el servicio). Se emite factura. Cobrar al entregar.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 1 semana</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Sin aseo periódico (arriendo corto). Limpieza al finalizar el servicio, al retirar. Aseo extra opcional: $40.000 c/u.</p></div>
@@ -153,7 +198,7 @@
         <div class="acciones"><a class="btn" href="https://wa.me/56953872435" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 5387 2435" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Condominio%20Polo%20de%20Manquehue%202%2C%20Chicureo%2C%20Colina%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
     </details>
-    <details class="card">
+    <details class="card" data-id="2026-06-23-b-carcamo-mair" data-fecha="2026-06-23" data-estado-orig="entregado">
       <summary>
         <div class="resumen-top">
           <span class="cliente">B. Cárcamo (MAIR)</span>
@@ -165,8 +210,10 @@
           <span class="hora">🕐 Hoy</span>
           <span class="monto">💵 $154.700</span>
         </div>
+        <div class="reagendada-chip" hidden></div>
       </summary>
       <div class="detalle">
+        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-23"></label><div class="comision-mini">💰 Tu comisión: <b>$26.000</b><span class="cm-base">20% de $130.000 neto</span></div></div>
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$154.700</span><span class="cobro-nota">PAGADO el baño ($130.000 neto + IVA = $154.700). Pendiente aparte: aseo extra / plan de mantención (por definir y cobrar).</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Incluye aseo gratis semanal (1 por semana = 2 en las 2 semanas). El cliente quiere reforzar a 2 limpiezas/semana + recarga de agua → ese refuerzo es el aseo extra pendiente de cobrar.</p></div>
@@ -178,7 +225,7 @@
         <div class="acciones"><a class="btn" href="https://wa.me/56933800237" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 3380 0237" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
     </details>
-    <details class="card">
+    <details class="card" data-id="2026-06-23-pilar-casanueva" data-fecha="2026-06-23" data-estado-orig="pendiente">
       <summary>
         <div class="resumen-top">
           <span class="cliente">Pilar Casanueva (MDA Constructora)</span>
@@ -190,8 +237,10 @@
           <span class="hora">🕐 Lo antes posible (hoy; mañana temprano si no alcanza)</span>
           <span class="monto">💵 $190.400</span>
         </div>
+        <div class="reagendada-chip" hidden></div>
       </summary>
       <div class="detalle">
+        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-23"></label><div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div></div>
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (oferta de la semana; incluye traslado ida y vuelta y aseo semanal). Se emite factura. Cobrar al entregar.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (obra)</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
@@ -203,7 +252,7 @@
         <div class="acciones"><a class="btn" href="https://wa.me/56988051486" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 8805 1486" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=El%20Rinc%C3%B3n%2012382%2C%20casa%205%2C%20Lo%20Barnechea%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
     </details></section><section data-fecha="2026-06-24"><h2 class="fecha-titulo">Miércoles 24 de junio<span class="conteo">1</span></h2>
-    <details class="card">
+    <details class="card" data-id="2026-06-24-loreley-190-la-reina" data-fecha="2026-06-24" data-estado-orig="pendiente">
       <summary>
         <div class="resumen-top">
           <span class="cliente">Cliente — Loreley 190 (La Reina)</span>
@@ -215,8 +264,10 @@
           <span class="hora">🕐 Lo más temprano posible</span>
           <span class="monto">💵 $130.000</span>
         </div>
+        <div class="reagendada-chip" hidden></div>
       </summary>
       <div class="detalle">
+        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-24"></label><div class="comision-mini">💰 Tu comisión: <b>$26.000</b><span class="cm-base">20% de $130.000 neto</span></div></div>
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 neto por las 2 semanas. Sin factura. Cobrar al entregar.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Incluye 1 limpieza.</p></div>
@@ -228,7 +279,7 @@
         <div class="acciones"><a class="btn" href="https://wa.me/56942107260" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 4210 7260" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Loreley%20190%2C%20La%20Reina%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
     </details></section><section data-fecha="2026-06-25"><h2 class="fecha-titulo">Jueves 25 de junio<span class="conteo">3</span></h2>
-    <details class="card">
+    <details class="card" data-id="2026-06-25-hercha-ingenieria" data-fecha="2026-06-25" data-estado-orig="pendiente">
       <summary>
         <div class="resumen-top">
           <span class="cliente">Don Eliecer (HERCHA Ingeniería)</span>
@@ -240,8 +291,10 @@
           <span class="hora">🕐 10:00 a 11:30 AM</span>
           <span class="monto">💵 $190.400</span>
         </div>
+        <div class="reagendada-chip" hidden></div>
       </summary>
       <div class="detalle">
+        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-25"></label><div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div></div>
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA. Se emite factura a HERCHA.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
@@ -253,7 +306,7 @@
         <div class="acciones"><a class="btn" href="https://wa.me/56994504902" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9450 4902" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Planta%20de%20Tratamiento%20de%20Aguas%20Servidas%20Aguas%20Andinas%2C%20Camino%20El%20Trebal%202095%2C%20Padre%20Hurtado%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
     </details>
-    <details class="card">
+    <details class="card" data-id="2026-06-25-tania-soria-768" data-fecha="2026-06-25" data-estado-orig="pendiente">
       <summary>
         <div class="resumen-top">
           <span class="cliente">Tania (obra Soria 768, Las Condes)</span>
@@ -265,8 +318,10 @@
           <span class="hora">🕐 9:00 AM (o cuando puedan en la mañana)</span>
           <span class="monto">💵 $130.000</span>
         </div>
+        <div class="reagendada-chip" hidden></div>
       </summary>
       <div class="detalle">
+        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-25"></label><div class="comision-mini">💰 Tu comisión: <b>$26.000</b><span class="cm-base">20% de $130.000 neto</span></div></div>
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 total. SIN factura (boleta), sin IVA. Paga al entregar: transferencia o efectivo.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Incluye 1 aseo durante el período. Aseo extra opcional: $40.000 c/u.</p></div>
@@ -278,7 +333,7 @@
         <div class="acciones"><a class="btn" href="https://wa.me/56959114408" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 5911 4408" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Soria%20768%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
     </details>
-    <details class="card">
+    <details class="card" data-id="2026-06-25-stock-diseno-chicureo" data-fecha="2026-06-25" data-estado-orig="pendiente">
       <summary>
         <div class="resumen-top">
           <span class="cliente">Stock Diseño Ltda. (Local Astop Aramco, Chicureo)</span>
@@ -290,8 +345,10 @@
           <span class="hora">🕐 Hoy (confirmar hora de recepción con el cliente)</span>
           <span class="monto">💵 $190.400</span>
         </div>
+        <div class="reagendada-chip" hidden></div>
       </summary>
       <div class="detalle">
+        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-25"></label><div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div></div>
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400. Se emite factura a Stock Diseño Ltda. Cobrar al entregar.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
@@ -303,7 +360,7 @@
         <div class="acciones"><a class="btn" href="https://wa.me/56999189274" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9918 9274" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Chicureo%202300%2C%20Chicureo%2C%20Regi%C3%B3n%20Metropolitana%20%28Local%20Astop%20Aramco%29" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
     </details></section><section data-fecha="2026-06-26"><h2 class="fecha-titulo">Viernes 26 de junio<span class="conteo">3</span></h2>
-    <details class="card">
+    <details class="card" data-id="2026-06-26-b-carcamo-mair-mantencion" data-fecha="2026-06-26" data-estado-orig="pendiente">
       <summary>
         <div class="resumen-top">
           <span class="cliente">B. Cárcamo (MAIR) — mantención reforzada + retiro</span>
@@ -315,8 +372,10 @@
           
           <span class="monto">💵 $95.200</span>
         </div>
+        <div class="reagendada-chip" hidden></div>
       </summary>
       <div class="detalle">
+        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-26"></label><div class="comision-mini comision-no">Sin comisión (servicio extra)</div></div>
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$95.200</span><span class="cobro-nota">Servicio adicional: 2 servicios de mantención (limpieza + recarga de agua, todo incluido) a $40.000 c/u = $80.000 neto + IVA = $95.200. Se factura a MAIR. (El arriendo del baño ya fue pagado por separado).</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 Plan de mantención reforzada (2 limpiezas extra + recarga de agua) y retiro del baño ya instalado</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Plan de mantención reforzada (ver detalle en Limpiezas). Retiro: martes 7 jul (sin limpieza).</p></div>
@@ -328,7 +387,7 @@
         <div class="acciones"><a class="btn" href="https://wa.me/56933800237" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 3380 0237" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
     </details>
-    <details class="card">
+    <details class="card" data-id="2026-06-26-villagra-conchali" data-fecha="2026-06-26" data-estado-orig="pendiente">
       <summary>
         <div class="resumen-top">
           <span class="cliente">Sr. Villagra</span>
@@ -340,8 +399,10 @@
           <span class="hora">🕐 Durante el día</span>
           <span class="monto">💵 $170.000</span>
         </div>
+        <div class="reagendada-chip" hidden></div>
       </summary>
       <div class="detalle">
+        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-26"></label><div class="comision-mini">💰 Tu comisión: <b>$34.000</b><span class="cm-base">20% de $170.000 neto</span></div></div>
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$170.000</span><span class="cobro-nota">$170.000 todo incluido (oferta mensual). SIN factura, se emite BOLETA — no lleva IVA adicional. Cobrar al entregar.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
@@ -353,7 +414,7 @@
         <div class="acciones"><a class="btn" href="https://wa.me/56933003076" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 3300 3076" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Campanario%201749%2C%20Conchal%C3%AD%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
     </details>
-    <details class="card">
+    <details class="card" data-id="2026-06-26-gamarra-santiago" data-fecha="2026-06-26" data-estado-orig="pendiente">
       <summary>
         <div class="resumen-top">
           <span class="cliente">Sr. Gamarra</span>
@@ -365,8 +426,10 @@
           <span class="hora">🕐 Durante el día (horario por confirmar con el cliente)</span>
           <span class="monto">💵 $190.400</span>
         </div>
+        <div class="reagendada-chip" hidden></div>
       </summary>
       <div class="detalle">
+        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-26"></label><div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div></div>
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400 al mes, todo incluido. Se emite FACTURA. Arriendo 2 meses (prolongable a 3). Cobrar el primer mes ($190.400) al entregar.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
@@ -378,7 +441,7 @@
         <div class="acciones"><a class="btn" href="https://wa.me/56994542997" target="_blank" rel="noopener" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9454 2997" target="_blank" rel="noopener" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=San%20Isidro%201948%2C%20Santiago%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
       </div>
     </details></section><section data-fecha="2026-06-30"><h2 class="fecha-titulo">Martes 30 de junio<span class="conteo">1</span></h2>
-    <details class="card">
+    <details class="card" data-id="2026-06-30-innovators-conveyor-belt" data-fecha="2026-06-30" data-estado-orig="pendiente">
       <summary>
         <div class="resumen-top">
           <span class="cliente">Suyen Guíñez — Innovators Conveyor Belt</span>
@@ -390,8 +453,10 @@
           
           <span class="monto">💵 $190.400</span>
         </div>
+        <div class="reagendada-chip" hidden></div>
       </summary>
       <div class="detalle">
+        <div class="gestion"><span class="etq">Gestión</span><div class="estado-control" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn" data-estado="pendiente">Pendiente</button><button type="button" class="est-btn" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button></div><label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span><input type="date" class="fecha-input" value="2026-06-30"></label><div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div></div>
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">Mensual. Cobrar al entregar. $160.000 neto + IVA (lleva factura).</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (hasta 30 días)</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
@@ -405,6 +470,7 @@
     </details></section>
   </main>
   <footer>Toca una entrega para ver el detalle · Destape Rápido</footer>
+  <script>window.__APP__ = {"url": "https://abmzkzraptmjgebwjzys.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho", "entregas": [{"id": "2026-06-30-innovators-conveyor-belt", "cliente": "Suyen Guíñez — Innovators Conveyor Belt", "fecha": "2026-06-30", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-26-b-carcamo-mair-mantencion", "cliente": "B. Cárcamo (MAIR) — mantención reforzada + retiro", "fecha": "2026-06-26", "neto": 80000, "comision": 0, "comisiona": false, "estado": "pendiente"}, {"id": "2026-06-25-stock-diseno-chicureo", "cliente": "Stock Diseño Ltda. (Local Astop Aramco, Chicureo)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-25-tania-soria-768", "cliente": "Tania (obra Soria 768, Las Condes)", "fecha": "2026-06-25", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-24-loreley-190-la-reina", "cliente": "Cliente — Loreley 190 (La Reina)", "fecha": "2026-06-24", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-23-b-carcamo-mair", "cliente": "B. Cárcamo (MAIR)", "fecha": "2026-06-23", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "entregado"}, {"id": "2026-06-23-gino-munoz", "cliente": "Gino Muñoz (Constructora GMP)", "fecha": "2026-06-23", "neto": 100000, "comision": 20000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-23-don-daniel", "cliente": "Don Daniel", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-25-hercha-ingenieria", "cliente": "Don Eliecer (HERCHA Ingeniería)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-23-pilar-casanueva", "cliente": "Pilar Casanueva (MDA Constructora)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-26-villagra-conchali", "cliente": "Sr. Villagra", "fecha": "2026-06-26", "neto": 170000, "comision": 34000, "comisiona": true, "estado": "pendiente"}, {"id": "2026-06-26-gamarra-santiago", "cliente": "Sr. Gamarra", "fecha": "2026-06-26", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente"}]};</script>
   <script>
 (function () {
   var ahora = new Date();
@@ -429,6 +495,173 @@
   btn.hidden = false;
   btn.addEventListener('click', function () { abierto = !abierto; pintar(); });
   pintar();
+})();
+</script>
+  <script>
+(function () {
+  var APP = window.__APP__ || {};
+  var SUPA = { url: APP.url, key: APP.key };
+  var META = {};
+  (APP.entregas || []).forEach(function (e) { META[e.id] = e; });
+  var estado = {}; // id -> {id, estado, fecha, comision_pagada}
+
+  var ESTADOS = {
+    'pendiente': ['Pendiente', '#B45309', '#FEF3C7'],
+    'en-camino': ['En camino', '#1E40AF', '#DBEAFE'],
+    'entregado': ['Entregado', '#166534', '#DCFCE7'],
+    'cobrado':   ['✓ Cobrado', '#065F46', '#A7F3D0']
+  };
+  var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+  function clp(n) { return '$' + (Math.round(Number(n) || 0)).toLocaleString('es-CL'); }
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c];
+    });
+  }
+  function fechaLarga(iso) {
+    var p = (iso || '').split('-');
+    if (p.length !== 3) return iso;
+    return parseInt(p[2], 10) + ' ' + (MESES[parseInt(p[1], 10) - 1] || '') + ' ' + p[0];
+  }
+  function headers(extra) {
+    var h = { 'apikey': SUPA.key, 'Authorization': 'Bearer ' + SUPA.key };
+    if (extra) { for (var k in extra) h[k] = extra[k]; }
+    return h;
+  }
+
+  function estadoDe(id) {
+    var st = estado[id];
+    if (st && st.estado) return st.estado;
+    return (META[id] && META[id].estado) || 'pendiente';
+  }
+  function fechaDe(id) {
+    var st = estado[id];
+    if (st && st.fecha) return st.fecha;
+    return (META[id] && META[id].fecha) || '';
+  }
+  function pagadaDe(id) { var st = estado[id]; return !!(st && st.comision_pagada); }
+
+  function pintarCard(card) {
+    var id = card.getAttribute('data-id');
+    var est = estadoDe(id);
+    var info = ESTADOS[est] || ESTADOS['pendiente'];
+    var badge = card.querySelector('.badge');
+    if (badge) { badge.textContent = info[0]; badge.style.color = info[1]; badge.style.background = info[2]; }
+    card.querySelectorAll('.est-btn').forEach(function (b) {
+      b.classList.toggle('activo', b.getAttribute('data-estado') === est);
+    });
+    var input = card.querySelector('.fecha-input');
+    var fOrig = card.getAttribute('data-fecha');
+    var fAct = fechaDe(id);
+    if (input && fAct) { input.value = fAct; }
+    var chip = card.querySelector('.reagendada-chip');
+    if (chip) {
+      if (fAct && fAct !== fOrig) { chip.hidden = false; chip.textContent = '📅 Reagendada: ' + fechaLarga(fAct); }
+      else { chip.hidden = true; }
+    }
+  }
+  function pintarTodo() { document.querySelectorAll('.card[data-id]').forEach(pintarCard); }
+
+  function renderPanel() {
+    var panel = document.getElementById('comision-panel');
+    if (!panel) return;
+    var rows = [], teDeben = 0, porCobrar = 0, yaPagada = 0;
+    Object.keys(META).forEach(function (id) {
+      var m = META[id];
+      if (!m.comisiona || !m.comision) return;
+      var est = estadoDe(id), pagada = pagadaDe(id), cobrada = (est === 'cobrado');
+      if (cobrada && !pagada) teDeben += m.comision;
+      else if (cobrada && pagada) yaPagada += m.comision;
+      else porCobrar += m.comision;
+      rows.push({ id: id, cliente: m.cliente, comision: m.comision, est: est, pagada: pagada, cobrada: cobrada });
+    });
+    rows.sort(function (a, b) { return b.comision - a.comision; });
+
+    var lis = rows.map(function (r) {
+      var info = ESTADOS[r.est] || ESTADOS['pendiente'];
+      var chip = r.pagada
+        ? '<span class="cp-chip cp-pagada">✓ Pagada</span>'
+        : '<span class="cp-chip" style="color:' + info[1] + ';background:' + info[2] + '">' + info[0] + '</span>';
+      var accion = r.cobrada
+        ? '<button type="button" class="cp-toggle' + (r.pagada ? ' on' : '') + '" data-id="' + escapeHtml(r.id) + '">' + (r.pagada ? 'Pagada' : 'Marcar pagada') + '</button>'
+        : '';
+      return '<li class="cp-row' + (r.pagada ? ' cp-row-pagada' : '') + '">'
+        + '<span class="cp-cli">' + escapeHtml(r.cliente) + '</span>' + chip
+        + '<span class="cp-monto">' + clp(r.comision) + '</span>' + accion + '</li>';
+    }).join('');
+    if (!rows.length) { lis = '<p class="cp-vacio">No hay entregas que generen comisión.</p>'; }
+
+    panel.innerHTML =
+      '<div class="cp-head"><span class="cp-titulo">💰 Comisión a pagar</span></div>'
+      + '<div class="cp-total"><span class="cp-total-lbl">Te deben ahora</span>'
+      + '<span class="cp-total-val">' + clp(teDeben) + '</span></div>'
+      + '<div class="cp-sub">Por cobrar (pendientes): <b>' + clp(porCobrar) + '</b>'
+      + (yaPagada ? ' · Ya pagada: ' + clp(yaPagada) : '') + '</div>'
+      + '<ul class="cp-lista">' + lis + '</ul>';
+    panel.hidden = false;
+    panel.querySelectorAll('.cp-toggle').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-id');
+        upsert(id, { comision_pagada: !pagadaDe(id) });
+      });
+    });
+  }
+
+  function bannerOnline(ok) {
+    var p = document.getElementById('estado-online');
+    if (!p) return;
+    if (ok) { p.hidden = true; }
+    else { p.hidden = false; p.textContent = '⚠ Sin conexión: el último cambio no se guardó. Reintenta.'; }
+  }
+
+  function upsert(id, patch) {
+    var row = { id: id, estado: estadoDe(id), fecha: fechaDe(id) || null, comision_pagada: pagadaDe(id) };
+    for (var k in patch) { row[k] = patch[k]; }
+    if (row.fecha === '') { row.fecha = null; }
+    estado[id] = row;
+    var card = document.querySelector('.card[data-id="' + String(id).replace(/"/g, '\\"') + '"]');
+    if (card) { pintarCard(card); }
+    renderPanel();
+    if (!SUPA.url || !SUPA.key) return;
+    fetch(SUPA.url + '/rest/v1/entrega_estado', {
+      method: 'POST',
+      headers: headers({ 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+      body: JSON.stringify(row)
+    }).then(function (r) {
+      if (!r.ok) { throw new Error('HTTP ' + r.status); }
+      bannerOnline(true);
+    }).catch(function (e) { console.warn('No se pudo guardar', e); bannerOnline(false); });
+  }
+
+  function load() {
+    if (!SUPA.url || !SUPA.key) { pintarTodo(); renderPanel(); return; }
+    fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) { rows.forEach(function (row) { estado[row.id] = row; }); })
+      .catch(function (e) { console.warn(e); })
+      .then(function () { pintarTodo(); renderPanel(); });
+  }
+
+  function wire() {
+    document.querySelectorAll('.card[data-id]').forEach(function (card) {
+      var id = card.getAttribute('data-id');
+      card.querySelectorAll('.est-btn').forEach(function (b) {
+        b.addEventListener('click', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          upsert(id, { estado: b.getAttribute('data-estado') });
+        });
+      });
+      var input = card.querySelector('.fecha-input');
+      if (input) {
+        input.addEventListener('click', function (ev) { ev.stopPropagation(); });
+        input.addEventListener('change', function () { upsert(id, { fecha: input.value || null }); });
+      }
+    });
+  }
+
+  wire();
+  load();
 })();
 </script>
 </body>

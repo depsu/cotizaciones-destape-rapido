@@ -1,5 +1,5 @@
 {
-  "_instrucciones": "Entregas CONFIRMADas para el repartidor (el dueño, que cobra al cliente). Una entrega se crea solo cuando Alejandro confirma por WhatsApp, NO por haber enviado una cotización/PDF. Campos por entrega: id (AAAA-MM-DD-cliente-kebab), cliente, telefono, direccion, fecha, hora (opcional), servicio, detalle[], pago{monto:number CLP, nota}, notas, estado (pendiente|en-camino|entregado). 'pago' es OBLIGATORIO: es el valor que el repartidor le cobra al cliente. Campo opcional 'limpiezas': lista de limpiezas del servicio para llevar control de las que CORRESPONDEN (incluidas en el arriendo) y las EXTRAS (se cobran aparte). Cada limpieza: {fecha (AAAA-MM-DD), etiqueta (ej. 'Limpieza 1'), tipo ('incluida'|'extra'), valor (CLP neto, solo si es extra), estado ('pendiente'|'hecha'), nota (opcional)}. La página suma automáticamente el total de las extras.",
+  "_instrucciones": "Entregas CONFIRMADas para el repartidor (el dueño, que cobra al cliente). Una entrega se crea solo cuando Alejandro confirma por WhatsApp, NO por haber enviado una cotización/PDF. Campos por entrega: id (AAAA-MM-DD-cliente-kebab), cliente, telefono, direccion, fecha, hora (opcional), servicio, detalle[], pago{monto:number CLP, nota}, notas, estado (pendiente|en-camino|entregado|cobrado). 'pago' es OBLIGATORIO: es el valor que el repartidor le cobra al cliente. Campo opcional 'comision' (bool, default true): si es false la entrega NO genera comisión para Alejandro (ej. servicios que son solo limpiezas/mantención extra). La comisión es 20% del NETO (si lleva factura, neto = monto/1,19; si es boleta, neto = monto) y solo se cuenta como 'te deben' cuando el estado pasa a 'cobrado'. El estado y la fecha reagendada los cambia el repartidor desde la página y se guardan en Supabase (tabla entrega_estado), no en este archivo. Campo opcional 'limpiezas': lista de limpiezas del servicio para llevar control de las que CORRESPONDEN (incluidas en el arriendo) y las EXTRAS (se cobran aparte). Cada limpieza: {fecha (AAAA-MM-DD), etiqueta (ej. 'Limpieza 1'), tipo ('incluida'|'extra'), valor (CLP neto, solo si es extra), estado ('pendiente'|'hecha'), nota (opcional)}. La página suma automáticamente el total de las extras.",
   "repartidor": {
     "nombre": "Repartidor",
     "telefono": "+56 9 2196 4789"
@@ -42,6 +42,7 @@
       "hora": "",
       "servicio": "Plan de mantención reforzada (2 limpiezas extra + recarga de agua) y retiro del baño ya instalado",
       "cantidad": 1,
+      "comision": false,
       "aseo": "Plan de mantención reforzada (ver detalle en Limpiezas). Retiro: martes 7 jul (sin limpieza).",
       "limpiezas": [
         {

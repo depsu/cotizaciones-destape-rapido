@@ -25,6 +25,22 @@ BASE = Path(__file__).resolve().parent.parent
 DATA_PATH = BASE / "entregas.json"
 DEFAULT_OUT = BASE / "listado.html"
 
+# Supabase: estado mutable de las entregas (lo cambia el repartidor desde la
+# página y lo ve Alejandro). La anon key es pública por diseño (ya viaja en el
+# bundle de la app); el acceso está acotado por RLS a la tabla entrega_estado.
+# Ver resumen-repartidor/supabase/entrega_estado.sql
+SUPABASE_URL = "https://abmzkzraptmjgebwjzys.supabase.co"
+SUPABASE_ANON_KEY = (
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6"
+    "ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0."
+    "9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho"
+)
+
+# Comisión de Alejandro: 20% del valor NETO de cada cliente conseguido.
+TASA_COMISION = 0.20
+IVA = 1.19
+
 MESES = [
     "enero", "febrero", "marzo", "abril", "mayo", "junio",
     "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
@@ -59,6 +75,29 @@ def clp(monto) -> str:
     except (TypeError, ValueError):
         return str(monto)
     return "$" + f"{n:,}".replace(",", ".")
+
+
+def neto_de(e: dict):
+    """Valor neto de la entrega: si lleva factura, monto/1,19; si es boleta, el monto."""
+    monto = (e.get("pago") or {}).get("monto")
+    if monto is None:
+        return None
+    lleva_factura = bool((e.get("factura") or {}).get("requiere"))
+    return int(round(monto / IVA)) if lleva_factura else int(monto)
+
+
+def comisiona(e: dict) -> bool:
+    """¿Esta entrega genera comisión? (default sí, salvo comision:false o sin monto)."""
+    if e.get("comision") is False:
+        return False
+    return (e.get("pago") or {}).get("monto") is not None
+
+
+def comision_de(e: dict) -> int:
+    """Comisión de Alejandro para la entrega: 20% del neto (0 si no comisiona)."""
+    if not comisiona(e):
+        return 0
+    return int(round((neto_de(e) or 0) * TASA_COMISION))
 
 
 def cantidad_banos(e: dict) -> int:
@@ -174,6 +213,30 @@ def tarjeta(e: dict) -> str:
     notas = e.get("notas", "")
     estado = e.get("estado", "pendiente")
     etiqueta, color_txt, color_bg = ESTADOS.get(estado, ESTADOS["pendiente"])
+    ent_id = e.get("id", "")
+    fecha_iso = e.get("fecha", "")
+
+    # Bloque de gestión: estado (lo cambia el repartidor), reagendar y comisión.
+    neto = neto_de(e)
+    com = comision_de(e)
+    if comisiona(e):
+        comision_mini = (
+            f'<div class="comision-mini">💰 Tu comisión: <b>{esc(clp(com))}</b>'
+            f'<span class="cm-base">20% de {esc(clp(neto))} neto</span></div>'
+        )
+    else:
+        comision_mini = '<div class="comision-mini comision-no">Sin comisión (servicio extra)</div>'
+    gestion_html = (
+        '<div class="gestion"><span class="etq">Gestión</span>'
+        '<div class="estado-control" role="group" aria-label="Estado de la entrega">'
+        '<button type="button" class="est-btn" data-estado="pendiente">Pendiente</button>'
+        '<button type="button" class="est-btn" data-estado="entregado">Entregado</button>'
+        '<button type="button" class="est-btn est-cobrado" data-estado="cobrado">✓ Cobrado</button>'
+        '</div>'
+        '<label class="reagendar"><span class="rg-lbl">📅 Reagendar entrega</span>'
+        f'<input type="date" class="fecha-input" value="{esc(fecha_iso)}"></label>'
+        f'{comision_mini}</div>'
+    )
 
     # Pago: lo que el repartidor (dueño) le cobra al cliente.
     pago = e.get("pago") or {}
@@ -229,7 +292,7 @@ def tarjeta(e: dict) -> str:
     hora_chip = f'<span class="hora">🕐 {hora}</span>' if hora else ""
 
     return f"""
-    <details class="card">
+    <details class="card" data-id="{esc(ent_id)}" data-fecha="{esc(fecha_iso)}" data-estado-orig="{esc(estado)}">
       <summary>
         <div class="resumen-top">
           <span class="cliente">{cliente}</span>
@@ -241,8 +304,10 @@ def tarjeta(e: dict) -> str:
           {hora_chip}
           {monto_chip}
         </div>
+        <div class="reagendada-chip" hidden></div>
       </summary>
       <div class="detalle">
+        {gestion_html}
         {cobro_html}
         {f'<div class="bloque"><span class="etq">Servicio</span><p>{banos_icono} {servicio}</p></div>' if servicio else ""}
         <div class="bloque"><span class="etq">Aseo</span><p>{aseo}</p></div>
@@ -254,6 +319,222 @@ def tarjeta(e: dict) -> str:
         {botones_html}
       </div>
     </details>"""
+
+
+# CSS extra (gestión por tarjeta + panel de comisión). Se inyecta como variable
+# para evitar duplicar llaves dentro del f-string del <style>.
+ESTILOS_EXTRA = """
+  /* Gestión por tarjeta */
+  .gestion { margin-top:4px; padding:12px 14px; background:#F8FAFC; border:1px solid var(--linea); border-radius:12px; }
+  .estado-control { display:flex; gap:6px; margin-top:4px; }
+  .est-btn { flex:1 1 0; padding:9px 6px; border:1px solid var(--linea); background:#fff; color:var(--gris);
+    font-size:13px; font-weight:600; border-radius:9px; cursor:pointer; font-family:inherit; min-height:42px; }
+  .est-btn:active { filter:brightness(.96); }
+  .est-btn.activo { background:var(--azul); color:#fff; border-color:var(--azul); }
+  .est-btn.est-cobrado.activo { background:#065F46; border-color:#065F46; }
+  .reagendar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; font-size:14px; }
+  .rg-lbl { color:var(--gris); font-weight:600; }
+  .fecha-input { font-family:inherit; font-size:15px; padding:8px 10px; border:1px solid var(--linea);
+    border-radius:9px; background:#fff; color:var(--tinta); min-height:40px; }
+  .comision-mini { margin-top:10px; font-size:14px; color:#7C3AED; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
+  .comision-mini b { font-size:16px; }
+  .comision-mini .cm-base { color:var(--gris); font-size:12px; }
+  .comision-mini.comision-no { color:var(--gris); }
+  .reagendada-chip { margin-top:6px; font-size:12px; font-weight:700; color:#B45309; background:#FEF3C7;
+    display:inline-block; padding:3px 9px; border-radius:20px; }
+  /* Panel de comisión */
+  .comision-panel { background:#fff; border:1px solid var(--linea); border-radius:16px; padding:16px;
+    margin:6px 0 16px; box-shadow:0 2px 10px rgba(124,58,237,.08); border-top:4px solid #7C3AED; }
+  .cp-head { display:flex; align-items:center; justify-content:space-between; }
+  .cp-titulo { font-size:15px; font-weight:800; color:#5B21B6; text-transform:uppercase; letter-spacing:.5px; }
+  .cp-total { display:flex; align-items:baseline; justify-content:space-between; margin-top:10px; gap:10px; }
+  .cp-total-lbl { font-size:13px; color:var(--gris); font-weight:600; }
+  .cp-total-val { font-size:30px; font-weight:800; color:#5B21B6; font-variant-numeric:tabular-nums; }
+  .cp-sub { margin-top:4px; font-size:13px; color:var(--gris); }
+  .cp-lista { list-style:none; margin:14px 0 0; padding:0; }
+  .cp-row { display:flex; align-items:center; gap:8px; padding:9px 0; border-top:1px solid var(--linea); font-size:14px; }
+  .cp-cli { flex:1 1 auto; min-width:0; font-weight:600; overflow-wrap:anywhere; }
+  .cp-chip { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap; text-transform:uppercase; letter-spacing:.4px; }
+  .cp-chip.cp-pagada { color:#166534; background:#DCFCE7; }
+  .cp-monto { font-weight:800; color:#5B21B6; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .cp-row-pagada .cp-monto, .cp-row-pagada .cp-cli { opacity:.5; text-decoration:line-through; }
+  .cp-toggle { font-family:inherit; font-size:12px; font-weight:600; padding:6px 9px; border-radius:8px;
+    border:1px solid var(--linea); background:#fff; color:var(--azul); cursor:pointer; white-space:nowrap; }
+  .cp-toggle.on { background:#DCFCE7; border-color:#BBF7D0; color:#166534; }
+  .cp-vacio { color:var(--gris); font-size:13px; margin-top:10px; }
+  .estado-online { display:block; margin:0 0 12px; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:600;
+    background:#FEF2F2; color:#B91C1C; border:1px solid #FECACA; }
+"""
+
+# JS que carga el estado desde Supabase, cablea los controles de cada tarjeta y
+# calcula/pinta el panel de comisión. No es f-string: las llaves van literales.
+SCRIPT_ESTADO = r"""<script>
+(function () {
+  var APP = window.__APP__ || {};
+  var SUPA = { url: APP.url, key: APP.key };
+  var META = {};
+  (APP.entregas || []).forEach(function (e) { META[e.id] = e; });
+  var estado = {}; // id -> {id, estado, fecha, comision_pagada}
+
+  var ESTADOS = {
+    'pendiente': ['Pendiente', '#B45309', '#FEF3C7'],
+    'en-camino': ['En camino', '#1E40AF', '#DBEAFE'],
+    'entregado': ['Entregado', '#166534', '#DCFCE7'],
+    'cobrado':   ['✓ Cobrado', '#065F46', '#A7F3D0']
+  };
+  var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+  function clp(n) { return '$' + (Math.round(Number(n) || 0)).toLocaleString('es-CL'); }
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c];
+    });
+  }
+  function fechaLarga(iso) {
+    var p = (iso || '').split('-');
+    if (p.length !== 3) return iso;
+    return parseInt(p[2], 10) + ' ' + (MESES[parseInt(p[1], 10) - 1] || '') + ' ' + p[0];
+  }
+  function headers(extra) {
+    var h = { 'apikey': SUPA.key, 'Authorization': 'Bearer ' + SUPA.key };
+    if (extra) { for (var k in extra) h[k] = extra[k]; }
+    return h;
+  }
+
+  function estadoDe(id) {
+    var st = estado[id];
+    if (st && st.estado) return st.estado;
+    return (META[id] && META[id].estado) || 'pendiente';
+  }
+  function fechaDe(id) {
+    var st = estado[id];
+    if (st && st.fecha) return st.fecha;
+    return (META[id] && META[id].fecha) || '';
+  }
+  function pagadaDe(id) { var st = estado[id]; return !!(st && st.comision_pagada); }
+
+  function pintarCard(card) {
+    var id = card.getAttribute('data-id');
+    var est = estadoDe(id);
+    var info = ESTADOS[est] || ESTADOS['pendiente'];
+    var badge = card.querySelector('.badge');
+    if (badge) { badge.textContent = info[0]; badge.style.color = info[1]; badge.style.background = info[2]; }
+    card.querySelectorAll('.est-btn').forEach(function (b) {
+      b.classList.toggle('activo', b.getAttribute('data-estado') === est);
+    });
+    var input = card.querySelector('.fecha-input');
+    var fOrig = card.getAttribute('data-fecha');
+    var fAct = fechaDe(id);
+    if (input && fAct) { input.value = fAct; }
+    var chip = card.querySelector('.reagendada-chip');
+    if (chip) {
+      if (fAct && fAct !== fOrig) { chip.hidden = false; chip.textContent = '📅 Reagendada: ' + fechaLarga(fAct); }
+      else { chip.hidden = true; }
+    }
+  }
+  function pintarTodo() { document.querySelectorAll('.card[data-id]').forEach(pintarCard); }
+
+  function renderPanel() {
+    var panel = document.getElementById('comision-panel');
+    if (!panel) return;
+    var rows = [], teDeben = 0, porCobrar = 0, yaPagada = 0;
+    Object.keys(META).forEach(function (id) {
+      var m = META[id];
+      if (!m.comisiona || !m.comision) return;
+      var est = estadoDe(id), pagada = pagadaDe(id), cobrada = (est === 'cobrado');
+      if (cobrada && !pagada) teDeben += m.comision;
+      else if (cobrada && pagada) yaPagada += m.comision;
+      else porCobrar += m.comision;
+      rows.push({ id: id, cliente: m.cliente, comision: m.comision, est: est, pagada: pagada, cobrada: cobrada });
+    });
+    rows.sort(function (a, b) { return b.comision - a.comision; });
+
+    var lis = rows.map(function (r) {
+      var info = ESTADOS[r.est] || ESTADOS['pendiente'];
+      var chip = r.pagada
+        ? '<span class="cp-chip cp-pagada">✓ Pagada</span>'
+        : '<span class="cp-chip" style="color:' + info[1] + ';background:' + info[2] + '">' + info[0] + '</span>';
+      var accion = r.cobrada
+        ? '<button type="button" class="cp-toggle' + (r.pagada ? ' on' : '') + '" data-id="' + escapeHtml(r.id) + '">' + (r.pagada ? 'Pagada' : 'Marcar pagada') + '</button>'
+        : '';
+      return '<li class="cp-row' + (r.pagada ? ' cp-row-pagada' : '') + '">'
+        + '<span class="cp-cli">' + escapeHtml(r.cliente) + '</span>' + chip
+        + '<span class="cp-monto">' + clp(r.comision) + '</span>' + accion + '</li>';
+    }).join('');
+    if (!rows.length) { lis = '<p class="cp-vacio">No hay entregas que generen comisión.</p>'; }
+
+    panel.innerHTML =
+      '<div class="cp-head"><span class="cp-titulo">💰 Comisión a pagar</span></div>'
+      + '<div class="cp-total"><span class="cp-total-lbl">Te deben ahora</span>'
+      + '<span class="cp-total-val">' + clp(teDeben) + '</span></div>'
+      + '<div class="cp-sub">Por cobrar (pendientes): <b>' + clp(porCobrar) + '</b>'
+      + (yaPagada ? ' · Ya pagada: ' + clp(yaPagada) : '') + '</div>'
+      + '<ul class="cp-lista">' + lis + '</ul>';
+    panel.hidden = false;
+    panel.querySelectorAll('.cp-toggle').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var id = b.getAttribute('data-id');
+        upsert(id, { comision_pagada: !pagadaDe(id) });
+      });
+    });
+  }
+
+  function bannerOnline(ok) {
+    var p = document.getElementById('estado-online');
+    if (!p) return;
+    if (ok) { p.hidden = true; }
+    else { p.hidden = false; p.textContent = '⚠ Sin conexión: el último cambio no se guardó. Reintenta.'; }
+  }
+
+  function upsert(id, patch) {
+    var row = { id: id, estado: estadoDe(id), fecha: fechaDe(id) || null, comision_pagada: pagadaDe(id) };
+    for (var k in patch) { row[k] = patch[k]; }
+    if (row.fecha === '') { row.fecha = null; }
+    estado[id] = row;
+    var card = document.querySelector('.card[data-id="' + String(id).replace(/"/g, '\\"') + '"]');
+    if (card) { pintarCard(card); }
+    renderPanel();
+    if (!SUPA.url || !SUPA.key) return;
+    fetch(SUPA.url + '/rest/v1/entrega_estado', {
+      method: 'POST',
+      headers: headers({ 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+      body: JSON.stringify(row)
+    }).then(function (r) {
+      if (!r.ok) { throw new Error('HTTP ' + r.status); }
+      bannerOnline(true);
+    }).catch(function (e) { console.warn('No se pudo guardar', e); bannerOnline(false); });
+  }
+
+  function load() {
+    if (!SUPA.url || !SUPA.key) { pintarTodo(); renderPanel(); return; }
+    fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) { rows.forEach(function (row) { estado[row.id] = row; }); })
+      .catch(function (e) { console.warn(e); })
+      .then(function () { pintarTodo(); renderPanel(); });
+  }
+
+  function wire() {
+    document.querySelectorAll('.card[data-id]').forEach(function (card) {
+      var id = card.getAttribute('data-id');
+      card.querySelectorAll('.est-btn').forEach(function (b) {
+        b.addEventListener('click', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          upsert(id, { estado: b.getAttribute('data-estado') });
+        });
+      });
+      var input = card.querySelector('.fecha-input');
+      if (input) {
+        input.addEventListener('click', function (ev) { ev.stopPropagation(); });
+        input.addEventListener('change', function () { upsert(id, { fecha: input.value || null }); });
+      }
+    });
+  }
+
+  wire();
+  load();
+})();
+</script>"""
 
 
 def construir_html(data: dict) -> str:
@@ -275,10 +556,35 @@ def construir_html(data: dict) -> str:
             f'<span class="conteo">{len(items)}</span></h2>{tarjetas}</section>'
         )
 
+    # Metadatos por entrega para el JS (cálculo de comisión y panel).
+    meta = [
+        {
+            "id": e.get("id", ""),
+            "cliente": e.get("cliente", "—"),
+            "fecha": e.get("fecha", ""),
+            "neto": neto_de(e) or 0,
+            "comision": comision_de(e),
+            "comisiona": comisiona(e),
+            "estado": e.get("estado", "pendiente"),
+        }
+        for e in entregas
+    ]
+    config_json = json.dumps(
+        {"url": SUPABASE_URL, "key": SUPABASE_ANON_KEY, "entregas": meta},
+        ensure_ascii=False,
+    ).replace("</", "<\\/")  # evita cerrar el <script> con datos
+    config_script = f"<script>window.__APP__ = {config_json};</script>"
+
+    # Panel de comisión (lo llena el JS) + aviso de conexión.
+    panel_html = (
+        '<div id="estado-online" class="estado-online" hidden></div>'
+        '<div id="comision-panel" class="comision-panel" hidden></div>'
+    )
+
     # Botón para mostrar las entregas de días anteriores (ocultas por defecto vía JS).
     boton_anteriores = '<button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button>'
-    cuerpo = (boton_anteriores + "".join(secciones)) if secciones \
-        else '<p class="vacio">No hay entregas cargadas.</p>'
+    cuerpo = (panel_html + boton_anteriores + "".join(secciones)) if secciones \
+        else (panel_html + '<p class="vacio">No hay entregas cargadas.</p>')
     actualizado = date.today().strftime("%d/%m/%Y")
 
     # JS: oculta las secciones de días anteriores (según la fecha REAL del celular)
@@ -407,7 +713,7 @@ def construir_html(data: dict) -> str:
   section.pasada.mostrar {{ display:block; }}
   section.pasada .card {{ opacity:.72; }}
   footer {{ text-align:center; color:var(--gris); font-size:12px; padding:24px 16px 40px; }}
-</style>
+{ESTILOS_EXTRA}</style>
 </head>
 <body>
   <header>
@@ -418,7 +724,9 @@ def construir_html(data: dict) -> str:
     {cuerpo}
   </main>
   <footer>Toca una entrega para ver el detalle · Destape Rápido</footer>
+  {config_script}
   {script}
+  {SCRIPT_ESTADO}
 </body>
 </html>
 """
