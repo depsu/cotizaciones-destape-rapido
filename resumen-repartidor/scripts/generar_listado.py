@@ -46,9 +46,7 @@ WHATSAPP_COMISION = "56930153632"
 DATOS_BANCARIOS = {
     "titular": "Alejandro Rivera Carrasco",
     "banco": "BancoEstado",
-    "tipo": "Cuenta RUT",
     "cuenta": "000019955346",
-    "rut": "19.955.346-1",
     "email": "rivera.ale982@gmail.com",
 }
 
@@ -482,6 +480,8 @@ SCRIPT_ESTADO = r"""<script>
     'cobrado':   ['Cliente ya pagó', '#92600A', '#FEF3C7']
   };
   var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var MESESL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  var DIAS = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
 
   function clp(n) { return '$' + (Math.round(Number(n) || 0)).toLocaleString('es-CL'); }
   function escapeHtml(s) {
@@ -558,6 +558,51 @@ SCRIPT_ESTADO = r"""<script>
   }
   function pintarTodo() { document.querySelectorAll('.card-wrap[data-id]').forEach(pintarCard); }
 
+  // ---- Reagendar: mueve la card a la sección del día que ahora le toca ----
+  function encabezadoFecha(iso) {
+    var p = (iso || '').split('-');
+    if (p.length !== 3) return iso || 'Sin fecha';
+    var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+    if (isNaN(d.getTime())) return iso;
+    var wd = (d.getDay() + 6) % 7; // lunes = 0
+    var s = DIAS[wd] + ' ' + parseInt(p[2], 10) + ' de ' + (MESESL[parseInt(p[1], 10) - 1] || '');
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+  function getOrCreateSection(cont, fecha) {
+    var sec = cont.querySelector('section[data-fecha="' + String(fecha).replace(/"/g, '\\"') + '"]');
+    if (sec) return sec;
+    sec = document.createElement('section');
+    sec.setAttribute('data-fecha', fecha);
+    var h = document.createElement('h2');
+    h.className = 'fecha-titulo';
+    h.innerHTML = escapeHtml(encabezadoFecha(fecha)) + '<span class="conteo"></span>';
+    sec.appendChild(h);
+    cont.appendChild(sec);
+    return sec;
+  }
+  function reubicarCards() {
+    var cont = document.querySelector('.vista[data-vista="entregas"]');
+    if (!cont) return;
+    document.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
+      var id = cw.getAttribute('data-id');
+      var eff = fechaDe(id) || cw.getAttribute('data-fecha') || '';
+      var cur = cw.closest('section[data-fecha]');
+      if (cur && cur.getAttribute('data-fecha') === eff) return;
+      getOrCreateSection(cont, eff).appendChild(cw);
+    });
+    // Reordena las secciones de día por fecha y quita las que quedaron vacías.
+    var secs = Array.prototype.slice.call(cont.querySelectorAll('section[data-fecha]'));
+    secs.sort(function (a, b) { return a.getAttribute('data-fecha').localeCompare(b.getAttribute('data-fecha')); });
+    secs.forEach(function (s) {
+      var n = s.querySelectorAll('.card-wrap[data-id]').length;
+      if (!n) { s.remove(); return; }
+      var c = s.querySelector('.conteo'); if (c) { c.textContent = n; }
+      cont.appendChild(s);
+    });
+    // Las secciones agregadas (limpiezas / retiros) siempre al final.
+    cont.querySelectorAll('section.agregado').forEach(function (s) { cont.appendChild(s); });
+  }
+
   // ---- Ocultar anteriores: solo se pueden ocultar las COBRADAS de días pasados ----
   function aplicarAnteriores() {
     var hoy = todayISO();
@@ -598,6 +643,7 @@ SCRIPT_ESTADO = r"""<script>
     estado[id] = row;
     var card = qCard(id);
     if (card) { pintarCard(card); }
+    reubicarCards();
     aplicarAnteriores();
     renderComision();
     if (!SUPA.url || !SUPA.key) return Promise.resolve();
@@ -715,9 +761,7 @@ SCRIPT_ESTADO = r"""<script>
       + '<div class="bank">' + detalle + '<div class="bank-row bank-total"><span>Total</span><b>' + clp(total) + '</b></div></div>'
       + '<div class="bank"><div class="bank-row"><span>Titular</span><b>' + escapeHtml(BANCO.titular || '') + '</b></div>'
       + '<div class="bank-row"><span>Banco</span><b>' + escapeHtml(BANCO.banco || '') + '</b></div>'
-      + '<div class="bank-row"><span>Tipo</span><b>' + escapeHtml(BANCO.tipo || '') + '</b></div>'
-      + '<div class="bank-row"><span>N° cuenta</span><b>' + escapeHtml(BANCO.cuenta || '') + '</b></div>'
-      + '<div class="bank-row"><span>RUT</span><b>' + escapeHtml(BANCO.rut || '') + '</b></div>'
+      + '<div class="bank-row"><span>Cuenta RUT</span><b>' + escapeHtml(BANCO.cuenta || '') + '</b></div>'
       + (BANCO.email ? '<div class="bank-row"><span>Email</span><b>' + escapeHtml(BANCO.email) + '</b></div>' : '') + '</div>'
       + '<label class="file-comp">📎 Adjuntar comprobante (opcional)<input type="file" accept="image/*" class="comp-input"></label>'
       + '<img class="comp-preview" alt="comprobante">'
@@ -748,7 +792,7 @@ SCRIPT_ESTADO = r"""<script>
   }
 
   function load() {
-    var done = function () { pintarTodo(); aplicarAnteriores(); renderComision(); };
+    var done = function () { pintarTodo(); reubicarCards(); aplicarAnteriores(); renderComision(); };
     if (!SUPA.url || !SUPA.key) { done(); return; }
     fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
