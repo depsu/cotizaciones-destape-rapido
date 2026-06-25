@@ -1,5 +1,5 @@
 {
-  "_instrucciones": "Entregas CONFIRMADas para el repartidor (el dueño, que cobra al cliente). Una entrega se crea solo cuando Alejandro confirma por WhatsApp, NO por haber enviado una cotización/PDF. Campos por entrega: id (AAAA-MM-DD-cliente-kebab), cliente, telefono, direccion, fecha, hora (opcional), servicio, detalle[], pago{monto:number CLP, nota}, notas, estado (pendiente|en-camino|entregado). 'pago' es OBLIGATORIO: es el valor que el repartidor le cobra al cliente.",
+  "_instrucciones": "Entregas CONFIRMADas para el repartidor (el dueño, que cobra al cliente). Una entrega se crea solo cuando Alejandro confirma por WhatsApp, NO por haber enviado una cotización/PDF. Campos por entrega: id (AAAA-MM-DD-cliente-kebab), cliente, telefono, direccion, fecha, hora (opcional), servicio, detalle[], pago{monto:number CLP, nota}, notas, estado (pendiente|en-camino|entregado). 'pago' es OBLIGATORIO: es el valor que el repartidor le cobra al cliente. Campo opcional 'limpiezas': lista de limpiezas del servicio para llevar control de las que CORRESPONDEN (incluidas en el arriendo) y las EXTRAS (se cobran aparte). Cada limpieza: {fecha (AAAA-MM-DD), etiqueta (ej. 'Limpieza 1'), tipo ('incluida'|'extra'), valor (CLP neto, solo si es extra), estado ('pendiente'|'hecha'), nota (opcional)}. La página suma automáticamente el total de las extras.",
   "repartidor": {
     "nombre": "Repartidor",
     "telefono": "+56 9 2196 4789"
@@ -14,7 +14,12 @@
       "hora": "",
       "servicio": "Plan de mantención reforzada (2 limpiezas extra + recarga de agua) y retiro del baño ya instalado",
       "cantidad": 1,
-      "aseo": "Limpieza 1: viernes 26 jun · Limpieza 2: martes 30 jun · Limpieza 3: viernes 3 jul · Retiro: martes 7 jul (sin limpieza).",
+      "aseo": "Plan de mantención reforzada (ver detalle en Limpiezas). Retiro: martes 7 jul (sin limpieza).",
+      "limpiezas": [
+        { "fecha": "2026-06-26", "etiqueta": "Limpieza 1", "tipo": "extra", "valor": 40000, "estado": "pendiente", "nota": "Incluye recarga de agua del lavamanos." },
+        { "fecha": "2026-06-30", "etiqueta": "Limpieza 2", "tipo": "extra", "valor": 40000, "estado": "pendiente", "nota": "Incluye recarga de agua del lavamanos." },
+        { "fecha": "2026-07-03", "etiqueta": "Limpieza 3", "tipo": "incluida", "estado": "pendiente", "nota": "Aseo incluido en el arriendo." }
+      ],
       "pago": { "monto": 95200, "nota": "Servicio adicional: 2 servicios de mantención (limpieza + recarga de agua, todo incluido) a $40.000 c/u = $80.000 neto + IVA = $95.200. Se factura a MAIR. (El arriendo del baño ya fue pagado por separado)." },
       "factura": {
         "requiere": true,

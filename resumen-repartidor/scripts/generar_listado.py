@@ -40,6 +40,17 @@ ESTADOS = {
     "entregado": ("Entregado", "#166534", "#DCFCE7"),
 }
 
+# Tipo de limpieza: "incluida" (parte del arriendo) o "extra" (se cobra aparte).
+TIPO_LIMPIEZA = {
+    "incluida": ("Incluida", "#166534", "#DCFCE7"),
+    "extra": ("Extra", "#B45309", "#FEF3C7"),
+}
+# Estado de cada limpieza: pendiente o hecha.
+ESTADO_LIMPIEZA = {
+    "pendiente": ("○", "#94A3B8"),
+    "hecha": ("✓", "#166534"),
+}
+
 
 def clp(monto) -> str:
     """Formatea un número como pesos chilenos: 160000 -> $160.000."""
@@ -87,6 +98,65 @@ def encabezado_fecha(iso: str) -> str:
         return iso or "Sin fecha"
 
 
+def fecha_corta(iso: str) -> str:
+    """Fecha compacta para la lista de limpiezas: '26 jun' o 'vie 26 jun'."""
+    try:
+        f = date.fromisoformat(iso)
+        return f"{DIAS[f.weekday()][:3]} {f.day} {MESES[f.month - 1][:3]}"
+    except (ValueError, IndexError):
+        return iso or ""
+
+
+def limpiezas_html(e: dict) -> str:
+    """Bloque de limpiezas: lista las que corresponden (incluidas) y las extras.
+
+    Cada limpieza en entregas.json: {fecha, etiqueta?, tipo: incluida|extra,
+    valor? (CLP, solo extras), estado: pendiente|hecha, nota?}.
+    Si la entrega no tiene 'limpiezas', el bloque no se muestra.
+    """
+    limpiezas = e.get("limpiezas") or []
+    if not limpiezas:
+        return ""
+
+    filas = []
+    total_extra = 0
+    n_extra = 0
+    for lp in limpiezas:
+        tipo = lp.get("tipo", "incluida")
+        etq_t, col_t, bg_t = TIPO_LIMPIEZA.get(tipo, TIPO_LIMPIEZA["incluida"])
+        estado = lp.get("estado", "pendiente")
+        marca, col_e = ESTADO_LIMPIEZA.get(estado, ESTADO_LIMPIEZA["pendiente"])
+        valor = lp.get("valor")
+        valor_html = ""
+        if tipo == "extra" and valor:
+            total_extra += valor
+            n_extra += 1
+            valor_html = f'<span class="lp-valor">{esc(clp(valor))}</span>'
+        etiqueta = esc(lp.get("etiqueta") or "Limpieza")
+        fecha_l = esc(fecha_corta(lp.get("fecha", "")))
+        nota = f'<span class="lp-nota">{esc(lp.get("nota"))}</span>' if lp.get("nota") else ""
+        clase_hecha = " lp-done" if estado == "hecha" else ""
+        filas.append(
+            f'<li class="lp-item{clase_hecha}">'
+            f'<span class="lp-check" style="color:{col_e}">{marca}</span>'
+            f'<span class="lp-fecha">{fecha_l}</span>'
+            f'<span class="lp-etq">{etiqueta}{nota}</span>'
+            f'<span class="lp-badge" style="color:{col_t};background:{bg_t}">{etq_t}</span>'
+            f'{valor_html}</li>'
+        )
+
+    total_html = ""
+    if n_extra:
+        total_html = (
+            f'<div class="lp-total">{n_extra} limpieza(s) extra · '
+            f'<b>{esc(clp(total_extra))} neto</b></div>'
+        )
+    return (
+        f'<div class="bloque"><span class="etq">🧽 Limpiezas</span>'
+        f'<ul class="lp-lista">{"".join(filas)}</ul>{total_html}</div>'
+    )
+
+
 def boton(href: str, etiqueta: str, color: str) -> str:
     return (
         f'<a class="btn" href="{esc(href)}" target="_blank" rel="noopener" '
@@ -119,6 +189,9 @@ def tarjeta(e: dict) -> str:
 
     # Aseo: lo indicado o el valor por defecto.
     aseo = esc(e.get("aseo") or ASEO_DEFAULT)
+
+    # Limpiezas (incluidas + extras), si la entrega las define.
+    limpiezas_bloque = limpiezas_html(e)
 
     # Factura (si el cliente la requiere).
     factura = e.get("factura") or {}
@@ -173,6 +246,7 @@ def tarjeta(e: dict) -> str:
         {cobro_html}
         {f'<div class="bloque"><span class="etq">Servicio</span><p>{banos_icono} {servicio}</p></div>' if servicio else ""}
         <div class="bloque"><span class="etq">Aseo</span><p>{aseo}</p></div>
+        {limpiezas_bloque}
         {f'<div class="bloque"><span class="etq">Teléfono</span><p>{esc(telefono)}</p></div>' if telefono else ""}
         {factura_html}
         {detalle_html}
@@ -268,6 +342,20 @@ def construir_html(data: dict) -> str:
   .bloque p {{ margin:0; }}
   .bloque ul {{ margin:4px 0 0; padding-left:18px; }}
   .bloque li {{ margin:2px 0; }}
+  .lp-lista {{ list-style:none; margin:4px 0 0; padding:0; }}
+  .lp-item {{
+    display:flex; align-items:center; gap:8px; padding:8px 10px; margin-top:6px;
+    background:#F8FAFC; border:1px solid var(--linea); border-radius:10px; font-size:14px;
+  }}
+  .lp-item.lp-done {{ background:#F0FDF4; border-color:#BBF7D0; }}
+  .lp-check {{ font-size:18px; font-weight:700; width:18px; text-align:center; flex:none; }}
+  .lp-fecha {{ font-variant-numeric:tabular-nums; white-space:nowrap; color:var(--gris); flex:none; min-width:62px; }}
+  .lp-etq {{ flex:1 1 auto; min-width:0; font-weight:600; }}
+  .lp-nota {{ display:block; font-weight:400; font-size:12px; color:var(--gris); }}
+  .lp-badge {{ font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap; flex:none; text-transform:uppercase; letter-spacing:.4px; }}
+  .lp-valor {{ font-weight:700; color:#B45309; white-space:nowrap; font-variant-numeric:tabular-nums; flex:none; }}
+  .lp-total {{ margin-top:8px; text-align:right; font-size:13px; color:var(--gris); }}
+  .lp-total b {{ color:#B45309; }}
   .acciones {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }}
   .btn {{
     flex:1 1 calc(50% - 8px); text-align:center; text-decoration:none; color:#fff;

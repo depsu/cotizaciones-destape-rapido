@@ -62,6 +62,20 @@
   .bloque p { margin:0; }
   .bloque ul { margin:4px 0 0; padding-left:18px; }
   .bloque li { margin:2px 0; }
+  .lp-lista { list-style:none; margin:4px 0 0; padding:0; }
+  .lp-item {
+    display:flex; align-items:center; gap:8px; padding:8px 10px; margin-top:6px;
+    background:#F8FAFC; border:1px solid var(--linea); border-radius:10px; font-size:14px;
+  }
+  .lp-item.lp-done { background:#F0FDF4; border-color:#BBF7D0; }
+  .lp-check { font-size:18px; font-weight:700; width:18px; text-align:center; flex:none; }
+  .lp-fecha { font-variant-numeric:tabular-nums; white-space:nowrap; color:var(--gris); flex:none; min-width:62px; }
+  .lp-etq { flex:1 1 auto; min-width:0; font-weight:600; }
+  .lp-nota { display:block; font-weight:400; font-size:12px; color:var(--gris); }
+  .lp-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap; flex:none; text-transform:uppercase; letter-spacing:.4px; }
+  .lp-valor { font-weight:700; color:#B45309; white-space:nowrap; font-variant-numeric:tabular-nums; flex:none; }
+  .lp-total { margin-top:8px; text-align:right; font-size:13px; color:var(--gris); }
+  .lp-total b { color:#B45309; }
   .acciones { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
   .btn {
     flex:1 1 calc(50% - 8px); text-align:center; text-decoration:none; color:#fff;
@@ -97,6 +111,7 @@
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (descuento de la semana). Se emite factura. Cobrar al entregar.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (obra)</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
+        
         <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 8229 1198</p></div>
         <div class="bloque"><span class="etq">🧾 Factura</span><p>Requiere factura.</p></div>
         <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li></ul></div>
@@ -121,6 +136,7 @@
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$119.000</span><span class="cobro-nota">$100.000 neto + IVA (incluye traslado; limpieza al finalizar el servicio). Se emite factura. Cobrar al entregar.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 1 semana</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Sin aseo periódico (arriendo corto). Limpieza al finalizar el servicio, al retirar. Aseo extra opcional: $40.000 c/u.</p></div>
+        
         <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 5387 2435</p></div>
         <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> Gino Enrique Muñoz Pavez</li><li><b>RUT:</b> 7.579.224-7</li><li><b>Giro:</b> Persona natural con giro</li><li><b>Email:</b> Info.constructoragmp@gmail.com</li></ul></div>
         <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Retiro al finalizar la semana (aprox. 30 de junio).</li></ul></div>
@@ -145,6 +161,7 @@
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$154.700</span><span class="cobro-nota">PAGADO el baño ($130.000 neto + IVA = $154.700). Pendiente aparte: aseo extra / plan de mantención (por definir y cobrar).</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Incluye aseo gratis semanal (1 por semana = 2 en las 2 semanas). El cliente quiere reforzar a 2 limpiezas/semana + recarga de agua → ese refuerzo es el aseo extra pendiente de cobrar.</p></div>
+        
         <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 3380 0237</p></div>
         <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> PENDIENTE — MAIR (el cliente enviará los datos de la empresa)</li><li><b>RUT:</b> PENDIENTE</li><li><b>Email:</b> bcarcamo@mair.cl</li></ul></div>
         <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>IMPORTANTE: el baño debe ir lo más presentable/impecable posible (el cliente lo pidió expresamente).</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Retiro al finalizar las 2 semanas (aprox. 07 de julio).</li></ul></div>
@@ -169,6 +186,7 @@
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (oferta de la semana; incluye traslado ida y vuelta y aseo semanal). Se emite factura. Cobrar al entregar.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (obra)</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
+        
         <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 8805 1486</p></div>
         <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> MDA Constructora</li><li><b>RUT:</b> 76.867.755-7</li></ul></div>
         <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado ida y vuelta incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Aseo semanal incluido (cada 7 a 10 días).</li></ul></div>
@@ -193,6 +211,7 @@
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 neto por las 2 semanas. Sin factura. Cobrar al entregar.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Incluye 1 limpieza.</p></div>
+        
         <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 4210 7260</p></div>
         
         <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Incluye 1 limpieza.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Entregar lo más temprano posible.</li><li>Retiro al finalizar las 2 semanas (aprox. 08 de julio).</li></ul></div>
@@ -217,6 +236,7 @@
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA. Se emite factura a HERCHA.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
+        
         <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 9450 4902</p></div>
         <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> HERCHA INGENIERIA Y SERVICIOS SpA</li><li><b>RUT:</b> 77.735.148-6</li><li><b>Giro:</b> Instalación de sistemas de seguridad</li><li><b>Dirección:</b> Progreso 4420, La Florida, Santiago</li></ul></div>
         <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li></ul></div>
@@ -241,6 +261,7 @@
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 total. SIN factura (boleta), sin IVA. Paga al entregar: transferencia o efectivo.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Incluye 1 aseo durante el período. Aseo extra opcional: $40.000 c/u.</p></div>
+        
         <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 5911 4408</p></div>
         
         <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Incluye 1 aseo durante las 2 semanas.</li><li>Retiro al finalizar (aprox. 09 de julio).</li></ul></div>
@@ -265,6 +286,7 @@
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400. Se emite factura a Stock Diseño Ltda. Cobrar al entregar.</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
         <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
+        
         <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 9918 9274</p></div>
         <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> Stock Diseño Ltda.</li><li><b>RUT:</b> 76.327.169-2</li></ul></div>
         <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Instalar 1 baño químico.</li><li>Traslado incluido.</li><li>Dejar insumos: papel higiénico y desodorizante.</li><li>Aseo semanal incluido (cada 7 a 10 días).</li></ul></div>
@@ -288,7 +310,8 @@
       <div class="detalle">
         <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$95.200</span><span class="cobro-nota">Servicio adicional: 2 servicios de mantención (limpieza + recarga de agua, todo incluido) a $40.000 c/u = $80.000 neto + IVA = $95.200. Se factura a MAIR. (El arriendo del baño ya fue pagado por separado).</span></div>
         <div class="bloque"><span class="etq">Servicio</span><p>🚽 Plan de mantención reforzada (2 limpiezas extra + recarga de agua) y retiro del baño ya instalado</p></div>
-        <div class="bloque"><span class="etq">Aseo</span><p>Limpieza 1: viernes 26 jun · Limpieza 2: martes 30 jun · Limpieza 3: viernes 3 jul · Retiro: martes 7 jul (sin limpieza).</p></div>
+        <div class="bloque"><span class="etq">Aseo</span><p>Plan de mantención reforzada (ver detalle en Limpiezas). Retiro: martes 7 jul (sin limpieza).</p></div>
+        <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">vie 26 jun</span><span class="lp-etq">Limpieza 1<span class="lp-nota">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mar 30 jun</span><span class="lp-etq">Limpieza 2<span class="lp-nota">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">vie 3 jul</span><span class="lp-etq">Limpieza 3<span class="lp-nota">Aseo incluido en el arriendo.</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul><div class="lp-total">2 limpieza(s) extra · <b>$80.000 neto</b></div></div>
         <div class="bloque"><span class="etq">Teléfono</span><p>+56 9 3380 0237</p></div>
         <div class="bloque"><span class="etq">🧾 Factura</span><ul><li><b>Razón social:</b> PENDIENTE — MAIR (el cliente enviará los datos de la empresa)</li><li><b>RUT:</b> PENDIENTE</li><li><b>Email:</b> bcarcamo@mair.cl</li></ul></div>
         <div class="bloque"><span class="etq">Qué hacer</span><ul><li>Visita 1 — viernes 26 jun: limpieza del baño.</li><li>Visita 2 — martes 30 jun: limpieza del baño.</li><li>Visita 3 — viernes 3 jul: limpieza del baño.</li><li>Retiro — martes 7 jul: retirar la unidad (sin limpieza).</li><li>Recarga de agua del lavamanos según corresponda.</li><li>El baño debe mantenerse lo más presentable/impecable posible (lo pidió el cliente).</li></ul></div>
