@@ -1,0 +1,52 @@
+{
+  "subtitulo": "Arriendo mensual de baño químico — Santiago",
+  "solo_neto": true,
+  "cliente": {
+    "titulo": "CLIENTE",
+    "campos": [
+      ["Nombre", "Sr. Gamarra"],
+      ["Email", "gamarra994542997@gmail.com"],
+      ["Teléfono", "+56 9 9454 2997"],
+      ["Dirección", "San Isidro 1948, Santiago, Región Metropolitana"]
+    ]
+  },
+  "items": [
+    {
+      "descripcion_titulo": "Arriendo mensual de baño químico",
+      "descripcion_bullets": [
+        "Despacho, instalación y retiro incluidos.",
+        "Traslado ida y vuelta incluido.",
+        "Aseo semanal incluido (cada 7 a 10 días).",
+        "Disposición final de residuos a cargo de Destape Rápido.",
+        "Insumos: papel higiénico y desodorizante."
+      ],
+      "cantidad": 1,
+      "valor_unitario_neto": 160000
+    }
+  ],
+  "condiciones": [
+    ["Período", "Arriendo por 2 meses, con prolongación a 3 coordinable. Se cobra mensual (30 días)."],
+    ["Promoción", "Valor mensual con descuento: $160.000 al mes, todo incluido."],
+    ["Entrega", "Coordinada para mañana; el repartidor lo contactará."],
+    ["Forma de pago", "Transferencia electrónica o efectivo, al momento de la entrega de cada mes."],
+    ["Documento", "Se emite boleta. El valor no lleva IVA adicional."],
+    ["Mantención", "Aseo semanal incluido (cada 7 a 10 días). Traslado y retiro incluidos."],
+    ["Cobertura", "Región Metropolitana."],
+    ["Valores", "Valor total: $160.000 al mes, todo incluido (sin IVA adicional)."]
+  ],
+  "observaciones_extra": [
+    "El valor mensual incluye traslado ida y vuelta, aseo semanal y retiro al término del servicio.",
+    "Arriendo por 2 meses; si necesita prolongar a 3 (o más), se coordina sin problema.",
+    "El cliente debe asegurar un lugar estable y accesible para posicionar el baño químico."
+  ],
+  "datos_transferencia": {
+    "campos": [
+      ["Titular", "BAÑOS LOS PINDUS Y ASOCIADOS SPA"],
+      ["RUT", "78.002.039-3"],
+      ["Banco", "Santander"],
+      ["Tipo de cuenta", "Cuenta Corriente"],
+      ["N° de cuenta", "0000-9611698-5"],
+      ["Email", "contacto@destaperapido.cl"]
+    ]
+  }
+}

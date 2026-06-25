@@ -99,6 +99,7 @@ Para que el repartidor la vea desde su celular, subir `listado.html` al hosting 
 - **No inventar datos:** si falta dirección o teléfono de una entrega, pedirlo; sin dirección no hay link de mapa, sin teléfono no hay botón de WhatsApp al cliente.
 - **Coherencia con cotizaciones:** los datos de una entrega suelen venir de una cotización ya hecha (ver skill `cotizaciones-destape-rapido`). Reutilizar cliente/teléfono/dirección de ahí cuando aplique.
 - **Empresa:** Destape Rápido (tel. +56 9 3647 0112).
+- **No incluir el bloque "Qué hacer" (detalle) en el mensaje al repartidor:** es redundante. El repartidor ya conoce el estándar (instalar el/los baños, traslado incluido, dejar insumos: papel higiénico y desodorizante) y el aseo ya va en su propia línea (`🧽 Aseo`). El campo `detalle` puede seguir en `entregas.json` como referencia interna, pero `resumen_repartidor.py` NO lo muestra. Solo se mencionan cosas no estándar en `📝 Notas`.
 
 ## Aprender de cada cliente (para negociar)
 

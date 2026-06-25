@@ -122,12 +122,10 @@ def construir_resumen(e: dict) -> str:
             lineas.append(f"   Dirección: {factura['direccion']}")
         if factura.get("email"):
             lineas.append(f"   Email: {factura['email']}")
-    detalle = e.get("detalle") or []
-    if detalle:
-        lineas.append("")
-        lineas.append("Qué hacer:")
-        for d in detalle:
-            lineas.append(f"- {d}")
+    # NOTA: el bloque "Qué hacer" (detalle) se omite a propósito. El repartidor ya
+    # conoce el estándar (instalar, traslado incluido, dejar insumos) y el aseo ya se
+    # indica arriba en su propia línea, así que listarlo de nuevo es redundante.
+    # El campo "detalle" puede seguir existiendo en entregas.json, pero NO se muestra.
     if e.get("notas"):
         lineas.append("")
         lineas.append(f"📝 Notas: {e['notas']}")

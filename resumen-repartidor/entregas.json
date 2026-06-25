@@ -331,6 +331,32 @@
       ],
       "notas": "Lo contacta el repartidor. Arriendo mensual (30 días), puede extenderse si lo pide. Confirmar acceso al llegar.",
       "estado": "pendiente"
+    },
+    {
+      "id": "2026-06-26-gamarra-santiago",
+      "cliente": "Sr. Gamarra",
+      "telefono": "+56 9 9454 2997",
+      "direccion": "San Isidro 1948, Santiago, Región Metropolitana",
+      "fecha": "2026-06-26",
+      "hora": "Durante el día (horario por confirmar con el cliente)",
+      "servicio": "1 baño químico — arriendo mensual",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": {
+        "monto": 160000,
+        "nota": "$160.000 al mes, todo incluido. SIN factura, se emite BOLETA — no lleva IVA adicional. Arriendo 2 meses (prolongable a 3). Cobrar el primer mes ($160.000) al entregar."
+      },
+      "factura": {
+        "requiere": false
+      },
+      "detalle": [
+        "Instalar 1 baño químico.",
+        "Traslado ida y vuelta incluido.",
+        "Dejar insumos: papel higiénico y desodorizante.",
+        "Aseo semanal incluido (cada 7 a 10 días)."
+      ],
+      "notas": "Lo contacta el repartidor para coordinar horario. Arriendo por 2 meses con prolongación a 3. Confirmar acceso al llegar.",
+      "estado": "pendiente"
     }
   ]
 }
