@@ -22,8 +22,9 @@
   header .sub { margin-top:3px; font-size:13px; opacity:.85; }
   main { max-width:560px; margin:0 auto; padding:14px 12px 40px; }
   .fecha-titulo {
-    display:flex; align-items:center; gap:8px; font-size:14px; text-transform:uppercase;
-    letter-spacing:.6px; color:var(--gris); margin:22px 4px 10px;
+    display:flex; align-items:center; gap:10px; font-size:14px; text-transform:uppercase;
+    letter-spacing:.6px; color:var(--gris); margin:16px 0 8px; padding:8px 4px;
+    position:sticky; top:var(--header-h, 64px); z-index:5; background:var(--fondo);
   }
   .conteo {
     background:var(--azul); color:#fff; font-size:12px; min-width:22px; height:22px;
@@ -98,6 +99,14 @@
   /* El atributo hidden siempre oculta (varios contenedores usan display:flex/block
      que de otro modo le ganarían al hidden). */
   [hidden] { display: none !important; }
+  /* Barra de progreso de entregas del día (🚚 en la punta). */
+  .prog { flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:8px; }
+  .prog-bar { position:relative; flex:1 1 auto; min-width:48px; height:16px;
+    background:#E2E8F0; border-radius:8px; }
+  .prog-fill { position:absolute; left:0; top:0; bottom:0; width:0; background:#16A34A;
+    border-radius:8px; transition:width .45s ease; display:flex; align-items:center; justify-content:flex-end; }
+  .prog-truck { font-size:13px; line-height:1; transform:translateX(42%); filter:drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+  .prog-num { flex:none; font-size:12px; font-weight:800; color:var(--gris); font-variant-numeric:tabular-nums; }
   /* Gestión ARRIBA de la card */
   .card-wrap { margin-bottom:10px; }
   .gestion-top { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 12px;
@@ -240,7 +249,7 @@
     <div class="sub">9 pendiente(s) · Actualizado 26/06/2026</div>
   </header>
   <main>
-    <div id="estado-online" class="estado-online" hidden></div><div class="vistas"><button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button><button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button></div><div class="vista" data-vista="entregas"><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="conteo">5</span></h2>
+    <div id="estado-online" class="estado-online" hidden></div><div class="vistas"><button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button><button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button></div><div class="vista" data-vista="entregas"><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span></h2>
     <div class="card-wrap" data-id="2026-06-23-don-daniel" data-fecha="2026-06-23" data-estado-orig="pendiente">
       <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-23" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span><span class="fecha-original-chip" hidden></span></div>
       <details class="card">
@@ -395,7 +404,7 @@
           <div class="acciones"><a class="btn" href="whatsapp://send?phone=56988051486" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 8805 1486" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=El%20Rinc%C3%B3n%2012382%2C%20casa%205%2C%20Lo%20Barnechea%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
         </div>
       </details>
-    </div></section><section data-fecha="2026-06-24"><h2 class="fecha-titulo">Miércoles 24 de junio<span class="conteo">1</span></h2>
+    </div></section><section data-fecha="2026-06-24"><h2 class="fecha-titulo">Miércoles 24 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span></h2>
     <div class="card-wrap" data-id="2026-06-24-loreley-190-la-reina" data-fecha="2026-06-24" data-estado-orig="pendiente">
       <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-24" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span><span class="fecha-original-chip" hidden></span></div>
       <details class="card">
@@ -426,7 +435,7 @@
           <div class="acciones"><a class="btn" href="whatsapp://send?phone=56942107260" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 4210 7260" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Loreley%20190%2C%20La%20Reina%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
         </div>
       </details>
-    </div></section><section data-fecha="2026-06-25"><h2 class="fecha-titulo">Jueves 25 de junio<span class="conteo">3</span></h2>
+    </div></section><section data-fecha="2026-06-25"><h2 class="fecha-titulo">Jueves 25 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span></h2>
     <div class="card-wrap" data-id="2026-06-25-hercha-ingenieria" data-fecha="2026-06-25" data-estado-orig="pendiente">
       <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-25" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span><span class="fecha-original-chip" hidden></span></div>
       <details class="card">
@@ -519,7 +528,7 @@
           <div class="acciones"><a class="btn" href="whatsapp://send?phone=56999189274" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9918 9274" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Chicureo%202300%2C%20Chicureo%2C%20Regi%C3%B3n%20Metropolitana%20%28Local%20Astop%20Aramco%29" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
         </div>
       </details>
-    </div></section><section data-fecha="2026-06-26"><h2 class="fecha-titulo">Viernes 26 de junio<span class="conteo">3</span></h2>
+    </div></section><section data-fecha="2026-06-26"><h2 class="fecha-titulo">Viernes 26 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span></h2>
     <div class="card-wrap" data-id="2026-06-26-b-carcamo-mair-mantencion" data-fecha="2026-06-26" data-estado-orig="pendiente">
       <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-26" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span><span class="fecha-original-chip" hidden></span></div>
       <details class="card">
@@ -612,7 +621,7 @@
           <div class="acciones"><a class="btn" href="whatsapp://send?phone=56994542997" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9454 2997" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=San%20Isidro%201948%2C%20Santiago%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
         </div>
       </details>
-    </div></section><section data-fecha="2026-06-30"><h2 class="fecha-titulo">Martes 30 de junio<span class="conteo">1</span></h2>
+    </div></section><section data-fecha="2026-06-30"><h2 class="fecha-titulo">Martes 30 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span></h2>
     <div class="card-wrap" data-id="2026-06-30-innovators-conveyor-belt" data-fecha="2026-06-30" data-estado-orig="pendiente">
       <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-30" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span><span class="fecha-original-chip" hidden></span></div>
       <details class="card">
@@ -646,7 +655,7 @@
     </div></section><section class="agregado"><h2 class="fecha-titulo">🧽 Limpiezas a realizar<span class="conteo">3</span></h2><ul class="ag-lista"><li class="ag-item"><span class="ag-fecha">vie 26 jun</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 1</span><span class="ag-sub">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="ag-item"><span class="ag-fecha">mar 30 jun</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 2</span><span class="ag-sub">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="ag-item"><span class="ag-fecha">vie 3 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 3</span><span class="ag-sub">Aseo incluido en el arriendo.</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></section><section class="agregado"><h2 class="fecha-titulo">📦 Retiros<span class="conteo">5</span></h2><ul class="ag-lista"><li class="ag-item"><span class="ag-fecha">mar 30 jun</span><span class="ag-main"><b>Gino Muñoz (Constructora GMP)</b><span class="ag-dir">📍 Condominio Polo de Manquehue 2, Chicureo, Colina, Región Metropolitana</span><span class="ag-sub">Al finalizar la semana (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mar 7 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Retiro de la unidad (sin limpieza).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mar 7 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR)</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mié 8 jul</span><span class="ag-main"><b>Cliente — Loreley 190 (La Reina)</b><span class="ag-dir">📍 Loreley 190, La Reina, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">jue 9 jul</span><span class="ag-main"><b>Tania (obra Soria 768, Las Condes)</b><span class="ag-dir">📍 Soria 768, Las Condes, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li></ul></section></div><div class="vista" data-vista="comision" hidden><div id="comision-panel" class="comision-panel"></div><div id="barra-pagar" class="barra-pagar" hidden><button type="button" class="btn-pagar" disabled>Selecciona comisiones</button></div></div>
   </main>
   <footer>Toca una entrega para ver el detalle · Destape Rápido</footer>
-  <script>window.__APP__ = {"url": "https://abmzkzraptmjgebwjzys.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho", "whatsapp": "56930153632", "banco": {"titular": "Alejandro Rivera Carrasco", "banco": "BancoEstado", "cuenta": "000019955346", "email": "rivera.ale982@gmail.com"}, "entregas": [{"id": "2026-06-30-innovators-conveyor-belt", "cliente": "Suyen Guíñez — Innovators Conveyor Belt", "fecha": "2026-06-30", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56978068907"}, {"id": "2026-06-26-b-carcamo-mair-mantencion", "cliente": "B. Cárcamo (MAIR) — mantención reforzada + retiro", "fecha": "2026-06-26", "neto": 80000, "comision": 0, "comisiona": false, "estado": "pendiente", "comision_pagada": false, "tel": "56933800237"}, {"id": "2026-06-25-stock-diseno-chicureo", "cliente": "Stock Diseño Ltda. (Local Astop Aramco, Chicureo)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56999189274"}, {"id": "2026-06-25-tania-soria-768", "cliente": "Tania (obra Soria 768, Las Condes)", "fecha": "2026-06-25", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56959114408"}, {"id": "2026-06-24-loreley-190-la-reina", "cliente": "Cliente — Loreley 190 (La Reina)", "fecha": "2026-06-24", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56942107260"}, {"id": "2026-06-23-b-carcamo-mair", "cliente": "B. Cárcamo (MAIR)", "fecha": "2026-06-23", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56933800237"}, {"id": "2026-06-23-gino-munoz", "cliente": "Gino Muñoz (Constructora GMP)", "fecha": "2026-06-23", "neto": 100000, "comision": 20000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56953872435"}, {"id": "2026-06-23-don-daniel", "cliente": "Don Daniel", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56982291198"}, {"id": "2026-06-25-hercha-ingenieria", "cliente": "Don Eliecer (HERCHA Ingeniería)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56994504902"}, {"id": "2026-06-23-pilar-casanueva", "cliente": "Pilar Casanueva (MDA Constructora)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56988051486"}, {"id": "2026-06-26-villagra-conchali", "cliente": "Sr. Villagra", "fecha": "2026-06-26", "neto": 170000, "comision": 34000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56933003076"}, {"id": "2026-06-26-gamarra-santiago", "cliente": "Sr. Gamarra", "fecha": "2026-06-26", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56994542997"}, {"id": "2026-06-23-grupo-b-nunoa", "cliente": "Grupo B SpA (obra Ñuñoa)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56950831752"}]};</script>
+  <script>window.__APP__ = {"url": "https://abmzkzraptmjgebwjzys.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho", "whatsapp": "56930153632", "banco": {"titular": "Alejandro Rivera Carrasco", "banco": "BancoEstado", "cuenta": "000019955346", "email": "rivera.ale982@gmail.com"}, "entregas": [{"id": "2026-06-30-innovators-conveyor-belt", "cliente": "Suyen Guíñez — Innovators Conveyor Belt", "fecha": "2026-06-30", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56978068907", "banos": 1}, {"id": "2026-06-26-b-carcamo-mair-mantencion", "cliente": "B. Cárcamo (MAIR) — mantención reforzada + retiro", "fecha": "2026-06-26", "neto": 80000, "comision": 0, "comisiona": false, "estado": "pendiente", "comision_pagada": false, "tel": "56933800237", "banos": 1}, {"id": "2026-06-25-stock-diseno-chicureo", "cliente": "Stock Diseño Ltda. (Local Astop Aramco, Chicureo)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56999189274", "banos": 1}, {"id": "2026-06-25-tania-soria-768", "cliente": "Tania (obra Soria 768, Las Condes)", "fecha": "2026-06-25", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56959114408", "banos": 1}, {"id": "2026-06-24-loreley-190-la-reina", "cliente": "Cliente — Loreley 190 (La Reina)", "fecha": "2026-06-24", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56942107260", "banos": 1}, {"id": "2026-06-23-b-carcamo-mair", "cliente": "B. Cárcamo (MAIR)", "fecha": "2026-06-23", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56933800237", "banos": 1}, {"id": "2026-06-23-gino-munoz", "cliente": "Gino Muñoz (Constructora GMP)", "fecha": "2026-06-23", "neto": 100000, "comision": 20000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56953872435", "banos": 1}, {"id": "2026-06-23-don-daniel", "cliente": "Don Daniel", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56982291198", "banos": 1}, {"id": "2026-06-25-hercha-ingenieria", "cliente": "Don Eliecer (HERCHA Ingeniería)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56994504902", "banos": 1}, {"id": "2026-06-23-pilar-casanueva", "cliente": "Pilar Casanueva (MDA Constructora)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56988051486", "banos": 1}, {"id": "2026-06-26-villagra-conchali", "cliente": "Sr. Villagra", "fecha": "2026-06-26", "neto": 170000, "comision": 34000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56933003076", "banos": 1}, {"id": "2026-06-26-gamarra-santiago", "cliente": "Sr. Gamarra", "fecha": "2026-06-26", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56994542997", "banos": 1}, {"id": "2026-06-23-grupo-b-nunoa", "cliente": "Grupo B SpA (obra Ñuñoa)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56950831752", "banos": 1}]};</script>
   
   <script>
 (function () {
@@ -671,6 +680,7 @@
   var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   var MESESL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   var DIAS = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+  var PROG = '<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span>';
 
   function clp(n) { return '$' + (Math.round(Number(n) || 0)).toLocaleString('es-CL'); }
   function escapeHtml(s) {
@@ -797,7 +807,7 @@
     sec.setAttribute('data-fecha', fecha);
     var h = document.createElement('h2');
     h.className = 'fecha-titulo';
-    h.innerHTML = escapeHtml(encabezadoFecha(fecha)) + '<span class="conteo"></span>';
+    h.innerHTML = escapeHtml(encabezadoFecha(fecha)) + PROG;
     sec.appendChild(h);
     cont.appendChild(sec);
     return sec;
@@ -830,6 +840,29 @@
     });
     // Las secciones agregadas (limpiezas / retiros) siempre al final.
     cont.querySelectorAll('section.agregado').forEach(function (s) { cont.appendChild(s); });
+  }
+
+  // Barra de progreso por día: avanza según los baños ya entregados/cobrados.
+  function actualizarProgreso() {
+    document.querySelectorAll('.vista[data-vista="entregas"] section[data-fecha]').forEach(function (sec) {
+      var total = 0, done = 0;
+      sec.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
+        var id = cw.getAttribute('data-id');
+        var b = (META[id] && META[id].banos) || 1;
+        total += b;
+        var e = estadoDe(id);
+        if (e === 'entregado' || e === 'cobrado') { done += b; }
+      });
+      var pct = total ? Math.round(done / total * 100) : 0;
+      var fill = sec.querySelector('.prog-fill'); if (fill) { fill.style.width = pct + '%'; }
+      var num = sec.querySelector('.prog-num'); if (num) { num.textContent = done + '/' + total; }
+    });
+  }
+
+  // Fija la altura real del header para el 'top' de los encabezados sticky.
+  function setHeaderH() {
+    var h = document.querySelector('header');
+    if (h) { document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px'); }
   }
 
   // ---- Ocultar anteriores: solo se pueden ocultar las COBRADAS de días pasados ----
@@ -873,6 +906,7 @@
     var card = qCard(id);
     if (card) { pintarCard(card); }
     reubicarCards();
+    actualizarProgreso();
     aplicarAnteriores();
     renderComision();
     if (!SUPA.url || !SUPA.key) return Promise.resolve();
@@ -1021,7 +1055,7 @@
   }
 
   function load() {
-    var done = function () { pintarTodo(); reubicarCards(); aplicarAnteriores(); renderComision(); };
+    var done = function () { pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); renderComision(); };
     if (!SUPA.url || !SUPA.key) { done(); return; }
     fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
@@ -1103,6 +1137,8 @@
     });
   }
 
+  setHeaderH();
+  window.addEventListener('resize', setHeaderH);
   wireVistas();
   wire();
   load();

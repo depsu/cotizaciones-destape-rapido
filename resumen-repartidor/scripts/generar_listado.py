@@ -69,6 +69,13 @@ ESTADOS = {
 # Clase de color de la card según estado (coincide con el JS).
 CLASE_ESTADO = {"entregado": " is-entregado", "cobrado": " is-cobrado"}
 
+# Barra de progreso de entregas del día (el JS la rellena). El 🚚 va en la punta.
+PROG_MARKUP = (
+    '<span class="prog"><span class="prog-bar">'
+    '<span class="prog-fill"><span class="prog-truck">🚚</span></span></span>'
+    '<span class="prog-num"></span></span>'
+)
+
 # Tipo de limpieza: "incluida" (parte del arriendo) o "extra" (se cobra aparte).
 TIPO_LIMPIEZA = {
     "incluida": ("Incluida", "#166534", "#DCFCE7"),
@@ -378,6 +385,14 @@ ESTILOS_EXTRA = """
   /* El atributo hidden siempre oculta (varios contenedores usan display:flex/block
      que de otro modo le ganarían al hidden). */
   [hidden] { display: none !important; }
+  /* Barra de progreso de entregas del día (🚚 en la punta). */
+  .prog { flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:8px; }
+  .prog-bar { position:relative; flex:1 1 auto; min-width:48px; height:16px;
+    background:#E2E8F0; border-radius:8px; }
+  .prog-fill { position:absolute; left:0; top:0; bottom:0; width:0; background:#16A34A;
+    border-radius:8px; transition:width .45s ease; display:flex; align-items:center; justify-content:flex-end; }
+  .prog-truck { font-size:13px; line-height:1; transform:translateX(42%); filter:drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+  .prog-num { flex:none; font-size:12px; font-weight:800; color:var(--gris); font-variant-numeric:tabular-nums; }
   /* Gestión ARRIBA de la card */
   .card-wrap { margin-bottom:10px; }
   .gestion-top { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 12px;
@@ -539,6 +554,7 @@ SCRIPT_ESTADO = r"""<script>
   var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   var MESESL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   var DIAS = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+  var PROG = '<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span>';
 
   function clp(n) { return '$' + (Math.round(Number(n) || 0)).toLocaleString('es-CL'); }
   function escapeHtml(s) {
@@ -665,7 +681,7 @@ SCRIPT_ESTADO = r"""<script>
     sec.setAttribute('data-fecha', fecha);
     var h = document.createElement('h2');
     h.className = 'fecha-titulo';
-    h.innerHTML = escapeHtml(encabezadoFecha(fecha)) + '<span class="conteo"></span>';
+    h.innerHTML = escapeHtml(encabezadoFecha(fecha)) + PROG;
     sec.appendChild(h);
     cont.appendChild(sec);
     return sec;
@@ -698,6 +714,29 @@ SCRIPT_ESTADO = r"""<script>
     });
     // Las secciones agregadas (limpiezas / retiros) siempre al final.
     cont.querySelectorAll('section.agregado').forEach(function (s) { cont.appendChild(s); });
+  }
+
+  // Barra de progreso por día: avanza según los baños ya entregados/cobrados.
+  function actualizarProgreso() {
+    document.querySelectorAll('.vista[data-vista="entregas"] section[data-fecha]').forEach(function (sec) {
+      var total = 0, done = 0;
+      sec.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
+        var id = cw.getAttribute('data-id');
+        var b = (META[id] && META[id].banos) || 1;
+        total += b;
+        var e = estadoDe(id);
+        if (e === 'entregado' || e === 'cobrado') { done += b; }
+      });
+      var pct = total ? Math.round(done / total * 100) : 0;
+      var fill = sec.querySelector('.prog-fill'); if (fill) { fill.style.width = pct + '%'; }
+      var num = sec.querySelector('.prog-num'); if (num) { num.textContent = done + '/' + total; }
+    });
+  }
+
+  // Fija la altura real del header para el 'top' de los encabezados sticky.
+  function setHeaderH() {
+    var h = document.querySelector('header');
+    if (h) { document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px'); }
   }
 
   // ---- Ocultar anteriores: solo se pueden ocultar las COBRADAS de días pasados ----
@@ -741,6 +780,7 @@ SCRIPT_ESTADO = r"""<script>
     var card = qCard(id);
     if (card) { pintarCard(card); }
     reubicarCards();
+    actualizarProgreso();
     aplicarAnteriores();
     renderComision();
     if (!SUPA.url || !SUPA.key) return Promise.resolve();
@@ -889,7 +929,7 @@ SCRIPT_ESTADO = r"""<script>
   }
 
   function load() {
-    var done = function () { pintarTodo(); reubicarCards(); aplicarAnteriores(); renderComision(); };
+    var done = function () { pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); renderComision(); };
     if (!SUPA.url || !SUPA.key) { done(); return; }
     fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
@@ -971,6 +1011,8 @@ SCRIPT_ESTADO = r"""<script>
     });
   }
 
+  setHeaderH();
+  window.addEventListener('resize', setHeaderH);
   wireVistas();
   wire();
   load();
@@ -1054,7 +1096,7 @@ def construir_html(data: dict) -> str:
         tarjetas = "".join(tarjeta(e) for e in items)
         secciones.append(
             f'<section data-fecha="{esc(fecha)}"><h2 class="fecha-titulo">{esc(encabezado_fecha(fecha))}'
-            f'<span class="conteo">{len(items)}</span></h2>{tarjetas}</section>'
+            f'{PROG_MARKUP}</h2>{tarjetas}</section>'
         )
 
     # Metadatos por entrega para el JS (cálculo de comisión y panel).
@@ -1069,6 +1111,7 @@ def construir_html(data: dict) -> str:
             "estado": e.get("estado", "pendiente"),
             "comision_pagada": bool(e.get("comision_pagada", False)),
             "tel": solo_digitos(e.get("telefono", "")),
+            "banos": cantidad_banos(e),
         }
         for e in entregas
     ]
@@ -1142,8 +1185,9 @@ def construir_html(data: dict) -> str:
   header .sub {{ margin-top:3px; font-size:13px; opacity:.85; }}
   main {{ max-width:560px; margin:0 auto; padding:14px 12px 40px; }}
   .fecha-titulo {{
-    display:flex; align-items:center; gap:8px; font-size:14px; text-transform:uppercase;
-    letter-spacing:.6px; color:var(--gris); margin:22px 4px 10px;
+    display:flex; align-items:center; gap:10px; font-size:14px; text-transform:uppercase;
+    letter-spacing:.6px; color:var(--gris); margin:16px 0 8px; padding:8px 4px;
+    position:sticky; top:var(--header-h, 64px); z-index:5; background:var(--fondo);
   }}
   .conteo {{
     background:var(--azul); color:#fff; font-size:12px; min-width:22px; height:22px;
