@@ -36,7 +36,9 @@
   summary { list-style:none; cursor:pointer; padding:14px 16px; position:relative; }
   summary::-webkit-details-marker { display:none; }
   summary::after {
-    content:"⌄"; position:absolute; right:16px; top:14px; font-size:20px; color:var(--gris);
+    content:"▾"; position:absolute; right:12px; top:12px; width:26px; height:26px;
+    display:flex; align-items:center; justify-content:center; line-height:1;
+    font-size:14px; color:#1F5AA8; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:50%;
     transition:transform .2s;
   }
   details[open] summary::after { transform:rotate(180deg); }
@@ -126,12 +128,12 @@
     padding:9px 4px; border-radius:9px; min-height:44px; border:none; color:#fff; }
   .acc-link:active { filter:brightness(.92); }
   .acc-link.acc-wa { background:#16A34A; }
-  .acc-link.acc-call { background:#475569; }
+  .acc-link.acc-call { background:#fff; color:#0F172A; border:1px solid #CBD5E1; }
   .acc-link.acc-map { background:#1F5AA8; }
-  .acc-toggle { flex:0 0 48px; display:flex; align-items:center; justify-content:center;
-    background:#fff; border:1px solid var(--linea); color:var(--tinta); border-radius:9px;
-    min-height:44px; font-size:18px; font-weight:800; cursor:pointer; font-family:inherit; }
-  .acc-toggle:active { background:var(--fondo); }
+  .btn-ver-info { flex:1 1 100%; margin-top:2px; padding:12px; border-radius:9px;
+    background:#EFF6FF; border:1px solid #BFDBFE; color:#1F5AA8; font-family:inherit;
+    font-size:14px; font-weight:700; cursor:pointer; min-height:46px; }
+  .btn-ver-info:active { filter:brightness(.97); }
   /* Colores de la card según estado */
   .card-wrap.is-entregado > .card, .card-wrap.is-entregado > .gestion-top { border-color:#93C5FD; background:#EFF6FF; }
   .card-wrap.is-cobrado > .card, .card-wrap.is-cobrado > .gestion-top { border-color:#FCD34D; background:#FFFBEB; }
@@ -255,7 +257,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
-          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56982291198">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 8229 1198">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Chapultepec%206047%2C%20Vitacura%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button></div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56982291198">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 8229 1198">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Chapultepec%206047%2C%20Vitacura%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
           <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (descuento de la semana). Se emite factura. Cobrar al entregar.</span></div>
@@ -286,7 +288,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
-          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56953872435">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5387 2435">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Condominio%20Polo%20de%20Manquehue%202%2C%20Chicureo%2C%20Colina%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button></div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56953872435">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5387 2435">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Condominio%20Polo%20de%20Manquehue%202%2C%20Chicureo%2C%20Colina%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
           <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$119.000</span><span class="cobro-nota">$100.000 neto + IVA (incluye traslado; limpieza al finalizar el servicio). Se emite factura. Cobrar al entregar.</span></div>
@@ -317,7 +319,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
-          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56950831752">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5083 1752">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Pasaje%20Juan%20Moya%20368%2C%20%C3%91u%C3%B1oa%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button></div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56950831752">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5083 1752">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Pasaje%20Juan%20Moya%20368%2C%20%C3%91u%C3%B1oa%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
           <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400 al mes. Factura a Grupo B SpA. Ya entregado y cobrado.</span></div>
@@ -348,7 +350,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
-          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56933800237">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3380 0237">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button></div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56933800237">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3380 0237">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
           <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$154.700</span><span class="cobro-nota">PAGADO el baño ($130.000 neto + IVA = $154.700). Pendiente aparte: aseo extra / plan de mantención (por definir y cobrar).</span></div>
@@ -379,7 +381,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
-          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56988051486">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 8805 1486">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=El%20Rinc%C3%B3n%2012382%2C%20casa%205%2C%20Lo%20Barnechea%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button></div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56988051486">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 8805 1486">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=El%20Rinc%C3%B3n%2012382%2C%20casa%205%2C%20Lo%20Barnechea%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
           <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (oferta de la semana; incluye traslado ida y vuelta y aseo semanal). Se emite factura. Cobrar al entregar.</span></div>
@@ -410,7 +412,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
-          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56942107260">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 4210 7260">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Loreley%20190%2C%20La%20Reina%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button></div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56942107260">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 4210 7260">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Loreley%20190%2C%20La%20Reina%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
           <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 neto por las 2 semanas. Sin factura. Cobrar al entregar.</span></div>
@@ -441,7 +443,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
-          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56994504902">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9450 4902">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Planta%20de%20Tratamiento%20de%20Aguas%20Servidas%20Aguas%20Andinas%2C%20Camino%20El%20Trebal%202095%2C%20Padre%20Hurtado%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button></div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56994504902">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9450 4902">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Planta%20de%20Tratamiento%20de%20Aguas%20Servidas%20Aguas%20Andinas%2C%20Camino%20El%20Trebal%202095%2C%20Padre%20Hurtado%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
           <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA. Se emite factura a HERCHA.</span></div>
@@ -472,7 +474,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
-          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56959114408">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5911 4408">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Soria%20768%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button></div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56959114408">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5911 4408">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Soria%20768%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
           <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 total. SIN factura (boleta), sin IVA. Paga al entregar: transferencia o efectivo.</span></div>
@@ -503,7 +505,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
-          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56999189274">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9918 9274">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Chicureo%202300%2C%20Chicureo%2C%20Regi%C3%B3n%20Metropolitana%20%28Local%20Astop%20Aramco%29">🗺️ Llegar 🧭</a><button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button></div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56999189274">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9918 9274">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Chicureo%202300%2C%20Chicureo%2C%20Regi%C3%B3n%20Metropolitana%20%28Local%20Astop%20Aramco%29">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
           <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400. Se emite factura a Stock Diseño Ltda. Cobrar al entregar.</span></div>
@@ -527,14 +529,14 @@
             <span class="badge" style="color:#B45309;background:#FEF3C7">Pendiente</span>
           </div>
           <div class="resumen-sub">
-            <span class="banos">🚽 1 Baño</span>
+            <span class="banos">🧽 Limpieza extra</span>
             <span class="dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span>
             <span class="monto">💵 $95.200</span>
           </div>
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
-          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56933800237">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3380 0237">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button></div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56933800237">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3380 0237">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
           <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$95.200</span><span class="cobro-nota">Servicio adicional: 2 servicios de mantención (limpieza + recarga de agua, todo incluido) a $40.000 c/u = $80.000 neto + IVA = $95.200. Se factura a MAIR. (El arriendo del baño ya fue pagado por separado).</span></div>
@@ -565,7 +567,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
-          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56933003076">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3300 3076">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Campanario%201749%2C%20Conchal%C3%AD%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button></div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56933003076">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3300 3076">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Campanario%201749%2C%20Conchal%C3%AD%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
           <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$170.000</span><span class="cobro-nota">$170.000 todo incluido (oferta mensual). SIN factura, se emite BOLETA — no lleva IVA adicional. Cobrar al entregar.</span></div>
@@ -596,7 +598,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
-          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56994542997">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9454 2997">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=San%20Isidro%201948%2C%20Santiago%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button></div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56994542997">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9454 2997">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=San%20Isidro%201948%2C%20Santiago%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
           <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400 al mes, todo incluido. Se emite FACTURA. Arriendo 2 meses (prolongable a 3). Cobrar el primer mes ($190.400) al entregar.</span></div>
@@ -627,7 +629,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
-          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56978068907">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 7806 8907">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Camino%20El%20Alba%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana%20%28obra%29">🗺️ Llegar 🧭</a><button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button></div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56978068907">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 7806 8907">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Camino%20El%20Alba%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana%20%28obra%29">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
           <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">Mensual. Cobrar al entregar. $160.000 neto + IVA (lleva factura).</span></div>
@@ -1067,13 +1069,17 @@
           else { window.location.href = href; }
         });
       });
-      // Flecha ▾: abre/cierra el detalle (un botón dentro de summary no togglea solo).
-      var tg = card.querySelector('.acc-toggle');
-      if (tg) {
-        tg.addEventListener('click', function (ev) {
+      // "Ver toda la información": abre/cierra el detalle (botón dentro de summary
+      // no togglea solo). Texto inverso al estar abierto.
+      var vi = card.querySelector('.btn-ver-info');
+      if (vi) {
+        vi.addEventListener('click', function (ev) {
           ev.preventDefault(); ev.stopPropagation();
           var det = card.querySelector('details');
-          if (det) { det.open = !det.open; tg.textContent = det.open ? '▴' : '▾'; }
+          if (det) {
+            det.open = !det.open;
+            vi.textContent = det.open ? 'Ver menos información ▴' : 'Ver toda la información del cliente ▾';
+          }
         });
       }
     });

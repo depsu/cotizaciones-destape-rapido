@@ -242,10 +242,20 @@ def tarjeta(e: dict) -> str:
     servicio = esc(e.get("servicio", ""))
     n_banos = cantidad_banos(e)
     banos_icono = icono_banos(n_banos)
-    banos_txt = f"{n_banos} Baño" + ("s" if n_banos != 1 else "")
-    plazo = plazo_de(e)
-    if plazo:
-        banos_txt += f" · {plazo}"
+    # Etiqueta principal del resumen: baños+plazo, o "Limpieza extra"/"Retiro"
+    # cuando es un servicio extra (comision:false), no un arriendo de baño.
+    if e.get("comision") is False:
+        sl = (e.get("servicio") or "").lower()
+        if "retiro" in sl and "limpieza" not in sl and "mantenci" not in sl:
+            res_icono, res_txt = "📦", "Retiro"
+        else:
+            res_icono, res_txt = "🧽", "Limpieza extra"
+    else:
+        res_icono = banos_icono
+        res_txt = f"{n_banos} Baño" + ("s" if n_banos != 1 else "")
+        plazo = plazo_de(e)
+        if plazo:
+            res_txt += f" · {plazo}"
     hora = esc(e.get("hora", ""))
     notas = e.get("notas", "")
     estado = e.get("estado", "pendiente")
@@ -322,7 +332,7 @@ def tarjeta(e: dict) -> str:
     if direccion:
         maps_q = f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
         accesos.append(f'<a class="acc-link acc-map" href="{esc(maps_q)}">🗺️ Llegar 🧭</a>')
-    accesos.append('<button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button>')
+    accesos.append('<button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button>')
     accesos_html = f'<div class="contacto-accesos" hidden>{"".join(accesos)}</div>'
 
     # El horario va dentro del detalle (después de Factura), no en el resumen.
@@ -338,7 +348,7 @@ def tarjeta(e: dict) -> str:
             <span class="badge" style="color:{color_txt};background:{color_bg}">{etiqueta}</span>
           </div>
           <div class="resumen-sub">
-            <span class="banos">{banos_icono} {banos_txt}</span>
+            <span class="banos">{res_icono} {res_txt}</span>
             <span class="dir">📍 {esc(direccion)}</span>
             {monto_chip}
           </div>
@@ -398,12 +408,12 @@ ESTILOS_EXTRA = """
     padding:9px 4px; border-radius:9px; min-height:44px; border:none; color:#fff; }
   .acc-link:active { filter:brightness(.92); }
   .acc-link.acc-wa { background:#16A34A; }
-  .acc-link.acc-call { background:#475569; }
+  .acc-link.acc-call { background:#fff; color:#0F172A; border:1px solid #CBD5E1; }
   .acc-link.acc-map { background:#1F5AA8; }
-  .acc-toggle { flex:0 0 48px; display:flex; align-items:center; justify-content:center;
-    background:#fff; border:1px solid var(--linea); color:var(--tinta); border-radius:9px;
-    min-height:44px; font-size:18px; font-weight:800; cursor:pointer; font-family:inherit; }
-  .acc-toggle:active { background:var(--fondo); }
+  .btn-ver-info { flex:1 1 100%; margin-top:2px; padding:12px; border-radius:9px;
+    background:#EFF6FF; border:1px solid #BFDBFE; color:#1F5AA8; font-family:inherit;
+    font-size:14px; font-weight:700; cursor:pointer; min-height:46px; }
+  .btn-ver-info:active { filter:brightness(.97); }
   /* Colores de la card según estado */
   .card-wrap.is-entregado > .card, .card-wrap.is-entregado > .gestion-top { border-color:#93C5FD; background:#EFF6FF; }
   .card-wrap.is-cobrado > .card, .card-wrap.is-cobrado > .gestion-top { border-color:#FCD34D; background:#FFFBEB; }
@@ -927,13 +937,17 @@ SCRIPT_ESTADO = r"""<script>
           else { window.location.href = href; }
         });
       });
-      // Flecha ▾: abre/cierra el detalle (un botón dentro de summary no togglea solo).
-      var tg = card.querySelector('.acc-toggle');
-      if (tg) {
-        tg.addEventListener('click', function (ev) {
+      // "Ver toda la información": abre/cierra el detalle (botón dentro de summary
+      // no togglea solo). Texto inverso al estar abierto.
+      var vi = card.querySelector('.btn-ver-info');
+      if (vi) {
+        vi.addEventListener('click', function (ev) {
           ev.preventDefault(); ev.stopPropagation();
           var det = card.querySelector('details');
-          if (det) { det.open = !det.open; tg.textContent = det.open ? '▴' : '▾'; }
+          if (det) {
+            det.open = !det.open;
+            vi.textContent = det.open ? 'Ver menos información ▴' : 'Ver toda la información del cliente ▾';
+          }
         });
       }
     });
@@ -1142,7 +1156,9 @@ def construir_html(data: dict) -> str:
   summary {{ list-style:none; cursor:pointer; padding:14px 16px; position:relative; }}
   summary::-webkit-details-marker {{ display:none; }}
   summary::after {{
-    content:"⌄"; position:absolute; right:16px; top:14px; font-size:20px; color:var(--gris);
+    content:"▾"; position:absolute; right:12px; top:12px; width:26px; height:26px;
+    display:flex; align-items:center; justify-content:center; line-height:1;
+    font-size:14px; color:#1F5AA8; background:#EFF6FF; border:1px solid #BFDBFE; border-radius:50%;
     transition:transform .2s;
   }}
   details[open] summary::after {{ transform:rotate(180deg); }}
