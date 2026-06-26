@@ -308,6 +308,16 @@ def tarjeta(e: dict) -> str:
         botones.append(boton(maps, "🗺️ Cómo llegar", "#1F5AA8"))
     botones_html = f'<div class="acciones">{"".join(botones)}</div>'
 
+    # Accesos rápidos (se muestran en la card cuando el cliente ya fue contactado).
+    accesos = []
+    if num:
+        accesos.append(f'<a class="acc-link acc-wa" href="whatsapp://send?phone={num}">💬 WhatsApp</a>')
+        accesos.append(f'<a class="acc-link acc-call" href="tel:{esc(telefono)}">📞 Llamar</a>')
+    if direccion:
+        maps_q = f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
+        accesos.append(f'<a class="acc-link acc-map" href="{esc(maps_q)}">🗺️ Llegar</a>')
+    accesos_html = f'<div class="contacto-accesos" hidden>{"".join(accesos)}</div>' if accesos else ""
+
     hora_chip = f'<span class="hora">🕐 {hora}</span>' if hora else ""
 
     return f"""
@@ -328,6 +338,7 @@ def tarjeta(e: dict) -> str:
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          {accesos_html}
         </summary>
         <div class="detalle">
           {comision_mini}
@@ -348,6 +359,9 @@ def tarjeta(e: dict) -> str:
 # CSS extra (gestión por tarjeta + panel de comisión). Se inyecta como variable
 # para evitar duplicar llaves dentro del f-string del <style>.
 ESTILOS_EXTRA = """
+  /* El atributo hidden siempre oculta (varios contenedores usan display:flex/block
+     que de otro modo le ganarían al hidden). */
+  [hidden] { display: none !important; }
   /* Gestión ARRIBA de la card */
   .card-wrap { margin-bottom:10px; }
   .gestion-top { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 12px;
@@ -372,6 +386,13 @@ ESTILOS_EXTRA = """
     font-weight:700; font-size:14px; padding:11px; border-radius:10px; cursor:pointer; min-height:44px; }
   .btn-contacto:active { filter:brightness(.95); }
   .btn-contacto.contactado, .btn-contacto:disabled { background:#DCFCE7; color:#166534; cursor:default; }
+  .contacto-accesos { display:flex; gap:6px; margin-top:8px; }
+  .acc-link { flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; gap:4px;
+    text-decoration:none; font-family:inherit; font-size:12.5px; font-weight:700; white-space:nowrap;
+    padding:9px 4px; border-radius:9px; min-height:42px; border:1px solid var(--linea); background:#fff; color:var(--tinta); }
+  .acc-link:active { filter:brightness(.95); }
+  .acc-link.acc-wa { color:#166534; border-color:#BBF7D0; background:#F0FDF4; }
+  .acc-link.acc-map { color:#1F5AA8; border-color:#BFDBFE; background:#EFF6FF; }
   /* Colores de la card según estado */
   .card-wrap.is-entregado > .card, .card-wrap.is-entregado > .gestion-top { border-color:#93C5FD; background:#EFF6FF; }
   .card-wrap.is-cobrado > .card, .card-wrap.is-cobrado > .gestion-top { border-color:#FCD34D; background:#FFFBEB; }
@@ -600,6 +621,9 @@ SCRIPT_ESTADO = r"""<script>
       if (contactado) { cbtn.textContent = '✓ Cliente contactado'; cbtn.disabled = true; cbtn.classList.add('contactado'); }
       else { cbtn.textContent = '💬 Avisar al cliente que voy a entregar'; cbtn.disabled = false; cbtn.classList.remove('contactado'); }
     }
+    // Accesos rápidos (llamar / llegar / WhatsApp): visibles cuando ya se contactó.
+    var accesos = card.querySelector('.contacto-accesos');
+    if (accesos) { accesos.hidden = !(mostrar && contactado); }
   }
   function pintarTodo() { document.querySelectorAll('.card-wrap[data-id]').forEach(pintarCard); }
 
@@ -883,6 +907,15 @@ SCRIPT_ESTADO = r"""<script>
           if (tel) { window.location.href = 'whatsapp://send?phone=' + tel + '&text=' + encodeURIComponent(msg); }
         });
       }
+      // Accesos rápidos: navegan sin abrir/cerrar la card.
+      card.querySelectorAll('.acc-link').forEach(function (a) {
+        a.addEventListener('click', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          var href = a.getAttribute('href') || '';
+          if (/^https?:/.test(href)) { window.open(href, '_blank'); }
+          else { window.location.href = href; }
+        });
+      });
     });
     var ta = document.getElementById('toggle-anteriores');
     if (ta) { ta.addEventListener('click', function () { anterioresColapsado = !anterioresColapsado; aplicarAnteriores(); }); }

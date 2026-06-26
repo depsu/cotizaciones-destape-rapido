@@ -93,6 +93,9 @@
   .ver-anteriores[hidden] { display:none; }
   footer { text-align:center; color:var(--gris); font-size:12px; padding:24px 16px 40px; }
 
+  /* El atributo hidden siempre oculta (varios contenedores usan display:flex/block
+     que de otro modo le ganarían al hidden). */
+  [hidden] { display: none !important; }
   /* Gestión ARRIBA de la card */
   .card-wrap { margin-bottom:10px; }
   .gestion-top { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 12px;
@@ -117,6 +120,13 @@
     font-weight:700; font-size:14px; padding:11px; border-radius:10px; cursor:pointer; min-height:44px; }
   .btn-contacto:active { filter:brightness(.95); }
   .btn-contacto.contactado, .btn-contacto:disabled { background:#DCFCE7; color:#166534; cursor:default; }
+  .contacto-accesos { display:flex; gap:6px; margin-top:8px; }
+  .acc-link { flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; gap:4px;
+    text-decoration:none; font-family:inherit; font-size:12.5px; font-weight:700; white-space:nowrap;
+    padding:9px 4px; border-radius:9px; min-height:42px; border:1px solid var(--linea); background:#fff; color:var(--tinta); }
+  .acc-link:active { filter:brightness(.95); }
+  .acc-link.acc-wa { color:#166534; border-color:#BBF7D0; background:#F0FDF4; }
+  .acc-link.acc-map { color:#1F5AA8; border-color:#BFDBFE; background:#EFF6FF; }
   /* Colores de la card según estado */
   .card-wrap.is-entregado > .card, .card-wrap.is-entregado > .gestion-top { border-color:#93C5FD; background:#EFF6FF; }
   .card-wrap.is-cobrado > .card, .card-wrap.is-cobrado > .gestion-top { border-color:#FCD34D; background:#FFFBEB; }
@@ -241,6 +251,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56982291198">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 8229 1198">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Chapultepec%206047%2C%20Vitacura%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar</a></div>
         </summary>
         <div class="detalle">
           <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
@@ -273,6 +284,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56953872435">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5387 2435">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Condominio%20Polo%20de%20Manquehue%202%2C%20Chicureo%2C%20Colina%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar</a></div>
         </summary>
         <div class="detalle">
           <div class="comision-mini">💰 Tu comisión: <b>$20.000</b><span class="cm-base">20% de $100.000 neto</span></div>
@@ -305,6 +317,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56950831752">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5083 1752">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Pasaje%20Juan%20Moya%20368%2C%20%C3%91u%C3%B1oa%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar</a></div>
         </summary>
         <div class="detalle">
           <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
@@ -337,6 +350,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56933800237">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3380 0237">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar</a></div>
         </summary>
         <div class="detalle">
           <div class="comision-mini">💰 Tu comisión: <b>$26.000</b><span class="cm-base">20% de $130.000 neto</span></div>
@@ -369,6 +383,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56988051486">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 8805 1486">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=El%20Rinc%C3%B3n%2012382%2C%20casa%205%2C%20Lo%20Barnechea%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar</a></div>
         </summary>
         <div class="detalle">
           <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
@@ -401,6 +416,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56942107260">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 4210 7260">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Loreley%20190%2C%20La%20Reina%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar</a></div>
         </summary>
         <div class="detalle">
           <div class="comision-mini">💰 Tu comisión: <b>$26.000</b><span class="cm-base">20% de $130.000 neto</span></div>
@@ -433,6 +449,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56994504902">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9450 4902">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Planta%20de%20Tratamiento%20de%20Aguas%20Servidas%20Aguas%20Andinas%2C%20Camino%20El%20Trebal%202095%2C%20Padre%20Hurtado%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar</a></div>
         </summary>
         <div class="detalle">
           <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
@@ -465,6 +482,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56959114408">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5911 4408">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Soria%20768%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar</a></div>
         </summary>
         <div class="detalle">
           <div class="comision-mini">💰 Tu comisión: <b>$26.000</b><span class="cm-base">20% de $130.000 neto</span></div>
@@ -497,6 +515,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56999189274">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9918 9274">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Chicureo%202300%2C%20Chicureo%2C%20Regi%C3%B3n%20Metropolitana%20%28Local%20Astop%20Aramco%29">🗺️ Llegar</a></div>
         </summary>
         <div class="detalle">
           <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
@@ -529,6 +548,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56933800237">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3380 0237">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar</a></div>
         </summary>
         <div class="detalle">
           <div class="comision-mini comision-no">Sin comisión (servicio extra)</div>
@@ -561,6 +581,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56933003076">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3300 3076">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Campanario%201749%2C%20Conchal%C3%AD%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar</a></div>
         </summary>
         <div class="detalle">
           <div class="comision-mini">💰 Tu comisión: <b>$34.000</b><span class="cm-base">20% de $170.000 neto</span></div>
@@ -593,6 +614,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56994542997">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9454 2997">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=San%20Isidro%201948%2C%20Santiago%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar</a></div>
         </summary>
         <div class="detalle">
           <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
@@ -625,6 +647,7 @@
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
+          <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56978068907">💬 WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 7806 8907">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Camino%20El%20Alba%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana%20%28obra%29">🗺️ Llegar</a></div>
         </summary>
         <div class="detalle">
           <div class="comision-mini">💰 Tu comisión: <b>$32.000</b><span class="cm-base">20% de $160.000 neto</span></div>
@@ -770,6 +793,9 @@
       if (contactado) { cbtn.textContent = '✓ Cliente contactado'; cbtn.disabled = true; cbtn.classList.add('contactado'); }
       else { cbtn.textContent = '💬 Avisar al cliente que voy a entregar'; cbtn.disabled = false; cbtn.classList.remove('contactado'); }
     }
+    // Accesos rápidos (llamar / llegar / WhatsApp): visibles cuando ya se contactó.
+    var accesos = card.querySelector('.contacto-accesos');
+    if (accesos) { accesos.hidden = !(mostrar && contactado); }
   }
   function pintarTodo() { document.querySelectorAll('.card-wrap[data-id]').forEach(pintarCard); }
 
@@ -1053,6 +1079,15 @@
           if (tel) { window.location.href = 'whatsapp://send?phone=' + tel + '&text=' + encodeURIComponent(msg); }
         });
       }
+      // Accesos rápidos: navegan sin abrir/cerrar la card.
+      card.querySelectorAll('.acc-link').forEach(function (a) {
+        a.addEventListener('click', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          var href = a.getAttribute('href') || '';
+          if (/^https?:/.test(href)) { window.open(href, '_blank'); }
+          else { window.location.href = href; }
+        });
+      });
     });
     var ta = document.getElementById('toggle-anteriores');
     if (ta) { ta.addEventListener('click', function () { anterioresColapsado = !anterioresColapsado; aplicarAnteriores(); }); }
