@@ -129,6 +129,24 @@ def icono_banos(n: int) -> str:
     return "🚽+" if n > 4 else "🚽" * n
 
 
+def plazo_de(e: dict) -> str:
+    """Plazo corto del arriendo a partir del texto del servicio.
+
+    'mensual'/cualquier cantidad de meses => 'mensual'; 'N semana(s)' => 'N semana(s)'.
+    Devuelve '' si no aplica (p. ej. mantención).
+    """
+    s = (e.get("servicio") or "").lower()
+    if "mensual" in s or "mes" in s:
+        return "mensual"
+    m = re.search(r"(\d+)\s*semana", s)
+    if m:
+        n = int(m.group(1))
+        return f"{n} semana" + ("s" if n != 1 else "")
+    if "semana" in s:
+        return "1 semana"
+    return ""
+
+
 def solo_digitos(telefono: str) -> str:
     d = re.sub(r"\D", "", telefono or "")
     if d.startswith("56"):
@@ -222,24 +240,18 @@ def tarjeta(e: dict) -> str:
     direccion = e.get("direccion", "")
     telefono = e.get("telefono", "")
     servicio = esc(e.get("servicio", ""))
-    banos_icono = icono_banos(cantidad_banos(e))
+    n_banos = cantidad_banos(e)
+    banos_icono = icono_banos(n_banos)
+    banos_txt = f"{n_banos} Baño" + ("s" if n_banos != 1 else "")
+    plazo = plazo_de(e)
+    if plazo:
+        banos_txt += f" · {plazo}"
     hora = esc(e.get("hora", ""))
     notas = e.get("notas", "")
     estado = e.get("estado", "pendiente")
     etiqueta, color_txt, color_bg = ESTADOS.get(estado, ESTADOS["pendiente"])
     ent_id = e.get("id", "")
     fecha_iso = e.get("fecha", "")
-
-    # Comisión (informativa, dentro del despliegue).
-    neto = neto_de(e)
-    com = comision_de(e)
-    if comisiona(e):
-        comision_mini = (
-            f'<div class="comision-mini">💰 Tu comisión: <b>{esc(clp(com))}</b>'
-            f'<span class="cm-base">20% de {esc(clp(neto))} neto</span></div>'
-        )
-    else:
-        comision_mini = '<div class="comision-mini comision-no">Sin comisión (servicio extra)</div>'
 
     # Barra de gestión ARRIBA de la card (fuera del despliegue). El JS la oculta
     # en las entregas futuras (solo aplica de hoy hacia atrás). Reagendar va primero.
@@ -287,12 +299,6 @@ def tarjeta(e: dict) -> str:
         cuerpo = f"<ul>{''.join(filas)}</ul>" if filas else "<p>Requiere factura.</p>"
         factura_html = f'<div class="bloque"><span class="etq">🧾 Factura</span>{cuerpo}</div>'
 
-    detalle = e.get("detalle") or []
-    detalle_html = ""
-    if detalle:
-        items = "".join(f"<li>{esc(d)}</li>" for d in detalle)
-        detalle_html = f'<div class="bloque"><span class="etq">Qué hacer</span><ul>{items}</ul></div>'
-
     notas_html = ""
     if notas:
         notas_html = f'<div class="bloque"><span class="etq">Notas</span><p>{esc(notas)}</p></div>'
@@ -315,10 +321,12 @@ def tarjeta(e: dict) -> str:
         accesos.append(f'<a class="acc-link acc-call" href="tel:{esc(telefono)}">📞 Llamar</a>')
     if direccion:
         maps_q = f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
-        accesos.append(f'<a class="acc-link acc-map" href="{esc(maps_q)}">🗺️ Llegar</a>')
-    accesos_html = f'<div class="contacto-accesos" hidden>{"".join(accesos)}</div>' if accesos else ""
+        accesos.append(f'<a class="acc-link acc-map" href="{esc(maps_q)}">🗺️ Llegar 🧭</a>')
+    accesos.append('<button type="button" class="acc-toggle" aria-label="Ver detalle">▾</button>')
+    accesos_html = f'<div class="contacto-accesos" hidden>{"".join(accesos)}</div>'
 
-    hora_chip = f'<span class="hora">🕐 {hora}</span>' if hora else ""
+    # El horario va dentro del detalle (después de Factura), no en el resumen.
+    horario_html = f'<div class="bloque"><span class="etq">🕐 Horario</span><p>{hora}</p></div>' if hora else ""
 
     return f"""
     <div class="card-wrap{CLASE_ESTADO.get(estado, "")}" data-id="{esc(ent_id)}" data-fecha="{esc(fecha_iso)}" data-estado-orig="{esc(estado)}">
@@ -330,9 +338,8 @@ def tarjeta(e: dict) -> str:
             <span class="badge" style="color:{color_txt};background:{color_bg}">{etiqueta}</span>
           </div>
           <div class="resumen-sub">
-            <span class="banos">{banos_icono}</span>
+            <span class="banos">{banos_icono} {banos_txt}</span>
             <span class="dir">📍 {esc(direccion)}</span>
-            {hora_chip}
             {monto_chip}
           </div>
           <div class="contacto-row" hidden>
@@ -341,14 +348,13 @@ def tarjeta(e: dict) -> str:
           {accesos_html}
         </summary>
         <div class="detalle">
-          {comision_mini}
           {cobro_html}
           {f'<div class="bloque"><span class="etq">Servicio</span><p>{banos_icono} {servicio}</p></div>' if servicio else ""}
           <div class="bloque"><span class="etq">Aseo</span><p>{aseo}</p></div>
           {limpiezas_bloque}
           {f'<div class="bloque"><span class="etq">Teléfono</span><p>{esc(telefono)}</p></div>' if telefono else ""}
           {factura_html}
-          {detalle_html}
+          {horario_html}
           {notas_html}
           {botones_html}
         </div>
@@ -386,13 +392,18 @@ ESTILOS_EXTRA = """
     font-weight:700; font-size:14px; padding:11px; border-radius:10px; cursor:pointer; min-height:44px; }
   .btn-contacto:active { filter:brightness(.95); }
   .btn-contacto.contactado, .btn-contacto:disabled { background:#DCFCE7; color:#166534; cursor:default; }
-  .contacto-accesos { display:flex; gap:6px; margin-top:8px; }
+  .contacto-accesos { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
   .acc-link { flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; gap:4px;
     text-decoration:none; font-family:inherit; font-size:12.5px; font-weight:700; white-space:nowrap;
-    padding:9px 4px; border-radius:9px; min-height:42px; border:1px solid var(--linea); background:#fff; color:var(--tinta); }
-  .acc-link:active { filter:brightness(.95); }
-  .acc-link.acc-wa { color:#166534; border-color:#BBF7D0; background:#F0FDF4; }
-  .acc-link.acc-map { color:#1F5AA8; border-color:#BFDBFE; background:#EFF6FF; }
+    padding:9px 4px; border-radius:9px; min-height:44px; border:none; color:#fff; }
+  .acc-link:active { filter:brightness(.92); }
+  .acc-link.acc-wa { background:#16A34A; }
+  .acc-link.acc-call { background:#475569; }
+  .acc-link.acc-map { background:#1F5AA8; }
+  .acc-toggle { flex:0 0 48px; display:flex; align-items:center; justify-content:center;
+    background:#fff; border:1px solid var(--linea); color:var(--tinta); border-radius:9px;
+    min-height:44px; font-size:18px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .acc-toggle:active { background:var(--fondo); }
   /* Colores de la card según estado */
   .card-wrap.is-entregado > .card, .card-wrap.is-entregado > .gestion-top { border-color:#93C5FD; background:#EFF6FF; }
   .card-wrap.is-cobrado > .card, .card-wrap.is-cobrado > .gestion-top { border-color:#FCD34D; background:#FFFBEB; }
@@ -916,6 +927,15 @@ SCRIPT_ESTADO = r"""<script>
           else { window.location.href = href; }
         });
       });
+      // Flecha ▾: abre/cierra el detalle (un botón dentro de summary no togglea solo).
+      var tg = card.querySelector('.acc-toggle');
+      if (tg) {
+        tg.addEventListener('click', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          var det = card.querySelector('details');
+          if (det) { det.open = !det.open; tg.textContent = det.open ? '▴' : '▾'; }
+        });
+      }
     });
     var ta = document.getElementById('toggle-anteriores');
     if (ta) { ta.addEventListener('click', function () { anterioresColapsado = !anterioresColapsado; aplicarAnteriores(); }); }
