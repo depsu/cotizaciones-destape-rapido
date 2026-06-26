@@ -209,9 +209,10 @@ def limpiezas_html(e: dict) -> str:
     )
 
 
-def boton(href: str, etiqueta: str, color: str) -> str:
+def boton(href: str, etiqueta: str, color: str, target_blank: bool = True) -> str:
+    target = ' target="_blank" rel="noopener"' if target_blank else ""
     return (
-        f'<a class="btn" href="{esc(href)}" target="_blank" rel="noopener" '
+        f'<a class="btn" href="{esc(href)}"{target} '
         f'style="background:{color}">{etiqueta}</a>'
     )
 
@@ -300,8 +301,8 @@ def tarjeta(e: dict) -> str:
     num = solo_digitos(telefono)
     botones = []
     if num:
-        botones.append(boton(f"https://wa.me/{num}", "💬 WhatsApp", "#22A45D"))
-        botones.append(boton(f"tel:{esc(telefono)}", "📞 Llamar", "#475569"))
+        botones.append(boton(f"whatsapp://send?phone={num}", "💬 WhatsApp", "#22A45D", target_blank=False))
+        botones.append(boton(f"tel:{esc(telefono)}", "📞 Llamar", "#475569", target_blank=False))
     if direccion:
         maps = f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
         botones.append(boton(maps, "🗺️ Cómo llegar", "#1F5AA8"))
@@ -837,7 +838,7 @@ SCRIPT_ESTADO = r"""<script>
             + '\n(Te adjunto el comprobante.)';
           comSel = new Set(); saveSel();
           if (document.body.contains(bg)) document.body.removeChild(bg);
-          if (WA) { window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(texto), '_blank'); }
+          if (WA) { window.location.href = 'whatsapp://send?phone=' + WA + '&text=' + encodeURIComponent(texto); }
         });
     });
   }
@@ -879,7 +880,7 @@ SCRIPT_ESTADO = r"""<script>
           var msg = 'Hola 👋, le escribo de Destape Rápido. Le aviso que voy a entregar su baño químico '
             + diaRelativo(fechaDe(id)) + '. ¿Me confirma disponibilidad y la dirección? ¡Gracias!';
           upsert(id, { contactado: true });
-          if (tel) { window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank'); }
+          if (tel) { window.location.href = 'whatsapp://send?phone=' + tel + '&text=' + encodeURIComponent(msg); }
         });
       }
     });
