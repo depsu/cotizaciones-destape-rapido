@@ -389,8 +389,9 @@ ESTILOS_EXTRA = """
     border:1px solid var(--linea); background:#fff; color:var(--azul); cursor:pointer; white-space:nowrap; }
   .cp-toggle.on { background:#DCFCE7; border-color:#BBF7D0; color:#166534; }
   .cp-vacio { color:var(--gris); font-size:13px; margin-top:10px; }
-  .estado-online { display:block; margin:0 0 12px; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:600;
+  .estado-online { margin:0 0 12px; padding:10px 14px; border-radius:10px; font-size:13px; font-weight:600;
     background:#FEF2F2; color:#B91C1C; border:1px solid #FECACA; }
+  .estado-online[hidden] { display:none; }
   /* Pestañas de vista (Entregas / Comisión) */
   .vistas { display:flex; gap:8px; margin:0 0 14px; }
   .vista-btn { flex:1 1 0; padding:11px; border:1px solid var(--linea); background:#fff; color:var(--gris);
@@ -1078,9 +1079,7 @@ def construir_html(data: dict) -> str:
     cursor:pointer; font-family:inherit;
   }}
   .ver-anteriores:active {{ background:var(--fondo); }}
-  section.pasada {{ display:none; }}
-  section.pasada.mostrar {{ display:block; }}
-  section.pasada .card {{ opacity:.72; }}
+  .ver-anteriores[hidden] {{ display:none; }}
   footer {{ text-align:center; color:var(--gris); font-size:12px; padding:24px 16px 40px; }}
 {ESTILOS_EXTRA}</style>
 </head>
