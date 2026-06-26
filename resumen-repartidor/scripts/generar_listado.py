@@ -252,6 +252,7 @@ def tarjeta(e: dict) -> str:
         '<button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button>'
         '</div>'
         '<span class="reagendada-chip" hidden></span>'
+        '<span class="fecha-original-chip" hidden></span>'
         '</div>'
     )
 
@@ -323,6 +324,9 @@ def tarjeta(e: dict) -> str:
             {hora_chip}
             {monto_chip}
           </div>
+          <div class="contacto-row" hidden>
+            <button type="button" class="btn-contacto"></button>
+          </div>
         </summary>
         <div class="detalle">
           {comision_mini}
@@ -358,12 +362,21 @@ ESTILOS_EXTRA = """
   .est-btn:active { filter:brightness(.96); }
   .est-btn.est-entregado.activo { background:#1E40AF; color:#fff; border-color:#1E40AF; }
   .est-btn.est-cobrado.activo { background:#B8860B; color:#fff; border-color:#B8860B; }
-  .reagendada-chip { width:100%; font-size:12px; font-weight:700; color:#475569; background:#F1F5F9;
-    padding:3px 9px; border-radius:20px; box-sizing:border-box; }
+  .reagendada-chip { width:100%; font-size:12px; font-weight:800; color:#B91C1C; background:#FEE2E2;
+    padding:4px 9px; border-radius:8px; box-sizing:border-box; }
+  .fecha-original-chip { width:100%; font-size:11px; color:var(--gris); padding:0 2px; box-sizing:border-box; }
+  /* Botón "avisar al cliente" dentro de la card */
+  .contacto-row { margin-top:10px; }
+  .btn-contacto { width:100%; background:#22A45D; color:#fff; border:none; font-family:inherit;
+    font-weight:700; font-size:14px; padding:11px; border-radius:10px; cursor:pointer; min-height:44px; }
+  .btn-contacto:active { filter:brightness(.95); }
+  .btn-contacto.contactado, .btn-contacto:disabled { background:#DCFCE7; color:#166534; cursor:default; }
   /* Colores de la card según estado */
   .card-wrap.is-entregado > .card, .card-wrap.is-entregado > .gestion-top { border-color:#93C5FD; background:#EFF6FF; }
   .card-wrap.is-cobrado > .card, .card-wrap.is-cobrado > .gestion-top { border-color:#FCD34D; background:#FFFBEB; }
-  .card-wrap.is-reagendado > .card, .card-wrap.is-reagendado > .gestion-top { border-color:#CBD5E1; background:#F1F5F9; }
+  .card-wrap.is-reagendado > .card, .card-wrap.is-reagendado > .gestion-top { border-color:#F87171; background:#FEF2F2; }
+  .card-wrap.is-reagendado > .gestion-top { border-bottom:2px solid #FECACA; }
+  .card-wrap.is-contactado > .card, .card-wrap.is-contactado > .gestion-top { border-color:#86EFAC; background:#F0FDF4; }
   .card-wrap.oculto-anterior { display:none; }
   .comision-mini { margin-top:2px; font-size:14px; color:#92600A; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
   .comision-mini b { font-size:16px; }
@@ -495,9 +508,19 @@ SCRIPT_ESTADO = r"""<script>
     if (p.length !== 3) return iso;
     return parseInt(p[2], 10) + ' ' + (MESES[parseInt(p[1], 10) - 1] || '') + ' ' + p[0];
   }
-  function todayISO() {
-    var d = new Date();
+  function isoOf(d) {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function todayISO() { return isoOf(new Date()); }
+  function diaRelativo(effISO) {
+    var now = new Date();
+    var hoy = isoOf(now);
+    var man = isoOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+    if (effISO && effISO <= hoy) return 'hoy';
+    if (effISO === man) return 'mañana';
+    var p = (effISO || '').split('-');
+    if (p.length === 3) return 'el ' + parseInt(p[2], 10) + ' de ' + (MESESL[parseInt(p[1], 10) - 1] || '');
+    return 'pronto';
   }
   function headers(extra) {
     var h = { 'apikey': SUPA.key, 'Authorization': 'Bearer ' + SUPA.key };
@@ -521,6 +544,7 @@ SCRIPT_ESTADO = r"""<script>
     if (st && typeof st.comision_pagada === 'boolean') return st.comision_pagada;
     return !!(META[id] && META[id].comision_pagada);
   }
+  function contactadoDe(id) { var st = estado[id]; return !!(st && st.contactado); }
 
   function pintarCard(card) {
     var id = card.getAttribute('data-id');
@@ -533,10 +557,13 @@ SCRIPT_ESTADO = r"""<script>
     var badge = card.querySelector('.badge');
     if (badge) { badge.textContent = info[0]; badge.style.color = info[1]; badge.style.background = info[2]; }
 
-    // Color de la card según prioridad: cobrado > entregado > reagendado.
+    // Color de la card. Prioridad: cobrado > entregado > reagendado(rojo) > contactado(verde).
+    var esPendiente = (est === 'pendiente');
+    var contactado = contactadoDe(id);
     card.classList.toggle('is-cobrado', est === 'cobrado');
     card.classList.toggle('is-entregado', est === 'entregado');
-    card.classList.toggle('is-reagendado', reagendado && est !== 'cobrado' && est !== 'entregado');
+    card.classList.toggle('is-reagendado', esPendiente && reagendado);
+    card.classList.toggle('is-contactado', esPendiente && !reagendado && contactado);
 
     // Botones de estado.
     card.querySelectorAll('.est-btn').forEach(function (b) {
@@ -546,16 +573,32 @@ SCRIPT_ESTADO = r"""<script>
       if (e === 'cobrado') { b.textContent = (est === 'cobrado') ? 'Cliente ya pagó' : 'Cobrado'; }
     });
 
-    // Reagendar: input + chip; oculta toda la gestión en entregas FUTURAS (gate por fecha original).
+    // Reagendar: input + chip + fecha original; oculta la gestión en entregas FUTURAS (gate por fecha original).
     var input = card.querySelector('.fecha-input');
     if (input && fAct) { input.value = fAct; }
     var chip = card.querySelector('.reagendada-chip');
     if (chip) {
-      if (reagendado) { chip.hidden = false; chip.textContent = '📅 Reagendada para ' + fechaLarga(fAct); }
+      if (reagendado) { chip.hidden = false; chip.textContent = '⚠ Reagendada para ' + fechaLarga(fAct); }
       else { chip.hidden = true; }
+    }
+    var fo = card.querySelector('.fecha-original-chip');
+    if (fo) {
+      if (reagendado) { fo.hidden = false; fo.textContent = 'Fecha original: ' + fechaLarga(fOrig); }
+      else { fo.hidden = true; }
     }
     var top = card.querySelector('.gestion-top');
     if (top) { top.hidden = !!(fOrig && fOrig > todayISO()); }
+
+    // Botón "Avisar al cliente": solo en pendientes NO reagendadas y con teléfono.
+    var tel = (META[id] && META[id].tel) || '';
+    var crow = card.querySelector('.contacto-row');
+    var cbtn = card.querySelector('.btn-contacto');
+    var mostrar = esPendiente && !reagendado && !!tel;
+    if (crow) { crow.hidden = !mostrar; }
+    if (cbtn) {
+      if (contactado) { cbtn.textContent = '✓ Cliente contactado'; cbtn.disabled = true; cbtn.classList.add('contactado'); }
+      else { cbtn.textContent = '💬 Avisar al cliente que voy a entregar'; cbtn.disabled = false; cbtn.classList.remove('contactado'); }
+    }
   }
   function pintarTodo() { document.querySelectorAll('.card-wrap[data-id]').forEach(pintarCard); }
 
@@ -598,6 +641,13 @@ SCRIPT_ESTADO = r"""<script>
       var n = s.querySelectorAll('.card-wrap[data-id]').length;
       if (!n) { s.remove(); return; }
       var c = s.querySelector('.conteo'); if (c) { c.textContent = n; }
+      // Las reagendadas (urgentes) van primero dentro del día.
+      var h2 = s.querySelector('h2');
+      if (h2) {
+        Array.prototype.slice.call(s.querySelectorAll('.card-wrap.is-reagendado')).reverse().forEach(function (cw) {
+          h2.insertAdjacentElement('afterend', cw);
+        });
+      }
       cont.appendChild(s);
     });
     // Las secciones agregadas (limpiezas / retiros) siempre al final.
@@ -637,7 +687,7 @@ SCRIPT_ESTADO = r"""<script>
     var prev = estado[id] || {};
     var row = {
       id: id, estado: estadoDe(id), fecha: fechaDe(id) || null,
-      comision_pagada: pagadaDe(id), pagada_at: prev.pagada_at || null
+      comision_pagada: pagadaDe(id), pagada_at: prev.pagada_at || null, contactado: contactadoDe(id)
     };
     for (var k in patch) { row[k] = patch[k]; }
     if (row.fecha === '') { row.fecha = null; }
@@ -820,6 +870,18 @@ SCRIPT_ESTADO = r"""<script>
       if (input) {
         input.addEventListener('change', function () { upsert(id, { fecha: input.value || null }); });
       }
+      var cbtn = card.querySelector('.btn-contacto');
+      if (cbtn) {
+        cbtn.addEventListener('click', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          if (cbtn.disabled || contactadoDe(id)) return;
+          var tel = (META[id] && META[id].tel) || '';
+          var msg = 'Hola 👋, le escribo de Destape Rápido. Le aviso que voy a entregar su baño químico '
+            + diaRelativo(fechaDe(id)) + '. ¿Me confirma disponibilidad y la dirección? ¡Gracias!';
+          upsert(id, { contactado: true });
+          if (tel) { window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank'); }
+        });
+      }
     });
     var ta = document.getElementById('toggle-anteriores');
     if (ta) { ta.addEventListener('click', function () { anterioresColapsado = !anterioresColapsado; aplicarAnteriores(); }); }
@@ -938,6 +1000,7 @@ def construir_html(data: dict) -> str:
             "comisiona": comisiona(e),
             "estado": e.get("estado", "pendiente"),
             "comision_pagada": bool(e.get("comision_pagada", False)),
+            "tel": solo_digitos(e.get("telefono", "")),
         }
         for e in entregas
     ]
