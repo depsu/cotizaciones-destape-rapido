@@ -173,7 +173,14 @@
   .card-wrap.is-reagendado > .card, .card-wrap.is-reagendado > .gestion-top { border-color:#F87171; background:#FEF2F2; }
   .card-wrap.is-reagendado > .gestion-top { border-bottom:2px solid #FECACA; }
   .card-wrap.is-contactado > .card, .card-wrap.is-contactado > .gestion-top { border-color:#86EFAC; background:#F0FDF4; }
+  .card-wrap.is-pendiente-reagendar > .card, .card-wrap.is-pendiente-reagendar > .gestion-top { border-color:#CBD5E1; background:#F1F5F9; }
   .card-wrap.oculto-anterior { display:none; }
+  /* Botón "Pendiente reagendar" (reemplaza el de contacto cuando se venció) */
+  .btn-contacto.reagendar-prompt { background:#D97706; color:#fff; }
+  .btn-contacto.reagendar-prompt:disabled { background:#D97706; color:#fff; }
+  /* Brillo del reagendar cuando hay que reposicionar (la primera vez) */
+  .gt-fecha.glow .fecha-input { animation: glow-pulse 1.1s ease 3; }
+  @keyframes glow-pulse { 0%,100% { box-shadow:0 0 0 0 rgba(217,119,6,0); } 50% { box-shadow:0 0 0 5px rgba(217,119,6,.5); } }
   /* Animación de "completada con éxito" (genérica: cards y tareas) */
   .celebrando { position:relative; }
   .celebra-overlay { position:absolute; inset:0; z-index:7; display:flex; align-items:center;
@@ -912,13 +919,15 @@
     var listo = (est === 'cobrado');                   // entregado + cobrado
     var esPendiente = (est === 'pendiente');
     var contactado = contactadoDe(id);
+    var pr = pendienteReagendar(id); // contactada pero vencida sin entregar
 
-    // Color de la card. Prioridad: listo(dorado) > pago adelantado(ámbar) > entregado(azul) > reagendado(rojo) > contactado(verde).
+    // Color de la card. Prioridad: listo(dorado) > pago adelantado(ámbar) > entregado(azul) > reagendado(rojo) > pendiente-reagendar(gris) > contactado(verde).
     card.classList.toggle('is-cobrado', listo);
     card.classList.toggle('is-pago-adelantado', pagoAdelantado);
     card.classList.toggle('is-entregado', entregado && !cobrado);
     card.classList.toggle('is-reagendado', esPendiente && reagendado);
-    card.classList.toggle('is-contactado', esPendiente && !reagendado && contactado);
+    card.classList.toggle('is-pendiente-reagendar', pr);
+    card.classList.toggle('is-contactado', esPendiente && !reagendado && contactado && !pr);
 
     // Botones de estado (entregado y cobrado independientes).
     card.querySelectorAll('.est-btn').forEach(function (b) {
@@ -938,6 +947,7 @@
       var ht = '';
       if (est === 'entregado') { ht = '🔵 Entregado · falta cobrar'; }
       else if (esPendiente && reagendado) { ht = '🔴 Reagendada · no se entregó a tiempo'; }
+      else if (pr) { ht = '⚫ Pendiente reagendar · no se entregó a tiempo'; }
       else if (esPendiente && contactado) { ht = '🟢 Cliente contactado · listo para entregar'; }
       else if (esPendiente) { ht = '⚪ Pendiente · aún sin contactar'; }
       hint.textContent = ht;
@@ -971,15 +981,45 @@
     var mostrar = esPendiente && !reagendado && !!tel;
     if (crow) { crow.hidden = !mostrar; }
     if (cbtn) {
-      if (contactado) { cbtn.textContent = '✓ Cliente contactado'; cbtn.disabled = true; cbtn.classList.add('contactado'); }
-      else { cbtn.textContent = '💬 Avisar al cliente que voy a entregar'; cbtn.disabled = false; cbtn.classList.remove('contactado'); }
+      if (pr) {
+        cbtn.textContent = '📅 Pendiente reagendar — escribir al cliente';
+        cbtn.disabled = false; cbtn.classList.remove('contactado'); cbtn.classList.add('reagendar-prompt');
+      } else if (contactado) {
+        cbtn.textContent = '✓ Cliente contactado'; cbtn.disabled = true;
+        cbtn.classList.add('contactado'); cbtn.classList.remove('reagendar-prompt');
+      } else {
+        cbtn.textContent = '💬 Avisar al cliente que voy a entregar'; cbtn.disabled = false;
+        cbtn.classList.remove('contactado'); cbtn.classList.remove('reagendar-prompt');
+      }
     }
-    // Accesos rápidos (llamar / llegar / WhatsApp): cuando ya se contactó, o siempre
-    // en las reagendadas (rojas) para poder re-coordinar la nueva fecha.
+    // Accesos rápidos: cuando ya se contactó (no en pendiente-reagendar, para que haya
+    // un solo botón), o en las reagendadas (rojas) para re-coordinar.
     var accesos = card.querySelector('.contacto-accesos');
-    if (accesos) { accesos.hidden = !((mostrar && contactado) || (esPendiente && reagendado)); }
+    if (accesos) { accesos.hidden = !((mostrar && contactado && !pr) || (esPendiente && reagendado)); }
+    // Brillo en el reagendar cuando hay que reagendar (la primera vez).
+    var gtf = card.querySelector('.gt-fecha');
+    if (gtf) { gtf.classList.toggle('glow', pr); }
   }
   function pintarTodo() { document.querySelectorAll('.card-wrap[data-id]').forEach(pintarCard); }
+
+  // FLIP: ejecuta fn (que reordena las cards) y anima suavemente el reposicionamiento.
+  function flipReubicar(fn) {
+    var cards = Array.prototype.slice.call(document.querySelectorAll('.card-wrap[data-id]'))
+      .filter(function (c) { return c.offsetParent !== null; });
+    var firsts = cards.map(function (c) { return c.getBoundingClientRect().top; });
+    fn();
+    var movidas = [];
+    cards.forEach(function (c, i) {
+      if (c.offsetParent === null) return;
+      var delta = firsts[i] - c.getBoundingClientRect().top;
+      if (Math.abs(delta) > 1) { c.style.transition = 'none'; c.style.transform = 'translateY(' + delta + 'px)'; movidas.push(c); }
+    });
+    if (!movidas.length) return;
+    requestAnimationFrame(function () {
+      movidas.forEach(function (c) { c.style.transition = 'transform .4s ease'; c.style.transform = ''; });
+      setTimeout(function () { movidas.forEach(function (c) { c.style.transition = ''; c.style.transform = ''; }); }, 460);
+    });
+  }
 
   // ---- Reagendar: mueve la card a la sección del día que ahora le toca ----
   function encabezadoFecha(iso) {
@@ -1274,7 +1314,8 @@
     var prev = estado[id] || {};
     var row = {
       id: id, estado: estadoDe(id), fecha: fechaDe(id) || null,
-      comision_pagada: pagadaDe(id), pagada_at: prev.pagada_at || null, contactado: contactadoDe(id)
+      comision_pagada: pagadaDe(id), pagada_at: prev.pagada_at || null, contactado: contactadoDe(id),
+      reagendar_avisado: reagendarAvisadoDe(id)
     };
     for (var k in patch) { row[k] = patch[k]; }
     if (row.fecha === '') { row.fecha = null; }
@@ -1584,14 +1625,24 @@
       });
       var input = card.querySelector('.fecha-input');
       if (input) {
-        input.addEventListener('change', function () { upsert(id, { fecha: input.value || null }); });
+        input.addEventListener('change', function () {
+          flipReubicar(function () { upsert(id, { fecha: input.value || null }); });
+        });
       }
       var cbtn = card.querySelector('.btn-contacto');
       if (cbtn) {
         cbtn.addEventListener('click', function (ev) {
           ev.preventDefault(); ev.stopPropagation();
-          if (cbtn.disabled || contactadoDe(id)) return;
           var tel = (META[id] && META[id].tel) || '';
+          // Pendiente reagendar: mensaje para reagendar; se activa una sola vez.
+          if (pendienteReagendar(id)) {
+            var msgR = 'Hola 👋, le escribo de Destape Rápido. No alcanzamos a entregar su baño el día previsto. '
+              + '¿Lo reagendamos? ¿Qué día le acomoda mejor? ¡Gracias!';
+            upsert(id, { reagendar_avisado: true });
+            if (tel) { window.location.href = 'whatsapp://send?phone=' + tel + '&text=' + encodeURIComponent(msgR); }
+            return;
+          }
+          if (cbtn.disabled || contactadoDe(id)) return;
           var msg = 'Hola 👋, le escribo de Destape Rápido. Le aviso que voy a entregar su baño químico '
             + diaRelativo(fechaDe(id)) + '. ¿Me confirma disponibilidad y la dirección? ¡Gracias!';
           upsert(id, { contactado: true });
