@@ -288,7 +288,7 @@
 <body>
   <header>
     <h1>🚚 Entregas — Destape Rápido</h1>
-    <div class="sub">9 pendiente(s) · Actualizado 27/06/2026</div>
+    <div class="sub"><span id="pend-count">9</span> pendiente(s) · Actualizado 27/06/2026</div>
     <div class="sub ganado" id="ganado-total"></div>
   </header>
   <main>
@@ -739,8 +739,11 @@
   (APP.tareas || []).forEach(function (t) { TAREAS[t.id] = t; });
   var tEstado = {}; // id -> {contactado, realizada, realizada_at}
   var modoCompletadas = false; // false = ver pendientes; true = ver solo completadas
-  var comSel = null; // Set de ids seleccionados para pagar (persistido en localStorage)
-  var SEL_KEY = 'comision_sel_v1';
+  // Guardamos las DESELECCIONADAS (no las seleccionadas): así toda comisión por
+  // pagar entra marcada por defecto, incluso las que llegan luego desde Supabase.
+  var comDesel = null; // Set de ids que el usuario destildó
+  var comPorPagar = []; // ids cobrados sin pagar (se recalcula en renderComision)
+  var SEL_KEY = 'comision_desel_v1';
 
   // Etiqueta + colores del badge según estado.
   var ESTADOS = {
@@ -778,7 +781,8 @@
     var now = new Date();
     var hoy = isoOf(now);
     var man = isoOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1));
-    if (effISO && effISO <= hoy) return 'hoy';
+    if (effISO && effISO < hoy) return 'a la brevedad';
+    if (effISO === hoy) return 'hoy';
     if (effISO === man) return 'mañana';
     var p = (effISO || '').split('-');
     if (p.length === 3) return 'el ' + parseInt(p[2], 10) + ' de ' + (MESESL[parseInt(p[1], 10) - 1] || '');
@@ -953,7 +957,8 @@
       var total = 0, done = 0;
       sec.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
         var id = cw.getAttribute('data-id');
-        var b = (META[id] && META[id].banos) || 1;
+        if (!META[id] || META[id].tipo !== 'bano') return; // limpiezas/retiros no cuentan baños
+        var b = META[id].banos || 1;
         total += b;
         var e = estadoDe(id);
         if (e === 'entregado' || e === 'cobrado') { done += b; }
@@ -984,6 +989,10 @@
     document.querySelectorAll('.vista[data-vista="entregas"] section[data-fecha]').forEach(function (sec) {
       var vis = sec.querySelectorAll('.card-wrap:not(.oculto-anterior)').length;
       sec.style.display = vis ? '' : 'none';
+    });
+    // En "Ver completadas" se ocultan también limpiezas/retiros (solo completadas).
+    document.querySelectorAll('.vista[data-vista="entregas"] section.agregado').forEach(function (sec) {
+      sec.style.display = modoCompletadas ? 'none' : '';
     });
     var btn = document.getElementById('toggle-anteriores');
     if (!btn) return;
@@ -1160,20 +1169,21 @@
     actualizarProgreso();
     aplicarAnteriores();
     renderComision();
-    if (!SUPA.url || !SUPA.key) return Promise.resolve();
+    if (!SUPA.url || !SUPA.key) return Promise.resolve(true);
     return fetch(SUPA.url + '/rest/v1/entrega_estado', {
       method: 'POST',
       headers: headers({ 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
       body: JSON.stringify(row)
     }).then(function (r) {
       if (!r.ok) { throw new Error('HTTP ' + r.status); }
-      bannerOnline(true);
-    }).catch(function (e) { console.warn('No se pudo guardar', e); bannerOnline(false); });
+      bannerOnline(true); return true;
+    }).catch(function (e) { console.warn('No se pudo guardar', e); bannerOnline(false); return false; });
   }
 
   // ====================== VISTA COMISIÓN (flujo de pago) ======================
   function loadSel() { try { return JSON.parse(localStorage.getItem(SEL_KEY)); } catch (e) { return null; } }
-  function saveSel() { try { localStorage.setItem(SEL_KEY, JSON.stringify(Array.from(comSel))); } catch (e) {} }
+  function saveSel() { try { localStorage.setItem(SEL_KEY, JSON.stringify(Array.from(comDesel))); } catch (e) {} }
+  function seleccionadas() { return comPorPagar.filter(function (id) { return !comDesel.has(id); }); }
 
   function comisionables() {
     var ids = Object.keys(META).filter(function (id) {
@@ -1185,15 +1195,20 @@
   }
 
   // Total recaudado: lo que LLEVAN (cobrado) y el total si se concreta TODO.
+  // También actualiza el contador de pendientes (no completadas) en vivo.
   function actualizarGanado() {
-    var llevan = 0, total = 0;
+    var llevan = 0, total = 0, pend = 0;
     Object.keys(META).forEach(function (id) {
       var mm = META[id].monto || 0;
       total += mm;
       if (cobradoDe(id)) { llevan += mm; }
+      if (estadoDe(id) !== 'cobrado') { pend++; }
     });
     var el = document.getElementById('ganado-total');
     if (el) { el.innerHTML = '💰 <b>' + clp(llevan) + '</b> <span class="proy">/ ' + clp(total) + ' si se cobra todo</span>'; }
+    var pc = document.getElementById('pend-count');
+    if (pc) { pc.textContent = pend; }
+    setHeaderH(); // el alto del header cambia con la línea de "ganado"
   }
 
   function renderComision() {
@@ -1204,13 +1219,8 @@
     var porPagar = ids.filter(function (id) { return !pagadaDe(id); });
     var pagadas = ids.filter(function (id) { return pagadaDe(id); });
 
-    // Selección: por defecto todas las por pagar; respeta lo guardado.
-    if (comSel === null) {
-      var stored = loadSel();
-      comSel = new Set(stored ? stored.filter(function (id) { return porPagar.indexOf(id) >= 0; }) : porPagar);
-    } else {
-      comSel.forEach(function (id) { if (porPagar.indexOf(id) < 0) comSel.delete(id); });
-    }
+    if (comDesel === null) { comDesel = new Set(loadSel() || []); }
+    comPorPagar = porPagar; // por defecto todas marcadas, salvo las destildadas
 
     var deuda = porPagar.reduce(function (s, id) { return s + META[id].comision; }, 0);
     var yaPagada = pagadas.reduce(function (s, id) { return s + META[id].comision; }, 0);
@@ -1219,7 +1229,7 @@
       var m = META[id];
       var check = paid
         ? '<span class="com-pagada-tag">✓ Pagada</span>'
-        : '<input type="checkbox" class="com-check" data-id="' + escapeHtml(id) + '"' + (comSel.has(id) ? ' checked' : '') + '>';
+        : '<input type="checkbox" class="com-check" data-id="' + escapeHtml(id) + '"' + (comDesel.has(id) ? '' : ' checked') + '>';
       var rev = paid ? '<button type="button" class="com-revocar" data-id="' + escapeHtml(id) + '">Revocar</button>' : '';
       return '<div class="com-card' + (paid ? ' com-pagada' : '') + '">' + check
         + '<div class="com-main"><div class="com-cli">' + escapeHtml(m.cliente) + '</div>'
@@ -1244,7 +1254,7 @@
     cont.querySelectorAll('.com-check').forEach(function (ch) {
       ch.addEventListener('change', function () {
         var id = ch.getAttribute('data-id');
-        if (ch.checked) comSel.add(id); else comSel.delete(id);
+        if (ch.checked) comDesel.delete(id); else comDesel.add(id);
         saveSel(); updateBarra();
       });
     });
@@ -1259,14 +1269,12 @@
   }
 
   function seleccionTotal() {
-    var t = 0; if (!comSel) return 0;
-    comSel.forEach(function (id) { if (META[id] && !pagadaDe(id)) t += META[id].comision; });
-    return t;
+    return seleccionadas().reduce(function (t, id) { return t + (META[id] ? META[id].comision : 0); }, 0);
   }
   function updateBarra() {
     var barra = document.getElementById('barra-pagar');
     if (!barra) return;
-    var n = 0; if (comSel) comSel.forEach(function (id) { if (!pagadaDe(id)) n++; });
+    var n = seleccionadas().length;
     var total = seleccionTotal();
     var btn = barra.querySelector('.btn-pagar');
     btn.disabled = (n === 0);
@@ -1275,8 +1283,8 @@
   }
 
   function abrirModalPago() {
-    var seleccion = [];
-    comSel.forEach(function (id) { if (!pagadaDe(id)) seleccion.push(id); });
+    if (comDesel === null) return;
+    var seleccion = seleccionadas();
     if (!seleccion.length) return;
     var total = seleccionTotal();
     var detalle = seleccion.map(function (id) { return '<div class="bank-row"><span>' + escapeHtml(META[id].cliente) + '</span><b>' + clp(META[id].comision) + '</b></div>'; }).join('');
@@ -1304,14 +1312,26 @@
       if (f) { preview.src = URL.createObjectURL(f); preview.style.display = 'block'; }
     });
     bg.querySelector('.confirmar').addEventListener('click', function () {
+      var btn = bg.querySelector('.confirmar');
+      btn.disabled = true; btn.textContent = 'Guardando…';
       var ahora = new Date().toISOString();
       Promise.all(seleccion.map(function (id) { return upsert(id, { comision_pagada: true, pagada_at: ahora }); }))
-        .then(function () {
+        .then(function (oks) {
+          // Si algún guardado falló, revertir el optimismo y NO dar por pagado.
+          var fallo = false;
+          oks.forEach(function (ok, i) {
+            if (!ok) { fallo = true; var id = seleccion[i]; if (estado[id]) { estado[id].comision_pagada = false; estado[id].pagada_at = null; } }
+          });
+          if (fallo) {
+            renderComision();
+            btn.disabled = false; btn.textContent = 'Marcar pagadas y abrir WhatsApp';
+            alert('No se pudo registrar el pago (sin conexión). Reintenta cuando tengas señal.');
+            return;
+          }
           var lineas = seleccion.map(function (id) { return '• ' + META[id].cliente + ': ' + clp(META[id].comision); });
           var texto = 'Hola Alejandro, te transfiero la comisión:\n' + lineas.join('\n')
             + '\nTotal: ' + clp(total) + '\nFecha: ' + new Date().toLocaleString('es-CL')
-            + '\n(Te adjunto el comprobante.)';
-          comSel = new Set(); saveSel();
+            + '\n(Te envío el comprobante de la transferencia.)';
           if (document.body.contains(bg)) document.body.removeChild(bg);
           if (WA) { window.location.href = 'whatsapp://send?phone=' + WA + '&text=' + encodeURIComponent(texto); }
         });
