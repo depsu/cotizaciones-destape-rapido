@@ -398,6 +398,35 @@
       "notas": "Persona en terreno: Jonathan Bastías +56 9 5083 1752. Persona con la que se cerró el negocio: +56 9 9538 4264. Arriendo por 2 meses. ENTREGADO Y COBRADO. Comisión de Alejandro ($32.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).",
       "estado": "cobrado",
       "comision_pagada": true
+    },
+    {
+      "id": "2026-06-27-mair-recambio",
+      "cliente": "B. Cárcamo (MAIR) — recambio de baño (Líder)",
+      "telefono": "+56 9 3380 0237",
+      "direccion": "Curicó 517, Santiago Centro, Región Metropolitana",
+      "fecha": "2026-06-27",
+      "hora": "Realizado hoy",
+      "servicio": "Recambio de baño químico (la unidad tenía filtración de líquidos)",
+      "cantidad": 1,
+      "comision": false,
+      "aseo": "",
+      "pago": {
+        "monto": 47600,
+        "nota": "$40.000 neto + IVA = $47.600. Recambio por filtración de líquidos. Se factura a MAIR."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "PENDIENTE — MAIR (el cliente enviará los datos de la empresa)",
+        "rut": "PENDIENTE",
+        "email": "bcarcamo@mair.cl"
+      },
+      "detalle": [
+        "Retirar la unidad con filtración y dejar una de recambio en buen estado.",
+        "Verificar que no queden filtraciones de líquidos.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Apodo del repartidor: 'Líder' (se instala casi dentro de un Líder). Recambio del 27/06/2026 por filtración de líquidos. ENTREGADO Y REALIZADO. Pendiente de cobro: factura a MAIR ($47.600). Confirmar si MAIR ya pagó para marcar cobrado.",
+      "estado": "entregado"
     }
   ]
 }
