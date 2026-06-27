@@ -359,6 +359,7 @@ def tarjeta(e: dict) -> str:
             <span class="dir">📍 {esc(direccion)}</span>
             {monto_chip}
           </div>
+          <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
@@ -440,6 +441,7 @@ ESTILOS_EXTRA = """
   .card-wrap.is-entregado > .card, .card-wrap.is-entregado > .gestion-top { border-color:#93C5FD; background:#EFF6FF; }
   .card-wrap.is-cobrado > .card, .card-wrap.is-cobrado > .gestion-top { border-color:#FCD34D; background:#FFFBEB; }
   .card-wrap.is-pago-adelantado > .card, .card-wrap.is-pago-adelantado > .gestion-top { border-color:#F59E0B; background:#FFFBEB; }
+  .estado-hint { margin-top:6px; font-size:12px; font-weight:600; color:var(--gris); }
   .pago-adelantado-txt { margin-top:8px; font-size:13px; font-weight:800; color:#B45309;
     background:#FEF3C7; border:1px solid #FCD34D; border-radius:9px; padding:8px 10px; text-align:center; }
   .card-wrap.is-reagendado > .card, .card-wrap.is-reagendado > .gestion-top { border-color:#F87171; background:#FEF2F2; }
@@ -666,6 +668,18 @@ SCRIPT_ESTADO = r"""<script>
     // Aviso "pagó adelantado, falta entregar".
     var pa = card.querySelector('.pago-adelantado-txt');
     if (pa) { pa.hidden = !pagoAdelantado; }
+
+    // Texto sutil que explica el color/estado de la card.
+    var hint = card.querySelector('.estado-hint');
+    if (hint) {
+      var ht = '';
+      if (est === 'entregado') { ht = '🔵 Entregado · falta cobrar'; }
+      else if (esPendiente && reagendado) { ht = '🔴 Reagendada · no se entregó a tiempo'; }
+      else if (esPendiente && contactado) { ht = '🟢 Cliente contactado · listo para entregar'; }
+      else if (esPendiente) { ht = '⚪ Pendiente · aún sin contactar'; }
+      hint.textContent = ht;
+      hint.hidden = !ht;
+    }
 
     // Reagendar: input + chip + fecha original; oculta la gestión en entregas FUTURAS (gate por fecha original).
     var input = card.querySelector('.fecha-input');
