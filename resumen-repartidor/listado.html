@@ -113,6 +113,14 @@
     border-radius:8px; transition:width .45s ease; display:flex; align-items:center; justify-content:flex-end; }
   .prog-truck { font-size:13px; line-height:1; transform:translateX(42%); filter:drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
   .prog-num { flex:none; font-size:12px; font-weight:800; color:var(--gris); font-variant-numeric:tabular-nums; }
+  /* Colapsar el día al pinchar su encabezado */
+  .fecha-titulo { cursor:pointer; -webkit-user-select:none; user-select:none; }
+  .sec-chevron { flex:none; font-size:12px; color:var(--azul); transition:transform .2s; transform:rotate(180deg); }
+  section.colapsada-dia .sec-chevron { transform:rotate(0deg); }
+  section.colapsada-dia > .card-wrap { display:none !important; }
+  /* Botón "Ver completadas / Volver": al estar en modo, flota abajo y te sigue */
+  .ver-anteriores.modo-activo { position:sticky; bottom:14px; z-index:8; background:var(--azul);
+    color:#fff; border-style:solid; border-color:var(--azul); box-shadow:0 6px 16px rgba(15,23,42,.28); }
   /* Gestión ARRIBA de la card */
   .card-wrap { margin-bottom:10px; }
   .gestion-top { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 12px;
@@ -282,7 +290,7 @@
     <div class="sub ganado" id="ganado-total"></div>
   </header>
   <main>
-    <div id="estado-online" class="estado-online" hidden></div><div class="vistas"><button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button><button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button></div><div class="vista" data-vista="entregas"><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span></h2>
+    <div id="estado-online" class="estado-online" hidden></div><div class="vistas"><button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button><button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button></div><div class="vista" data-vista="entregas"><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span><span class="sec-chevron">▾</span></h2>
     <div class="card-wrap" data-id="2026-06-23-don-daniel" data-fecha="2026-06-23" data-estado-orig="pendiente">
       <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-23" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span><span class="fecha-original-chip" hidden></span></div>
       <details class="card">
@@ -447,7 +455,7 @@
           <div class="acciones"><a class="btn" href="whatsapp://send?phone=56988051486" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 8805 1486" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=El%20Rinc%C3%B3n%2012382%2C%20casa%205%2C%20Lo%20Barnechea%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
         </div>
       </details>
-    </div></section><section data-fecha="2026-06-24"><h2 class="fecha-titulo">Miércoles 24 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span></h2>
+    </div></section><section data-fecha="2026-06-24"><h2 class="fecha-titulo">Miércoles 24 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span><span class="sec-chevron">▾</span></h2>
     <div class="card-wrap" data-id="2026-06-24-loreley-190-la-reina" data-fecha="2026-06-24" data-estado-orig="pendiente">
       <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-24" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span><span class="fecha-original-chip" hidden></span></div>
       <details class="card">
@@ -480,7 +488,7 @@
           <div class="acciones"><a class="btn" href="whatsapp://send?phone=56942107260" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 4210 7260" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Loreley%20190%2C%20La%20Reina%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
         </div>
       </details>
-    </div></section><section data-fecha="2026-06-25"><h2 class="fecha-titulo">Jueves 25 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span></h2>
+    </div></section><section data-fecha="2026-06-25"><h2 class="fecha-titulo">Jueves 25 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span><span class="sec-chevron">▾</span></h2>
     <div class="card-wrap" data-id="2026-06-25-hercha-ingenieria" data-fecha="2026-06-25" data-estado-orig="pendiente">
       <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-25" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span><span class="fecha-original-chip" hidden></span></div>
       <details class="card">
@@ -579,7 +587,7 @@
           <div class="acciones"><a class="btn" href="whatsapp://send?phone=56999189274" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9918 9274" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Chicureo%202300%2C%20Chicureo%2C%20Regi%C3%B3n%20Metropolitana%20%28Local%20Astop%20Aramco%29" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
         </div>
       </details>
-    </div></section><section data-fecha="2026-06-26"><h2 class="fecha-titulo">Viernes 26 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span></h2>
+    </div></section><section data-fecha="2026-06-26"><h2 class="fecha-titulo">Viernes 26 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span><span class="sec-chevron">▾</span></h2>
     <div class="card-wrap" data-id="2026-06-26-b-carcamo-mair-mantencion" data-fecha="2026-06-26" data-estado-orig="pendiente">
       <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-26" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span><span class="fecha-original-chip" hidden></span></div>
       <details class="card">
@@ -678,7 +686,7 @@
           <div class="acciones"><a class="btn" href="whatsapp://send?phone=56994542997" style="background:#22A45D">💬 WhatsApp</a><a class="btn" href="tel:+56 9 9454 2997" style="background:#475569">📞 Llamar</a><a class="btn" href="https://www.google.com/maps/search/?api=1&amp;query=San%20Isidro%201948%2C%20Santiago%2C%20Regi%C3%B3n%20Metropolitana" target="_blank" rel="noopener" style="background:#1F5AA8">🗺️ Cómo llegar</a></div>
         </div>
       </details>
-    </div></section><section data-fecha="2026-06-30"><h2 class="fecha-titulo">Martes 30 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span></h2>
+    </div></section><section data-fecha="2026-06-30"><h2 class="fecha-titulo">Martes 30 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span><span class="sec-chevron">▾</span></h2>
     <div class="card-wrap" data-id="2026-06-30-innovators-conveyor-belt" data-fecha="2026-06-30" data-estado-orig="pendiente">
       <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-30" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span><span class="fecha-original-chip" hidden></span></div>
       <details class="card">
@@ -728,7 +736,7 @@
   var TAREAS = {};
   (APP.tareas || []).forEach(function (t) { TAREAS[t.id] = t; });
   var tEstado = {}; // id -> {contactado, realizada, realizada_at}
-  var anterioresColapsado = true;
+  var modoCompletadas = false; // false = ver pendientes; true = ver solo completadas
   var comSel = null; // Set de ids seleccionados para pagar (persistido en localStorage)
   var SEL_KEY = 'comision_sel_v1';
 
@@ -878,9 +886,10 @@
       if (contactado) { cbtn.textContent = '✓ Cliente contactado'; cbtn.disabled = true; cbtn.classList.add('contactado'); }
       else { cbtn.textContent = '💬 Avisar al cliente que voy a entregar'; cbtn.disabled = false; cbtn.classList.remove('contactado'); }
     }
-    // Accesos rápidos (llamar / llegar / WhatsApp): visibles cuando ya se contactó.
+    // Accesos rápidos (llamar / llegar / WhatsApp): cuando ya se contactó, o siempre
+    // en las reagendadas (rojas) para poder re-coordinar la nueva fecha.
     var accesos = card.querySelector('.contacto-accesos');
-    if (accesos) { accesos.hidden = !(mostrar && contactado); }
+    if (accesos) { accesos.hidden = !((mostrar && contactado) || (esPendiente && reagendado)); }
   }
   function pintarTodo() { document.querySelectorAll('.card-wrap[data-id]').forEach(pintarCard); }
 
@@ -901,7 +910,7 @@
     sec.setAttribute('data-fecha', fecha);
     var h = document.createElement('h2');
     h.className = 'fecha-titulo';
-    h.innerHTML = escapeHtml(encabezadoFecha(fecha)) + PROG;
+    h.innerHTML = escapeHtml(encabezadoFecha(fecha)) + PROG + '<span class="sec-chevron">▾</span>';
     sec.appendChild(h);
     cont.appendChild(sec);
     return sec;
@@ -959,14 +968,16 @@
     if (h) { document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px'); }
   }
 
-  // ---- Ocultar completadas: las que ya están entregadas + cobradas (estado 'cobrado') ----
+  // ---- Completadas (estado 'cobrado'). En modo normal se ocultan; en "Ver
+  //      completadas" se muestran SOLO ellas y se oculta todo lo demás. ----
   function aplicarAnteriores() {
-    var ocultables = [];
+    var nComp = 0;
     document.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
       if (cw.classList.contains('celebrando')) { return; } // no ocultar mientras celebra
-      var ocultable = estadoDe(cw.getAttribute('data-id')) === 'cobrado';
-      if (ocultable) { ocultables.push(cw); }
-      cw.classList.toggle('oculto-anterior', ocultable && anterioresColapsado);
+      var completada = estadoDe(cw.getAttribute('data-id')) === 'cobrado';
+      if (completada) { nComp++; }
+      var ocultar = modoCompletadas ? !completada : completada;
+      cw.classList.toggle('oculto-anterior', ocultar);
     });
     document.querySelectorAll('.vista[data-vista="entregas"] section[data-fecha]').forEach(function (sec) {
       var vis = sec.querySelectorAll('.card-wrap:not(.oculto-anterior)').length;
@@ -974,9 +985,10 @@
     });
     var btn = document.getElementById('toggle-anteriores');
     if (!btn) return;
-    if (!ocultables.length) { btn.hidden = true; return; }
+    if (!nComp) { btn.hidden = true; btn.classList.remove('modo-activo'); modoCompletadas = false; return; }
     btn.hidden = false;
-    btn.textContent = (anterioresColapsado ? '✓ Ver completadas (' : '▴ Ocultar completadas (') + ocultables.length + ')';
+    btn.classList.toggle('modo-activo', modoCompletadas);
+    btn.textContent = modoCompletadas ? '← Volver a las pendientes' : ('✓ Ver completadas (' + nComp + ')');
   }
 
   // Animación al completar (entregado + cobrado): card dorada con mensaje de éxito,
@@ -1375,7 +1387,24 @@
       }
     });
     var ta = document.getElementById('toggle-anteriores');
-    if (ta) { ta.addEventListener('click', function () { anterioresColapsado = !anterioresColapsado; aplicarAnteriores(); }); }
+    if (ta) {
+      ta.addEventListener('click', function () {
+        modoCompletadas = !modoCompletadas;
+        aplicarAnteriores();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+    // Pinchar el encabezado de un día lo colapsa/expande (delegado, también sirve
+    // para las secciones que crea el reagendado).
+    var ve = document.querySelector('.vista[data-vista="entregas"]');
+    if (ve) {
+      ve.addEventListener('click', function (ev) {
+        var h = ev.target.closest('.fecha-titulo');
+        if (!h) return;
+        var sec = h.closest('section[data-fecha]');
+        if (sec) { sec.classList.toggle('colapsada-dia'); }
+      });
+    }
     var bp = document.getElementById('barra-pagar');
     if (bp) { bp.querySelector('.btn-pagar').addEventListener('click', abrirModalPago); }
   }

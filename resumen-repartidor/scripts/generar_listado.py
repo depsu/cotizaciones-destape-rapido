@@ -75,6 +75,8 @@ PROG_MARKUP = (
     '<span class="prog-fill"><span class="prog-truck">🚚</span></span></span>'
     '<span class="prog-num"></span></span>'
 )
+# Chevron para colapsar/expandir la sección del día.
+CHEVRON = '<span class="sec-chevron">▾</span>'
 
 # Tipo de limpieza: "incluida" (parte del arriendo) o "extra" (se cobra aparte).
 TIPO_LIMPIEZA = {
@@ -410,6 +412,14 @@ ESTILOS_EXTRA = """
     border-radius:8px; transition:width .45s ease; display:flex; align-items:center; justify-content:flex-end; }
   .prog-truck { font-size:13px; line-height:1; transform:translateX(42%); filter:drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
   .prog-num { flex:none; font-size:12px; font-weight:800; color:var(--gris); font-variant-numeric:tabular-nums; }
+  /* Colapsar el día al pinchar su encabezado */
+  .fecha-titulo { cursor:pointer; -webkit-user-select:none; user-select:none; }
+  .sec-chevron { flex:none; font-size:12px; color:var(--azul); transition:transform .2s; transform:rotate(180deg); }
+  section.colapsada-dia .sec-chevron { transform:rotate(0deg); }
+  section.colapsada-dia > .card-wrap { display:none !important; }
+  /* Botón "Ver completadas / Volver": al estar en modo, flota abajo y te sigue */
+  .ver-anteriores.modo-activo { position:sticky; bottom:14px; z-index:8; background:var(--azul);
+    color:#fff; border-style:solid; border-color:var(--azul); box-shadow:0 6px 16px rgba(15,23,42,.28); }
   /* Gestión ARRIBA de la card */
   .card-wrap { margin-bottom:10px; }
   .gestion-top { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 12px;
@@ -586,7 +596,7 @@ SCRIPT_ESTADO = r"""<script>
   var TAREAS = {};
   (APP.tareas || []).forEach(function (t) { TAREAS[t.id] = t; });
   var tEstado = {}; // id -> {contactado, realizada, realizada_at}
-  var anterioresColapsado = true;
+  var modoCompletadas = false; // false = ver pendientes; true = ver solo completadas
   var comSel = null; // Set de ids seleccionados para pagar (persistido en localStorage)
   var SEL_KEY = 'comision_sel_v1';
 
@@ -736,9 +746,10 @@ SCRIPT_ESTADO = r"""<script>
       if (contactado) { cbtn.textContent = '✓ Cliente contactado'; cbtn.disabled = true; cbtn.classList.add('contactado'); }
       else { cbtn.textContent = '💬 Avisar al cliente que voy a entregar'; cbtn.disabled = false; cbtn.classList.remove('contactado'); }
     }
-    // Accesos rápidos (llamar / llegar / WhatsApp): visibles cuando ya se contactó.
+    // Accesos rápidos (llamar / llegar / WhatsApp): cuando ya se contactó, o siempre
+    // en las reagendadas (rojas) para poder re-coordinar la nueva fecha.
     var accesos = card.querySelector('.contacto-accesos');
-    if (accesos) { accesos.hidden = !(mostrar && contactado); }
+    if (accesos) { accesos.hidden = !((mostrar && contactado) || (esPendiente && reagendado)); }
   }
   function pintarTodo() { document.querySelectorAll('.card-wrap[data-id]').forEach(pintarCard); }
 
@@ -759,7 +770,7 @@ SCRIPT_ESTADO = r"""<script>
     sec.setAttribute('data-fecha', fecha);
     var h = document.createElement('h2');
     h.className = 'fecha-titulo';
-    h.innerHTML = escapeHtml(encabezadoFecha(fecha)) + PROG;
+    h.innerHTML = escapeHtml(encabezadoFecha(fecha)) + PROG + '<span class="sec-chevron">▾</span>';
     sec.appendChild(h);
     cont.appendChild(sec);
     return sec;
@@ -817,14 +828,16 @@ SCRIPT_ESTADO = r"""<script>
     if (h) { document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px'); }
   }
 
-  // ---- Ocultar completadas: las que ya están entregadas + cobradas (estado 'cobrado') ----
+  // ---- Completadas (estado 'cobrado'). En modo normal se ocultan; en "Ver
+  //      completadas" se muestran SOLO ellas y se oculta todo lo demás. ----
   function aplicarAnteriores() {
-    var ocultables = [];
+    var nComp = 0;
     document.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
       if (cw.classList.contains('celebrando')) { return; } // no ocultar mientras celebra
-      var ocultable = estadoDe(cw.getAttribute('data-id')) === 'cobrado';
-      if (ocultable) { ocultables.push(cw); }
-      cw.classList.toggle('oculto-anterior', ocultable && anterioresColapsado);
+      var completada = estadoDe(cw.getAttribute('data-id')) === 'cobrado';
+      if (completada) { nComp++; }
+      var ocultar = modoCompletadas ? !completada : completada;
+      cw.classList.toggle('oculto-anterior', ocultar);
     });
     document.querySelectorAll('.vista[data-vista="entregas"] section[data-fecha]').forEach(function (sec) {
       var vis = sec.querySelectorAll('.card-wrap:not(.oculto-anterior)').length;
@@ -832,9 +845,10 @@ SCRIPT_ESTADO = r"""<script>
     });
     var btn = document.getElementById('toggle-anteriores');
     if (!btn) return;
-    if (!ocultables.length) { btn.hidden = true; return; }
+    if (!nComp) { btn.hidden = true; btn.classList.remove('modo-activo'); modoCompletadas = false; return; }
     btn.hidden = false;
-    btn.textContent = (anterioresColapsado ? '✓ Ver completadas (' : '▴ Ocultar completadas (') + ocultables.length + ')';
+    btn.classList.toggle('modo-activo', modoCompletadas);
+    btn.textContent = modoCompletadas ? '← Volver a las pendientes' : ('✓ Ver completadas (' + nComp + ')');
   }
 
   // Animación al completar (entregado + cobrado): card dorada con mensaje de éxito,
@@ -1233,7 +1247,24 @@ SCRIPT_ESTADO = r"""<script>
       }
     });
     var ta = document.getElementById('toggle-anteriores');
-    if (ta) { ta.addEventListener('click', function () { anterioresColapsado = !anterioresColapsado; aplicarAnteriores(); }); }
+    if (ta) {
+      ta.addEventListener('click', function () {
+        modoCompletadas = !modoCompletadas;
+        aplicarAnteriores();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+    // Pinchar el encabezado de un día lo colapsa/expande (delegado, también sirve
+    // para las secciones que crea el reagendado).
+    var ve = document.querySelector('.vista[data-vista="entregas"]');
+    if (ve) {
+      ve.addEventListener('click', function (ev) {
+        var h = ev.target.closest('.fecha-titulo');
+        if (!h) return;
+        var sec = h.closest('section[data-fecha]');
+        if (sec) { sec.classList.toggle('colapsada-dia'); }
+      });
+    }
     var bp = document.getElementById('barra-pagar');
     if (bp) { bp.querySelector('.btn-pagar').addEventListener('click', abrirModalPago); }
   }
@@ -1369,7 +1400,7 @@ def construir_html(data: dict) -> str:
         tarjetas = "".join(tarjeta(e) for e in items)
         secciones.append(
             f'<section data-fecha="{esc(fecha)}"><h2 class="fecha-titulo">{esc(encabezado_fecha(fecha))}'
-            f'{PROG_MARKUP}</h2>{tarjetas}</section>'
+            f'{PROG_MARKUP}{CHEVRON}</h2>{tarjetas}</section>'
         )
 
     # Secciones agregadas (limpiezas / retiros) y sus tareas para el JS.
