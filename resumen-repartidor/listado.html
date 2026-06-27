@@ -183,6 +183,22 @@
   @keyframes celebra-in { from { opacity:0; transform:scale(.94); } to { opacity:1; transform:scale(1); } }
   .colapsando { overflow:hidden; opacity:0;
     transition:height .5s ease, opacity .5s ease, margin .5s ease; }
+  /* Salir por la izquierda (al des-marcar en "Ver completadas") */
+  .saliendo-anim { overflow:hidden;
+    transition:transform .32s ease, opacity .32s ease, height .35s ease, margin .35s ease; }
+  /* Confirmación dentro de la card */
+  .card-wrap.con-confirm, .tarea-card.con-confirm { position:relative; }
+  .confirm-overlay { position:absolute; inset:0; z-index:9; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:12px; text-align:center; padding:14px; border-radius:14px;
+    background:rgba(254,242,242,.98); border:2px solid #F87171; animation:celebra-in .25s ease both; }
+  .conf-msg { font-weight:800; color:#991B1B; font-size:14px; line-height:1.3; }
+  .conf-acc { display:flex; gap:10px; }
+  .conf-no, .conf-si { font-family:inherit; font-weight:700; font-size:13px; padding:10px 16px; border-radius:9px; cursor:pointer; min-height:42px; }
+  .conf-no { background:#fff; border:1px solid var(--linea); color:var(--tinta); }
+  .conf-si { background:#DC2626; border:none; color:#fff; }
+  /* Título del modo "Ver completadas" */
+  .modo-titulo { font-weight:800; color:#166534; background:#DCFCE7; border:1px solid #BBF7D0;
+    border-radius:10px; padding:10px 12px; margin:0 0 10px; text-align:center; font-size:14px; }
   /* Tareas (limpiezas / retiros) interactivas */
   .tarea-lista { margin:8px 0 0; }
   .tarea-card { background:#fff; border:1px solid var(--linea); border-radius:12px; padding:11px 13px; margin-bottom:8px; }
@@ -310,7 +326,7 @@
     <div class="sub ganado" id="ganado-total"></div>
   </header>
   <main>
-    <div id="estado-online" class="estado-online" hidden></div><div class="vistas"><button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button><button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button></div><div class="vista" data-vista="entregas"><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span><span class="sec-chevron">▾</span></h2>
+    <div id="estado-online" class="estado-online" hidden></div><div class="vistas"><button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button><button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button></div><div class="vista" data-vista="entregas"><div id="modo-titulo" class="modo-titulo" hidden></div><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span><span class="sec-chevron">▾</span></h2>
     <div class="card-wrap" data-id="2026-06-23-don-daniel" data-fecha="2026-06-23" data-estado-orig="pendiente">
       <div class="gestion-top"><label class="gt-fecha"><span class="gt-ico">📅</span><span class="gt-rg-txt">Reagendar</span><input type="date" class="fecha-input" value="2026-06-23" aria-label="Reagendar entrega"></label><div class="gt-estados" role="group" aria-label="Estado de la entrega"><button type="button" class="est-btn est-entregado" data-estado="entregado">Entregado</button><button type="button" class="est-btn est-cobrado" data-estado="cobrado">Cobrado</button></div><span class="reagendada-chip" hidden></span><span class="fecha-original-chip" hidden></span></div>
       <details class="card">
@@ -1037,7 +1053,7 @@
   function aplicarAnteriores() {
     var nComp = 0;
     document.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
-      if (cw.classList.contains('celebrando')) { return; } // no ocultar mientras celebra
+      if (cw.classList.contains('celebrando') || cw.classList.contains('saliendo')) { return; } // animándose
       var completada = estadoDe(cw.getAttribute('data-id')) === 'cobrado';
       if (completada) { nComp++; }
       var ocultar = modoCompletadas ? !completada : completada;
@@ -1057,7 +1073,9 @@
     btn.hidden = false;
     btn.classList.toggle('modo-activo', modoCompletadas);
     document.body.classList.toggle('modo-completadas', modoCompletadas);
-    btn.textContent = modoCompletadas ? '← Volver a las pendientes' : ('✓ Ver completadas (' + nComp + ')');
+    btn.textContent = modoCompletadas ? '← Volver a ver clientes pendientes por entregar' : ('✓ Ver completadas (' + nComp + ')');
+    var tit = document.getElementById('modo-titulo');
+    if (tit) { tit.hidden = !modoCompletadas; tit.textContent = '👀 Estás viendo los clientes entregados y cobrados'; }
   }
 
   // Animación al completar (entregado + cobrado): card dorada con mensaje de éxito,
@@ -1086,6 +1104,38 @@
       card.addEventListener('transitionend', fin);
       setTimeout(fin, 700);
     }, 1800);
+  }
+
+  // Confirmación DENTRO de la card (al des-marcar entregado/cobrado).
+  function confirmarEnCard(card, mensaje, onSi) {
+    card.classList.add('con-confirm');
+    var ov = document.createElement('div');
+    ov.className = 'confirm-overlay';
+    ov.innerHTML = '<div class="conf-msg">' + escapeHtml(mensaje) + '</div>'
+      + '<div class="conf-acc"><button type="button" class="conf-no">Cancelar</button>'
+      + '<button type="button" class="conf-si">Sí, confirmar</button></div>';
+    card.appendChild(ov);
+    function cerrar() { if (ov.parentNode) { ov.parentNode.removeChild(ov); } card.classList.remove('con-confirm'); }
+    ov.querySelector('.conf-no').addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); cerrar(); });
+    ov.querySelector('.conf-si').addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); cerrar(); onSi(); });
+  }
+
+  // Sale por la izquierda y cierra el hueco suavemente (las de abajo suben).
+  function salirIzquierda(card, onFin) {
+    card.style.height = card.offsetHeight + 'px';
+    void card.offsetHeight;
+    card.classList.add('saliendo-anim');
+    card.style.transform = 'translateX(-110%)';
+    card.style.opacity = '0';
+    setTimeout(function () { card.style.height = '0px'; card.style.marginTop = '0'; card.style.marginBottom = '0'; }, 280);
+    var hecho = false;
+    function fin() {
+      if (hecho) return; hecho = true;
+      card.classList.remove('saliendo-anim');
+      card.style.height = ''; card.style.transform = ''; card.style.opacity = ''; card.style.marginTop = ''; card.style.marginBottom = '';
+      if (onFin) { onFin(); }
+    }
+    setTimeout(fin, 660);
   }
 
   // ====================== TAREAS (limpiezas / retiros) ======================
@@ -1492,19 +1542,35 @@
         b.addEventListener('click', function (ev) {
           ev.preventDefault(); ev.stopPropagation();
           var e = b.getAttribute('data-estado');
-          // Combina las dos dimensiones (entregado/cobrado) en el estado guardado.
-          var ent = entregadoDe(id), cob = cobradoDe(id);
-          if (e === 'entregado') { ent = !ent; } else { cob = !cob; }
-          var next = cob ? (ent ? 'cobrado' : 'pagado-pendiente') : (ent ? 'entregado' : 'pendiente');
-          var completa = (next === 'cobrado' && estadoDe(id) !== 'cobrado');
-          if (completa) { card.classList.add('celebrando'); } // que no la oculte antes de animar
-          upsert(id, { estado: next });
-          if (completa) {
-            var mm = META[id] || {};
-            var msgC = (mm.tipo === 'limpieza') ? '✅ Limpieza realizada con éxito'
-              : '✅ ' + ((mm.banos > 1) ? 'Baños entregados' : 'Baño entregado') + ' con éxito';
-            celebrar(card, msgC, function () { aplicarAnteriores(); reubicarCards(); actualizarProgreso(); renderComision(); });
+          var quitando = (e === 'entregado' && entregadoDe(id)) || (e === 'cobrado' && cobradoDe(id));
+          function aplicar() {
+            var ent = entregadoDe(id), cob = cobradoDe(id);
+            if (e === 'entregado') { ent = !ent; } else { cob = !cob; }
+            var next = cob ? (ent ? 'cobrado' : 'pagado-pendiente') : (ent ? 'entregado' : 'pendiente');
+            var completa = (next === 'cobrado' && estadoDe(id) !== 'cobrado');
+            // En "Ver completadas", des-marcar saca la card de la vista: sale por la izquierda.
+            var sale = modoCompletadas && estadoDe(id) === 'cobrado' && next !== 'cobrado';
+            if (completa) { card.classList.add('celebrando'); }
+            if (sale) { card.classList.add('saliendo'); }
+            upsert(id, { estado: next });
+            if (completa) {
+              var mm = META[id] || {};
+              var msgC = (mm.tipo === 'limpieza') ? '✅ Limpieza realizada con éxito'
+                : '✅ ' + ((mm.banos > 1) ? 'Baños entregados' : 'Baño entregado') + ' con éxito';
+              celebrar(card, msgC, function () { aplicarAnteriores(); reubicarCards(); actualizarProgreso(); renderComision(); });
+            } else if (sale) {
+              salirIzquierda(card, function () {
+                card.classList.remove('saliendo');
+                aplicarAnteriores(); reubicarCards(); actualizarProgreso(); renderComision();
+              });
+            }
           }
+          if (quitando) {
+            var msg = (e === 'cobrado')
+              ? '¿Confirmas que el cliente NO pagó? Volverá a pendiente de cobro.'
+              : '¿Confirmas que NO se entregó? Volverá a pendiente de entrega.';
+            confirmarEnCard(card, msg, aplicar);
+          } else { aplicar(); }
         });
       });
       var input = card.querySelector('.fecha-input');
