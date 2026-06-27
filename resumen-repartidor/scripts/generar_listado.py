@@ -167,6 +167,15 @@ def esc(texto: str) -> str:
     return html.escape(str(texto or ""))
 
 
+def calle_negrita(direccion: str) -> str:
+    """Resalta en negrita el nombre de la calle (lo anterior a la primera coma)."""
+    direccion = direccion or ""
+    if "," in direccion:
+        calle, resto = direccion.split(",", 1)
+        return f"<b>{esc(calle.strip())}</b>, {esc(resto.strip())}"
+    return f"<b>{esc(direccion)}</b>"
+
+
 def encabezado_fecha(iso: str) -> str:
     try:
         f = date.fromisoformat(iso)
@@ -356,7 +365,7 @@ def tarjeta(e: dict) -> str:
           </div>
           <div class="resumen-sub">
             <span class="banos">{res_icono} {res_txt}</span>
-            <span class="dir">📍 {esc(direccion)}</span>
+            <span class="dir">📍 {calle_negrita(direccion)}</span>
             {monto_chip}
           </div>
           <div class="estado-hint" hidden></div>
@@ -1138,7 +1147,7 @@ def seccion_limpiezas(entregas: list) -> str:
             '<li class="ag-item">'
             f'<span class="ag-fecha">{esc(fecha_corta(fecha))}</span>'
             f'<span class="ag-main"><b>{esc(e.get("cliente", "—"))}</b>'
-            f'<span class="ag-dir">📍 {esc(e.get("direccion", ""))}</span>'
+            f'<span class="ag-dir">📍 {calle_negrita(e.get("direccion", ""))}</span>'
             f'<span class="ag-sub">{esc(lp.get("etiqueta") or "Limpieza")}</span>{nota}</span>'
             f'<span class="lp-badge" style="color:{col_t};background:{bg_t}">{etq_t}</span>'
             f'{valor_html}</li>'
@@ -1163,7 +1172,7 @@ def seccion_retiros(entregas: list) -> str:
             '<li class="ag-item">'
             f'<span class="ag-fecha">{esc(fecha_corta(fecha))}</span>'
             f'<span class="ag-main"><b>{esc(e.get("cliente", "—"))}</b>'
-            f'<span class="ag-dir">📍 {esc(e.get("direccion", ""))}</span>{nota}</span>'
+            f'<span class="ag-dir">📍 {calle_negrita(e.get("direccion", ""))}</span>{nota}</span>'
             '<span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li>'
         )
     return (
