@@ -62,3 +62,23 @@ create policy entrega_estado_anon_update on public.entrega_estado
 
 -- PostgREST usa el rol 'anon' para peticiones con la anon key.
 grant select, insert, update on public.entrega_estado to anon;
+
+-- ============================================================================
+-- Estado de las TAREAS (limpiezas y retiros). id = "<entrega_id>::lim::<idx>" o
+-- "<entrega_id>::retiro". Guarda si se coordinó con el cliente y si se realizó.
+-- ============================================================================
+create table if not exists public.tarea_estado (
+  id           text primary key,
+  contactado   boolean not null default false,
+  realizada    boolean not null default false,
+  realizada_at timestamptz,
+  updated_at   timestamptz not null default now()
+);
+alter table public.tarea_estado enable row level security;
+drop policy if exists tarea_estado_anon_select on public.tarea_estado;
+create policy tarea_estado_anon_select on public.tarea_estado for select using (true);
+drop policy if exists tarea_estado_anon_insert on public.tarea_estado;
+create policy tarea_estado_anon_insert on public.tarea_estado for insert with check (true);
+drop policy if exists tarea_estado_anon_update on public.tarea_estado;
+create policy tarea_estado_anon_update on public.tarea_estado for update using (true) with check (true);
+grant select, insert, update on public.tarea_estado to anon;

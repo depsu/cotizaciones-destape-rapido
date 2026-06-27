@@ -461,15 +461,24 @@ ESTILOS_EXTRA = """
   .card-wrap.is-reagendado > .gestion-top { border-bottom:2px solid #FECACA; }
   .card-wrap.is-contactado > .card, .card-wrap.is-contactado > .gestion-top { border-color:#86EFAC; background:#F0FDF4; }
   .card-wrap.oculto-anterior { display:none; }
-  /* Animación de "completada con éxito" */
-  .card-wrap.celebrando { position:relative; }
+  /* Animación de "completada con éxito" (genérica: cards y tareas) */
+  .celebrando { position:relative; }
   .celebra-overlay { position:absolute; inset:0; z-index:7; display:flex; align-items:center;
     justify-content:center; text-align:center; padding:18px; border-radius:14px;
     background:#FCD34D; color:#7C2D12; font-weight:800; font-size:17px; line-height:1.3;
     box-shadow:0 0 0 2px #F59E0B inset; animation:celebra-in .35s ease both; }
   @keyframes celebra-in { from { opacity:0; transform:scale(.94); } to { opacity:1; transform:scale(1); } }
-  .card-wrap.colapsando { overflow:hidden; opacity:0;
+  .colapsando { overflow:hidden; opacity:0;
     transition:height .5s ease, opacity .5s ease, margin .5s ease; }
+  /* Tareas (limpiezas / retiros) interactivas */
+  .tarea-lista { margin:8px 0 0; }
+  .tarea-card { background:#fff; border:1px solid var(--linea); border-radius:12px; padding:11px 13px; margin-bottom:8px; }
+  .tarea-info { display:flex; align-items:flex-start; gap:10px; }
+  .tarea-card .btn-contacto, .tarea-card .contacto-accesos { margin-top:8px; }
+  .btn-realizada { width:100%; margin-top:8px; background:#16A34A; color:#fff; border:none;
+    font-family:inherit; font-weight:800; font-size:14px; padding:12px; border-radius:10px; cursor:pointer; min-height:46px; }
+  .btn-realizada:active { filter:brightness(.95); }
+  .tarea-card.oculto-anterior { display:none; }
   .comision-mini { margin-top:2px; font-size:14px; color:#92600A; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
   .comision-mini b { font-size:16px; }
   .comision-mini .cm-base { color:var(--gris); font-size:12px; }
@@ -574,6 +583,9 @@ SCRIPT_ESTADO = r"""<script>
   var META = {};
   (APP.entregas || []).forEach(function (e) { META[e.id] = e; });
   var estado = {}; // id -> {id, estado, fecha, comision_pagada, pagada_at}
+  var TAREAS = {};
+  (APP.tareas || []).forEach(function (t) { TAREAS[t.id] = t; });
+  var tEstado = {}; // id -> {contactado, realizada, realizada_at}
   var anterioresColapsado = true;
   var comSel = null; // Set de ids seleccionados para pagar (persistido en localStorage)
   var SEL_KEY = 'comision_sel_v1';
@@ -827,15 +839,11 @@ SCRIPT_ESTADO = r"""<script>
 
   // Animación al completar (entregado + cobrado): card dorada con mensaje de éxito,
   // luego se desvanece y colapsa suavemente (las de abajo suben sin brusquedad).
-  function celebrar(card, id) {
-    var m = META[id] || {};
-    var txt = (m.tipo === 'limpieza')
-      ? '✅ Limpieza realizada con éxito'
-      : '✅ ' + ((m.banos > 1) ? 'Baños entregados' : 'Baño entregado') + ' con éxito';
+  function celebrar(card, mensaje, onFin) {
     card.classList.add('celebrando');
     var ov = document.createElement('div');
     ov.className = 'celebra-overlay';
-    ov.textContent = txt;
+    ov.textContent = mensaje;
     card.appendChild(ov);
     setTimeout(function () {
       card.style.height = card.offsetHeight + 'px';
@@ -848,14 +856,129 @@ SCRIPT_ESTADO = r"""<script>
         card.removeEventListener('transitionend', fin);
         if (ov.parentNode) { ov.parentNode.removeChild(ov); }
         card.classList.remove('celebrando');
-        aplicarAnteriores();         // ya queda oculta en "completadas"
+        if (onFin) { onFin(); }
         card.classList.remove('colapsando');
         card.style.height = ''; card.style.marginTop = ''; card.style.marginBottom = '';
-        reubicarCards(); actualizarProgreso(); renderComision();
       };
       card.addEventListener('transitionend', fin);
       setTimeout(fin, 700);
     }, 1800);
+  }
+
+  // ====================== TAREAS (limpiezas / retiros) ======================
+  function tContactadoDe(id) { var s = tEstado[id]; return !!(s && s.contactado); }
+  function tRealizadaDe(id) {
+    var s = tEstado[id];
+    if (s && typeof s.realizada === 'boolean') return s.realizada;
+    return !!(TAREAS[id] && TAREAS[id].hecha);
+  }
+  function pintarTarea(card) {
+    var id = card.getAttribute('data-tid');
+    var cont = tContactadoDe(id);
+    var cb = card.querySelector('.btn-coordinar');
+    if (cb) {
+      if (cont) { cb.textContent = '✓ Ya lo contacté'; cb.disabled = true; cb.classList.add('contactado'); }
+      else { cb.textContent = '📞 Coordinar con el cliente'; cb.disabled = false; cb.classList.remove('contactado'); }
+    }
+    var acc = card.querySelector('.contacto-accesos');
+    if (acc) { acc.hidden = !cont; }
+    var hint = card.querySelector('.tarea-hint');
+    if (hint) { hint.textContent = cont ? '🟢 Coordinado · listo para realizar' : '⚪ Pendiente · coordina con el cliente'; hint.hidden = false; }
+  }
+  function pintarTareas() { document.querySelectorAll('.tarea-card[data-tid]').forEach(pintarTarea); }
+
+  function tUpsert(id, patch) {
+    var prev = tEstado[id] || {};
+    var row = { id: id, contactado: tContactadoDe(id), realizada: tRealizadaDe(id), realizada_at: prev.realizada_at || null };
+    for (var k in patch) { row[k] = patch[k]; }
+    tEstado[id] = row;
+    var card = document.querySelector('.tarea-card[data-tid="' + String(id).replace(/"/g, '\\"') + '"]');
+    if (card) { pintarTarea(card); }
+    if (!SUPA.url || !SUPA.key) return Promise.resolve();
+    return fetch(SUPA.url + '/rest/v1/tarea_estado', {
+      method: 'POST',
+      headers: headers({ 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
+      body: JSON.stringify(row)
+    }).then(function (r) { if (!r.ok) { throw new Error('HTTP ' + r.status); } bannerOnline(true); })
+      .catch(function (e) { console.warn(e); bannerOnline(false); });
+  }
+
+  // Oculta las tareas ya realizadas por sección, con su botón "Ver realizadas".
+  function aplicarTareasRealizadas() {
+    document.querySelectorAll('section.agregado[data-tareas]').forEach(function (sec) {
+      var colap = sec.getAttribute('data-real-colap') !== 'no';
+      var ocultables = [];
+      sec.querySelectorAll('.tarea-card[data-tid]').forEach(function (c) {
+        if (c.classList.contains('celebrando')) return;
+        var r = tRealizadaDe(c.getAttribute('data-tid'));
+        if (r) ocultables.push(c);
+        c.classList.toggle('oculto-anterior', r && colap);
+      });
+      var cnt = sec.querySelector('.conteo');
+      if (cnt) { cnt.textContent = sec.querySelectorAll('.tarea-card:not(.oculto-anterior)').length; }
+      var btn = sec.querySelector('.ver-realizadas');
+      if (btn) {
+        if (!ocultables.length) { btn.hidden = true; }
+        else { btn.hidden = false; btn.textContent = (colap ? '✓ Ver realizadas (' : '▴ Ocultar realizadas (') + ocultables.length + ')'; }
+      }
+    });
+  }
+
+  function wireTareas() {
+    document.querySelectorAll('.tarea-card[data-tid]').forEach(function (card) {
+      var id = card.getAttribute('data-tid');
+      var t = TAREAS[id] || {};
+      var cb = card.querySelector('.btn-coordinar');
+      if (cb) {
+        cb.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          if (cb.disabled || tContactadoDe(id)) return;
+          var dia = diaRelativo(t.fecha);
+          var msg = (t.tipo === 'retiro')
+            ? 'Hola 👋, le escribo de Destape Rápido. Le aviso que vamos a retirar el baño ' + dia + '. Le confirmo el horario en que pasaremos. ¡Gracias!'
+            : 'Hola 👋, le escribo de Destape Rápido. Le aviso que vamos a hacer el aseo de su baño ' + dia + '. Le confirmo el horario en que pasaremos. ¡Gracias!';
+          tUpsert(id, { contactado: true });
+          if (t.tel) { window.location.href = 'whatsapp://send?phone=' + t.tel + '&text=' + encodeURIComponent(msg); }
+        });
+      }
+      card.querySelectorAll('.acc-link').forEach(function (a) {
+        a.addEventListener('click', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          var href = a.getAttribute('href') || '';
+          if (/^https?:/.test(href)) { window.open(href, '_blank'); } else { window.location.href = href; }
+        });
+      });
+      var rb = card.querySelector('.btn-realizada');
+      if (rb) {
+        rb.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          if (tRealizadaDe(id)) return;
+          card.classList.add('celebrando');
+          tUpsert(id, { realizada: true, realizada_at: new Date().toISOString() });
+          var msg = (t.tipo === 'retiro') ? '✅ Retiro realizado con éxito' : '✅ Limpieza realizada con éxito';
+          celebrar(card, msg, aplicarTareasRealizadas);
+        });
+      }
+    });
+    document.querySelectorAll('.ver-realizadas').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var sec = btn.closest('section.agregado');
+        if (!sec) return;
+        var colapAhora = sec.getAttribute('data-real-colap') !== 'no';
+        if (colapAhora) { sec.setAttribute('data-real-colap', 'no'); }
+        else { sec.setAttribute('data-real-colap', 'si'); sec.scrollIntoView({ behavior: 'smooth' }); }
+        aplicarTareasRealizadas();
+      });
+    });
+  }
+
+  function loadTareas() {
+    if (!SUPA.url || !SUPA.key) { pintarTareas(); aplicarTareasRealizadas(); return; }
+    fetch(SUPA.url + '/rest/v1/tarea_estado?select=*', { headers: headers() })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) { rows.forEach(function (row) { tEstado[row.id] = row; }); })
+      .catch(function (e) { console.warn(e); })
+      .then(function () { pintarTareas(); aplicarTareasRealizadas(); });
   }
 
   function bannerOnline(ok) {
@@ -1062,7 +1185,12 @@ SCRIPT_ESTADO = r"""<script>
           var completa = (next === 'cobrado' && estadoDe(id) !== 'cobrado');
           if (completa) { card.classList.add('celebrando'); } // que no la oculte antes de animar
           upsert(id, { estado: next });
-          if (completa) { celebrar(card, id); }
+          if (completa) {
+            var mm = META[id] || {};
+            var msgC = (mm.tipo === 'limpieza') ? '✅ Limpieza realizada con éxito'
+              : '✅ ' + ((mm.banos > 1) ? 'Baños entregados' : 'Baño entregado') + ' con éxito';
+            celebrar(card, msgC, function () { aplicarAnteriores(); reubicarCards(); actualizarProgreso(); renderComision(); });
+          }
         });
       });
       var input = card.querySelector('.fecha-input');
@@ -1131,72 +1259,98 @@ SCRIPT_ESTADO = r"""<script>
   // Pintura inicial con META (bajo el velo) para que, si la red tarda, lo que se
   // revele ya esté lo más correcto posible. El velo se levanta en done() tras el fetch.
   pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); renderComision();
+  pintarTareas(); aplicarTareasRealizadas();
   setTimeout(revelar, 1500); // fallback si la red tarda demasiado
   wireVistas();
   wire();
+  wireTareas();
   load();
+  loadTareas();
 })();
 </script>"""
 
 
-def seccion_limpiezas(entregas: list) -> str:
-    """Sección agregada con TODAS las limpiezas pendientes, ordenadas por fecha."""
+def _tarea_card(tid, fecha, cliente, direccion, tel, etiqueta, nota, extra_html, contexto) -> str:
+    """Card interactiva de una tarea (limpieza/retiro): coordinar, accesos, realizada."""
+    num = solo_digitos(tel)
+    accesos = []
+    if num:
+        accesos.append(f'<a class="acc-link acc-wa" href="whatsapp://send?phone={num}">💬 WhatsApp</a>')
+        accesos.append(f'<a class="acc-link acc-call" href="tel:{esc(tel)}">📞 Llamar</a>')
+    if direccion:
+        maps_q = f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
+        accesos.append(f'<a class="acc-link acc-map" href="{esc(maps_q)}">🗺️ Llegar 🧭</a>')
+    accesos_html = f'<div class="contacto-accesos" hidden>{"".join(accesos)}</div>'
+    realizada_lbl = "✅ Limpieza realizada" if contexto == "limpieza" else "✅ Retiro realizado"
+    nota_html = f'<span class="ag-sub">{esc(nota)}</span>' if nota else ""
+    return (
+        f'<div class="tarea-card" data-tid="{esc(tid)}">'
+        '<div class="tarea-info">'
+        f'<span class="ag-fecha">{esc(fecha_corta(fecha))}</span>'
+        f'<span class="ag-main"><b>{esc(cliente)}</b>'
+        f'<span class="ag-dir">📍 {calle_negrita(direccion)}</span>'
+        f'<span class="ag-sub">{esc(etiqueta)}</span>{nota_html}</span>'
+        f'{extra_html}</div>'
+        '<div class="estado-hint tarea-hint" hidden></div>'
+        '<button type="button" class="btn-contacto btn-coordinar"></button>'
+        f'{accesos_html}'
+        f'<button type="button" class="btn-realizada">{realizada_lbl}</button>'
+        '</div>'
+    )
+
+
+def seccion_limpiezas(entregas: list):
+    """(html, tareas) — cada limpieza es una tarea interactiva, ordenadas por fecha."""
     filas = []
     for e in entregas:
-        for lp in (e.get("limpiezas") or []):
-            if lp.get("estado") == "hecha":
-                continue
-            filas.append((lp.get("fecha", ""), e, lp))
+        for idx, lp in enumerate(e.get("limpiezas") or []):
+            filas.append((lp.get("fecha", ""), e, idx, lp))
     if not filas:
-        return ""
+        return "", []
     filas.sort(key=lambda x: x[0])
-    items = []
-    for fecha, e, lp in filas:
+    items, tareas = [], []
+    for fecha, e, idx, lp in filas:
+        tid = f'{e.get("id", "")}::lim::{idx}'
         tipo = lp.get("tipo", "incluida")
         etq_t, col_t, bg_t = TIPO_LIMPIEZA.get(tipo, TIPO_LIMPIEZA["incluida"])
-        valor = lp.get("valor")
-        valor_html = (
-            f'<span class="lp-valor">{esc(clp(valor))}</span>'
-            if tipo == "extra" and valor else ""
-        )
-        nota = f'<span class="ag-sub">{esc(lp.get("nota"))}</span>' if lp.get("nota") else ""
-        items.append(
-            '<li class="ag-item">'
-            f'<span class="ag-fecha">{esc(fecha_corta(fecha))}</span>'
-            f'<span class="ag-main"><b>{esc(e.get("cliente", "—"))}</b>'
-            f'<span class="ag-dir">📍 {calle_negrita(e.get("direccion", ""))}</span>'
-            f'<span class="ag-sub">{esc(lp.get("etiqueta") or "Limpieza")}</span>{nota}</span>'
-            f'<span class="lp-badge" style="color:{col_t};background:{bg_t}">{etq_t}</span>'
-            f'{valor_html}</li>'
-        )
-    return (
-        '<section class="agregado"><h2 class="fecha-titulo">🧽 Limpiezas a realizar'
+        extra = f'<span class="lp-badge" style="color:{col_t};background:{bg_t}">{etq_t}</span>'
+        if tipo == "extra" and lp.get("valor"):
+            extra += f'<span class="lp-valor">{esc(clp(lp.get("valor")))}</span>'
+        items.append(_tarea_card(tid, fecha, e.get("cliente", "—"), e.get("direccion", ""),
+                                 e.get("telefono", ""), lp.get("etiqueta") or "Limpieza",
+                                 lp.get("nota"), extra, "limpieza"))
+        tareas.append({"id": tid, "tel": solo_digitos(e.get("telefono", "")), "fecha": fecha,
+                       "tipo": "limpieza", "hecha": lp.get("estado") == "hecha"})
+    html = (
+        '<section class="agregado" data-tareas><h2 class="fecha-titulo">🧽 Limpiezas a realizar'
         f'<span class="conteo">{len(filas)}</span></h2>'
-        f'<ul class="ag-lista">{"".join(items)}</ul></section>'
+        f'<div class="tarea-lista">{"".join(items)}</div>'
+        '<button class="ver-anteriores ver-realizadas" type="button" hidden></button></section>'
     )
+    return html, tareas
 
 
-def seccion_retiros(entregas: list) -> str:
-    """Sección agregada con los retiros programados, ordenados por fecha."""
+def seccion_retiros(entregas: list):
+    """(html, tareas) — cada retiro es una tarea interactiva, ordenadas por fecha."""
     datos = [(r.get("fecha", ""), e, r) for e in entregas if (r := e.get("retiro"))]
     if not datos:
-        return ""
+        return "", []
     datos.sort(key=lambda x: x[0])
-    items = []
+    items, tareas = [], []
     for fecha, e, r in datos:
-        nota = f'<span class="ag-sub">{esc(r.get("nota"))}</span>' if r.get("nota") else ""
-        items.append(
-            '<li class="ag-item">'
-            f'<span class="ag-fecha">{esc(fecha_corta(fecha))}</span>'
-            f'<span class="ag-main"><b>{esc(e.get("cliente", "—"))}</b>'
-            f'<span class="ag-dir">📍 {calle_negrita(e.get("direccion", ""))}</span>{nota}</span>'
-            '<span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li>'
-        )
-    return (
-        '<section class="agregado"><h2 class="fecha-titulo">📦 Retiros'
+        tid = f'{e.get("id", "")}::retiro'
+        extra = '<span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span>'
+        items.append(_tarea_card(tid, fecha, e.get("cliente", "—"), e.get("direccion", ""),
+                                 e.get("telefono", ""), "Retiro", r.get("nota"), extra, "retiro"))
+        tareas.append({"id": tid, "tel": solo_digitos(e.get("telefono", "")), "fecha": fecha,
+                       "tipo": "retiro", "hecha": False})
+    html = (
+        '<section class="agregado" data-tareas><h2 class="fecha-titulo">📦 Retiros'
         f'<span class="conteo">{len(datos)}</span></h2>'
-        f'<ul class="ag-lista">{"".join(items)}</ul></section>'
+        f'<div class="tarea-lista">{"".join(items)}</div>'
+        '<button class="ver-anteriores ver-realizadas" type="button" hidden></button></section>'
     )
+    return html, tareas
 
 
 def construir_html(data: dict) -> str:
@@ -1217,6 +1371,11 @@ def construir_html(data: dict) -> str:
             f'<section data-fecha="{esc(fecha)}"><h2 class="fecha-titulo">{esc(encabezado_fecha(fecha))}'
             f'{PROG_MARKUP}</h2>{tarjetas}</section>'
         )
+
+    # Secciones agregadas (limpiezas / retiros) y sus tareas para el JS.
+    limpiezas_sec, tareas_lim = seccion_limpiezas(entregas)
+    retiros_sec, tareas_ret = seccion_retiros(entregas)
+    tareas = tareas_lim + tareas_ret
 
     # Metadatos por entrega para el JS (cálculo de comisión y panel).
     meta = [
@@ -1243,6 +1402,7 @@ def construir_html(data: dict) -> str:
             "whatsapp": WHATSAPP_COMISION,
             "banco": DATOS_BANCARIOS,
             "entregas": meta,
+            "tareas": tareas,
         },
         ensure_ascii=False,
     ).replace("</", "<\\/")  # evita cerrar el <script> con datos
@@ -1250,10 +1410,6 @@ def construir_html(data: dict) -> str:
 
     # Botón para mostrar las entregas de días anteriores (ocultas por defecto vía JS).
     boton_anteriores = '<button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button>'
-
-    # Secciones agregadas que van DEBAJO de las entregas (misma vista).
-    limpiezas_sec = seccion_limpiezas(entregas)
-    retiros_sec = seccion_retiros(entregas)
 
     if secciones:
         vista_entregas = boton_anteriores + "".join(secciones) + limpiezas_sec + retiros_sec
