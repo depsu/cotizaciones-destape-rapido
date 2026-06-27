@@ -118,9 +118,11 @@
   .sec-chevron { flex:none; font-size:12px; color:var(--azul); transition:transform .2s; transform:rotate(180deg); }
   section.colapsada-dia .sec-chevron { transform:rotate(0deg); }
   section.colapsada-dia > .card-wrap { display:none !important; }
-  /* Botón "Ver completadas / Volver": al estar en modo, flota abajo y te sigue */
-  .ver-anteriores.modo-activo { position:sticky; bottom:14px; z-index:8; background:var(--azul);
-    color:#fff; border-style:solid; border-color:var(--azul); box-shadow:0 6px 16px rgba(15,23,42,.28); }
+  /* Botón "Ver completadas / Volver": al estar en modo, queda fijo abajo y te sigue */
+  .ver-anteriores.modo-activo { position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+    width:calc(100% - 24px); max-width:536px; z-index:30; background:var(--azul); color:#fff;
+    border-style:solid; border-color:var(--azul); box-shadow:0 6px 18px rgba(15,23,42,.30); }
+  body.modo-completadas main { padding-bottom:84px; }
   /* Gestión ARRIBA de la card */
   .card-wrap { margin-bottom:10px; }
   .gestion-top { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 12px;
@@ -988,6 +990,7 @@
     if (!nComp) { btn.hidden = true; btn.classList.remove('modo-activo'); modoCompletadas = false; return; }
     btn.hidden = false;
     btn.classList.toggle('modo-activo', modoCompletadas);
+    document.body.classList.toggle('modo-completadas', modoCompletadas);
     btn.textContent = modoCompletadas ? '← Volver a las pendientes' : ('✓ Ver completadas (' + nComp + ')');
   }
 
