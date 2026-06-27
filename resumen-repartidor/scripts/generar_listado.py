@@ -694,10 +694,12 @@ SCRIPT_ESTADO = r"""<script>
       if (reagendado) { fo.hidden = false; fo.textContent = 'Fecha original: ' + fechaLarga(fOrig); }
       else { fo.hidden = true; }
     }
-    // En entregas FUTURAS solo se puede reagendar (se ocultan Entregado/Cobrado).
-    var esFutura = !!(fOrig && fOrig > todayISO());
+    // Botones Entregado/Cobrado: ocultos solo si la fecha EFECTIVA aún es futura y
+    // no hay actividad. Si se reagenda a una fecha que ya llegó, o si el cliente
+    // pagó adelantado / ya se entregó, los botones aparecen.
+    var esFutura = !!(fAct && fAct > todayISO());
     var estados = card.querySelector('.gt-estados');
-    if (estados) { estados.hidden = esFutura; }
+    if (estados) { estados.hidden = esFutura && !entregado && !cobrado; }
 
     // Botón "Avisar al cliente": solo en pendientes NO reagendadas y con teléfono.
     var tel = (META[id] && META[id].tel) || '';
