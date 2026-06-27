@@ -709,6 +709,12 @@ SCRIPT_ESTADO = r"""<script>
     return !!(META[id] && META[id].comision_pagada);
   }
   function contactadoDe(id) { var st = estado[id]; return !!(st && st.contactado); }
+  function reagendarAvisadoDe(id) { var st = estado[id]; return !!(st && st.reagendar_avisado); }
+  // Entrega contactada pero vencida sin entregar: hay que reagendar con el cliente.
+  function pendienteReagendar(id) {
+    return estadoDe(id) === 'pendiente' && contactadoDe(id) && !reagendarAvisadoDe(id)
+      && !!fechaDe(id) && fechaDe(id) < todayISO();
+  }
   function pagadaAtDe(id) {
     var st = estado[id];
     if (st && st.pagada_at) return st.pagada_at;

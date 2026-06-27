@@ -1,0 +1,52 @@
+{
+  "subtitulo": "Arriendo mensual de baños químicos — obra de construcción, La Reina",
+  "cliente": {
+    "titulo": "CLIENTE",
+    "campos": [
+      ["Contacto", "S. Urrutia"],
+      ["Email", "s.urrutia@arqueolab.cl"],
+      ["Teléfono", "+56 9 7333 5141"],
+      ["Lugar de servicio", "Comuna de La Reina, Región Metropolitana (obra de construcción)."]
+    ]
+  },
+  "items": [
+    {
+      "descripcion_titulo": "Arriendo mensual de baño químico",
+      "descripcion_bullets": [
+        "Despacho, instalación y retiro incluidos.",
+        "Traslado ida y vuelta incluido.",
+        "Aseo semanal (cada 7 a 10 días) incluido sin costo.",
+        "Insumos: papel higiénico y desodorizante.",
+        "Disposición final de residuos a cargo de Destape Rápido."
+      ],
+      "cantidad": 2,
+      "valor_unitario_neto": 160000
+    }
+  ],
+  "condiciones": [
+    ["Período", "Arriendo mensual. Inicio: primera semana de julio de 2026. 1 mes, con opción de extender a 2 meses."],
+    ["Vigencia de la oferta", "El valor oferta de $160.000 neto/mes por baño se mantiene para el inicio en julio si se agenda el servicio."],
+    ["Entrega", "Por coordinar en la obra, comuna de La Reina, Región Metropolitana."],
+    ["Forma de pago", "Transferencia electrónica o efectivo. Facturación mensual."],
+    ["Facturación", "Factura electrónica con IVA. Datos de facturación pendientes (falta RUT y razón social)."],
+    ["Mantención", "Incluye aseo semanal (cada 7 a 10 días) sin costo. Traslado incluido."],
+    ["Cobertura", "La Reina, Región Metropolitana."],
+    ["Valores", "Valores netos; se les suma IVA (19%) al total."]
+  ],
+  "observaciones_extra": [
+    "Valor mensual por baño: $160.000 neto (precio oferta). Total 2 baños: $320.000 neto/mes ($380.800 con IVA).",
+    "Aseos adicionales sobre el aseo semanal incluido: $40.000 neto cada uno.",
+    "Precio oferta sostenido para el inicio en julio de 2026 si se agenda el servicio.",
+    "Para emitir la factura, enviar RUT y razón social del cliente."
+  ],
+  "datos_transferencia": {
+    "campos": [
+      ["Titular", "BAÑOS LOS PINDUS Y ASOCIADOS SPA"],
+      ["RUT", "78.002.039-3"],
+      ["Banco", "Santander"],
+      ["Tipo de cuenta", "Cuenta Corriente"],
+      ["N° de cuenta", "0000-9611698-5"],
+      ["Email", "contacto@destaperapido.cl"]
+    ]
+  }
+}

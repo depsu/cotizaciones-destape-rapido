@@ -28,6 +28,7 @@ create table if not exists public.entrega_estado (
 -- Columnas añadidas después (idempotente para bases ya creadas).
 alter table public.entrega_estado add column if not exists pagada_at timestamptz;
 alter table public.entrega_estado add column if not exists contactado boolean not null default false;
+alter table public.entrega_estado add column if not exists reagendar_avisado boolean not null default false;
 
 -- updated_at automático en cada UPDATE.
 create or replace function public.entrega_estado_touch()

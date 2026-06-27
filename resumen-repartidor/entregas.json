@@ -449,6 +449,8 @@
     }
   ],
   "comprobantes": {
-    "2026-06-24": "comprobantes/pago-2026-06-24.png"
+    "2026-06-24": "comprobantes/pago-2026-06-24.png",
+    "2026-06-27": "comprobantes/pago-2026-06-27.png",
+    "2026-06-27T17:08:00+00:00": "comprobantes/pago-2026-06-27.png"
   }
 }
