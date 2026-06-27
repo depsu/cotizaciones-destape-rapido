@@ -153,6 +153,15 @@
   .card-wrap.is-reagendado > .gestion-top { border-bottom:2px solid #FECACA; }
   .card-wrap.is-contactado > .card, .card-wrap.is-contactado > .gestion-top { border-color:#86EFAC; background:#F0FDF4; }
   .card-wrap.oculto-anterior { display:none; }
+  /* Animación de "completada con éxito" */
+  .card-wrap.celebrando { position:relative; }
+  .celebra-overlay { position:absolute; inset:0; z-index:7; display:flex; align-items:center;
+    justify-content:center; text-align:center; padding:18px; border-radius:14px;
+    background:#FCD34D; color:#7C2D12; font-weight:800; font-size:17px; line-height:1.3;
+    box-shadow:0 0 0 2px #F59E0B inset; animation:celebra-in .35s ease both; }
+  @keyframes celebra-in { from { opacity:0; transform:scale(.94); } to { opacity:1; transform:scale(1); } }
+  .card-wrap.colapsando { overflow:hidden; opacity:0;
+    transition:height .5s ease, opacity .5s ease, margin .5s ease; }
   .comision-mini { margin-top:2px; font-size:14px; color:#92600A; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
   .comision-mini b { font-size:16px; }
   .comision-mini .cm-base { color:var(--gris); font-size:12px; }
@@ -249,7 +258,7 @@
 <body>
   <header>
     <h1>🚚 Entregas — Destape Rápido</h1>
-    <div class="sub">9 pendiente(s) · Actualizado 26/06/2026</div>
+    <div class="sub">9 pendiente(s) · Actualizado 27/06/2026</div>
   </header>
   <main>
     <div id="estado-online" class="estado-online" hidden></div><div class="vistas"><button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button><button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button></div><div class="vista" data-vista="entregas"><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span></h2>
@@ -671,7 +680,7 @@
     </div></section><section class="agregado"><h2 class="fecha-titulo">🧽 Limpiezas a realizar<span class="conteo">3</span></h2><ul class="ag-lista"><li class="ag-item"><span class="ag-fecha">vie 26 jun</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 1</span><span class="ag-sub">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="ag-item"><span class="ag-fecha">mar 30 jun</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 2</span><span class="ag-sub">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="ag-item"><span class="ag-fecha">vie 3 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Limpieza 3</span><span class="ag-sub">Aseo incluido en el arriendo.</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></section><section class="agregado"><h2 class="fecha-titulo">📦 Retiros<span class="conteo">5</span></h2><ul class="ag-lista"><li class="ag-item"><span class="ag-fecha">mar 30 jun</span><span class="ag-main"><b>Gino Muñoz (Constructora GMP)</b><span class="ag-dir">📍 Condominio Polo de Manquehue 2, Chicureo, Colina, Región Metropolitana</span><span class="ag-sub">Al finalizar la semana (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mar 7 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR) — mantención reforzada + retiro</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Retiro de la unidad (sin limpieza).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mar 7 jul</span><span class="ag-main"><b>B. Cárcamo (MAIR)</b><span class="ag-dir">📍 Curicó 517, Santiago Centro, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">mié 8 jul</span><span class="ag-main"><b>Cliente — Loreley 190 (La Reina)</b><span class="ag-dir">📍 Loreley 190, La Reina, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li><li class="ag-item"><span class="ag-fecha">jue 9 jul</span><span class="ag-main"><b>Tania (obra Soria 768, Las Condes)</b><span class="ag-dir">📍 Soria 768, Las Condes, Región Metropolitana</span><span class="ag-sub">Al finalizar las 2 semanas (aprox.).</span></span><span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span></li></ul></section></div><div class="vista" data-vista="comision" hidden><div id="comision-panel" class="comision-panel"></div><div id="barra-pagar" class="barra-pagar" hidden><button type="button" class="btn-pagar" disabled>Selecciona comisiones</button></div></div>
   </main>
   <footer>Toca una entrega para ver el detalle · Destape Rápido</footer>
-  <script>window.__APP__ = {"url": "https://abmzkzraptmjgebwjzys.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho", "whatsapp": "56930153632", "banco": {"titular": "Alejandro Rivera Carrasco", "banco": "BancoEstado", "cuenta": "000019955346", "email": "rivera.ale982@gmail.com"}, "entregas": [{"id": "2026-06-30-innovators-conveyor-belt", "cliente": "Suyen Guíñez — Innovators Conveyor Belt", "fecha": "2026-06-30", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56978068907", "banos": 1}, {"id": "2026-06-26-b-carcamo-mair-mantencion", "cliente": "B. Cárcamo (MAIR) — mantención reforzada + retiro", "fecha": "2026-06-26", "neto": 80000, "comision": 0, "comisiona": false, "estado": "pendiente", "comision_pagada": false, "tel": "56933800237", "banos": 1}, {"id": "2026-06-25-stock-diseno-chicureo", "cliente": "Stock Diseño Ltda. (Local Astop Aramco, Chicureo)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56999189274", "banos": 1}, {"id": "2026-06-25-tania-soria-768", "cliente": "Tania (obra Soria 768, Las Condes)", "fecha": "2026-06-25", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56959114408", "banos": 1}, {"id": "2026-06-24-loreley-190-la-reina", "cliente": "Cliente — Loreley 190 (La Reina)", "fecha": "2026-06-24", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56942107260", "banos": 1}, {"id": "2026-06-23-b-carcamo-mair", "cliente": "B. Cárcamo (MAIR)", "fecha": "2026-06-23", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56933800237", "banos": 1}, {"id": "2026-06-23-gino-munoz", "cliente": "Gino Muñoz (Constructora GMP)", "fecha": "2026-06-23", "neto": 100000, "comision": 20000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56953872435", "banos": 1}, {"id": "2026-06-23-don-daniel", "cliente": "Don Daniel", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56982291198", "banos": 1}, {"id": "2026-06-25-hercha-ingenieria", "cliente": "Don Eliecer (HERCHA Ingeniería)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56994504902", "banos": 1}, {"id": "2026-06-23-pilar-casanueva", "cliente": "Pilar Casanueva (MDA Constructora)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56988051486", "banos": 1}, {"id": "2026-06-26-villagra-conchali", "cliente": "Sr. Villagra", "fecha": "2026-06-26", "neto": 170000, "comision": 34000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56933003076", "banos": 1}, {"id": "2026-06-26-gamarra-santiago", "cliente": "Sr. Gamarra", "fecha": "2026-06-26", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56994542997", "banos": 1}, {"id": "2026-06-23-grupo-b-nunoa", "cliente": "Grupo B SpA (obra Ñuñoa)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56950831752", "banos": 1}]};</script>
+  <script>window.__APP__ = {"url": "https://abmzkzraptmjgebwjzys.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho", "whatsapp": "56930153632", "banco": {"titular": "Alejandro Rivera Carrasco", "banco": "BancoEstado", "cuenta": "000019955346", "email": "rivera.ale982@gmail.com"}, "entregas": [{"id": "2026-06-30-innovators-conveyor-belt", "cliente": "Suyen Guíñez — Innovators Conveyor Belt", "fecha": "2026-06-30", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56978068907", "banos": 1, "tipo": "bano"}, {"id": "2026-06-26-b-carcamo-mair-mantencion", "cliente": "B. Cárcamo (MAIR) — mantención reforzada + retiro", "fecha": "2026-06-26", "neto": 80000, "comision": 0, "comisiona": false, "estado": "pendiente", "comision_pagada": false, "tel": "56933800237", "banos": 1, "tipo": "limpieza"}, {"id": "2026-06-25-stock-diseno-chicureo", "cliente": "Stock Diseño Ltda. (Local Astop Aramco, Chicureo)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56999189274", "banos": 1, "tipo": "bano"}, {"id": "2026-06-25-tania-soria-768", "cliente": "Tania (obra Soria 768, Las Condes)", "fecha": "2026-06-25", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56959114408", "banos": 1, "tipo": "bano"}, {"id": "2026-06-24-loreley-190-la-reina", "cliente": "Cliente — Loreley 190 (La Reina)", "fecha": "2026-06-24", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56942107260", "banos": 1, "tipo": "bano"}, {"id": "2026-06-23-b-carcamo-mair", "cliente": "B. Cárcamo (MAIR)", "fecha": "2026-06-23", "neto": 130000, "comision": 26000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56933800237", "banos": 1, "tipo": "bano"}, {"id": "2026-06-23-gino-munoz", "cliente": "Gino Muñoz (Constructora GMP)", "fecha": "2026-06-23", "neto": 100000, "comision": 20000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56953872435", "banos": 1, "tipo": "bano"}, {"id": "2026-06-23-don-daniel", "cliente": "Don Daniel", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56982291198", "banos": 1, "tipo": "bano"}, {"id": "2026-06-25-hercha-ingenieria", "cliente": "Don Eliecer (HERCHA Ingeniería)", "fecha": "2026-06-25", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56994504902", "banos": 1, "tipo": "bano"}, {"id": "2026-06-23-pilar-casanueva", "cliente": "Pilar Casanueva (MDA Constructora)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56988051486", "banos": 1, "tipo": "bano"}, {"id": "2026-06-26-villagra-conchali", "cliente": "Sr. Villagra", "fecha": "2026-06-26", "neto": 170000, "comision": 34000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56933003076", "banos": 1, "tipo": "bano"}, {"id": "2026-06-26-gamarra-santiago", "cliente": "Sr. Gamarra", "fecha": "2026-06-26", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "pendiente", "comision_pagada": false, "tel": "56994542997", "banos": 1, "tipo": "bano"}, {"id": "2026-06-23-grupo-b-nunoa", "cliente": "Grupo B SpA (obra Ñuñoa)", "fecha": "2026-06-23", "neto": 160000, "comision": 32000, "comisiona": true, "estado": "cobrado", "comision_pagada": true, "tel": "56950831752", "banos": 1, "tipo": "bano"}]};</script>
   
   <script>
 (function () {
@@ -897,14 +906,12 @@
     if (h) { document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px'); }
   }
 
-  // ---- Ocultar anteriores: solo se pueden ocultar las COBRADAS de días pasados ----
+  // ---- Ocultar completadas: las que ya están entregadas + cobradas (estado 'cobrado') ----
   function aplicarAnteriores() {
-    var hoy = todayISO();
     var ocultables = [];
     document.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
-      var id = cw.getAttribute('data-id');
-      var eff = fechaDe(id);
-      var ocultable = !!(eff && eff < hoy) && estadoDe(id) === 'cobrado';
+      if (cw.classList.contains('celebrando')) { return; } // no ocultar mientras celebra
+      var ocultable = estadoDe(cw.getAttribute('data-id')) === 'cobrado';
       if (ocultable) { ocultables.push(cw); }
       cw.classList.toggle('oculto-anterior', ocultable && anterioresColapsado);
     });
@@ -916,7 +923,40 @@
     if (!btn) return;
     if (!ocultables.length) { btn.hidden = true; return; }
     btn.hidden = false;
-    btn.textContent = (anterioresColapsado ? '▾ Ver cobradas anteriores (' : '▴ Ocultar cobradas anteriores (') + ocultables.length + ')';
+    btn.textContent = (anterioresColapsado ? '✓ Ver completadas (' : '▴ Ocultar completadas (') + ocultables.length + ')';
+  }
+
+  // Animación al completar (entregado + cobrado): card dorada con mensaje de éxito,
+  // luego se desvanece y colapsa suavemente (las de abajo suben sin brusquedad).
+  function celebrar(card, id) {
+    var m = META[id] || {};
+    var txt = (m.tipo === 'limpieza')
+      ? '✅ Limpieza realizada con éxito'
+      : '✅ ' + ((m.banos > 1) ? 'Baños entregados' : 'Baño entregado') + ' con éxito';
+    card.classList.add('celebrando');
+    var ov = document.createElement('div');
+    ov.className = 'celebra-overlay';
+    ov.textContent = txt;
+    card.appendChild(ov);
+    setTimeout(function () {
+      card.style.height = card.offsetHeight + 'px';
+      void card.offsetHeight; // reflow para animar desde la altura actual
+      card.classList.add('colapsando');
+      card.style.height = '0px'; card.style.marginTop = '0'; card.style.marginBottom = '0';
+      var hecho = false;
+      var fin = function () {
+        if (hecho) return; hecho = true;
+        card.removeEventListener('transitionend', fin);
+        if (ov.parentNode) { ov.parentNode.removeChild(ov); }
+        card.classList.remove('celebrando');
+        aplicarAnteriores();         // ya queda oculta en "completadas"
+        card.classList.remove('colapsando');
+        card.style.height = ''; card.style.marginTop = ''; card.style.marginBottom = '';
+        reubicarCards(); actualizarProgreso(); renderComision();
+      };
+      card.addEventListener('transitionend', fin);
+      setTimeout(fin, 700);
+    }, 1800);
   }
 
   function bannerOnline(ok) {
@@ -1107,7 +1147,10 @@
           var ent = entregadoDe(id), cob = cobradoDe(id);
           if (e === 'entregado') { ent = !ent; } else { cob = !cob; }
           var next = cob ? (ent ? 'cobrado' : 'pagado-pendiente') : (ent ? 'entregado' : 'pendiente');
+          var completa = (next === 'cobrado' && estadoDe(id) !== 'cobrado');
+          if (completa) { card.classList.add('celebrando'); } // que no la oculte antes de animar
           upsert(id, { estado: next });
+          if (completa) { celebrar(card, id); }
         });
       });
       var input = card.querySelector('.fecha-input');

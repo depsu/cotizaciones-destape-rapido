@@ -440,6 +440,15 @@ ESTILOS_EXTRA = """
   .card-wrap.is-reagendado > .gestion-top { border-bottom:2px solid #FECACA; }
   .card-wrap.is-contactado > .card, .card-wrap.is-contactado > .gestion-top { border-color:#86EFAC; background:#F0FDF4; }
   .card-wrap.oculto-anterior { display:none; }
+  /* Animación de "completada con éxito" */
+  .card-wrap.celebrando { position:relative; }
+  .celebra-overlay { position:absolute; inset:0; z-index:7; display:flex; align-items:center;
+    justify-content:center; text-align:center; padding:18px; border-radius:14px;
+    background:#FCD34D; color:#7C2D12; font-weight:800; font-size:17px; line-height:1.3;
+    box-shadow:0 0 0 2px #F59E0B inset; animation:celebra-in .35s ease both; }
+  @keyframes celebra-in { from { opacity:0; transform:scale(.94); } to { opacity:1; transform:scale(1); } }
+  .card-wrap.colapsando { overflow:hidden; opacity:0;
+    transition:height .5s ease, opacity .5s ease, margin .5s ease; }
   .comision-mini { margin-top:2px; font-size:14px; color:#92600A; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
   .comision-mini b { font-size:16px; }
   .comision-mini .cm-base { color:var(--gris); font-size:12px; }
@@ -759,14 +768,12 @@ SCRIPT_ESTADO = r"""<script>
     if (h) { document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px'); }
   }
 
-  // ---- Ocultar anteriores: solo se pueden ocultar las COBRADAS de días pasados ----
+  // ---- Ocultar completadas: las que ya están entregadas + cobradas (estado 'cobrado') ----
   function aplicarAnteriores() {
-    var hoy = todayISO();
     var ocultables = [];
     document.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
-      var id = cw.getAttribute('data-id');
-      var eff = fechaDe(id);
-      var ocultable = !!(eff && eff < hoy) && estadoDe(id) === 'cobrado';
+      if (cw.classList.contains('celebrando')) { return; } // no ocultar mientras celebra
+      var ocultable = estadoDe(cw.getAttribute('data-id')) === 'cobrado';
       if (ocultable) { ocultables.push(cw); }
       cw.classList.toggle('oculto-anterior', ocultable && anterioresColapsado);
     });
@@ -778,7 +785,40 @@ SCRIPT_ESTADO = r"""<script>
     if (!btn) return;
     if (!ocultables.length) { btn.hidden = true; return; }
     btn.hidden = false;
-    btn.textContent = (anterioresColapsado ? '▾ Ver cobradas anteriores (' : '▴ Ocultar cobradas anteriores (') + ocultables.length + ')';
+    btn.textContent = (anterioresColapsado ? '✓ Ver completadas (' : '▴ Ocultar completadas (') + ocultables.length + ')';
+  }
+
+  // Animación al completar (entregado + cobrado): card dorada con mensaje de éxito,
+  // luego se desvanece y colapsa suavemente (las de abajo suben sin brusquedad).
+  function celebrar(card, id) {
+    var m = META[id] || {};
+    var txt = (m.tipo === 'limpieza')
+      ? '✅ Limpieza realizada con éxito'
+      : '✅ ' + ((m.banos > 1) ? 'Baños entregados' : 'Baño entregado') + ' con éxito';
+    card.classList.add('celebrando');
+    var ov = document.createElement('div');
+    ov.className = 'celebra-overlay';
+    ov.textContent = txt;
+    card.appendChild(ov);
+    setTimeout(function () {
+      card.style.height = card.offsetHeight + 'px';
+      void card.offsetHeight; // reflow para animar desde la altura actual
+      card.classList.add('colapsando');
+      card.style.height = '0px'; card.style.marginTop = '0'; card.style.marginBottom = '0';
+      var hecho = false;
+      var fin = function () {
+        if (hecho) return; hecho = true;
+        card.removeEventListener('transitionend', fin);
+        if (ov.parentNode) { ov.parentNode.removeChild(ov); }
+        card.classList.remove('celebrando');
+        aplicarAnteriores();         // ya queda oculta en "completadas"
+        card.classList.remove('colapsando');
+        card.style.height = ''; card.style.marginTop = ''; card.style.marginBottom = '';
+        reubicarCards(); actualizarProgreso(); renderComision();
+      };
+      card.addEventListener('transitionend', fin);
+      setTimeout(fin, 700);
+    }, 1800);
   }
 
   function bannerOnline(ok) {
@@ -969,7 +1009,10 @@ SCRIPT_ESTADO = r"""<script>
           var ent = entregadoDe(id), cob = cobradoDe(id);
           if (e === 'entregado') { ent = !ent; } else { cob = !cob; }
           var next = cob ? (ent ? 'cobrado' : 'pagado-pendiente') : (ent ? 'entregado' : 'pendiente');
+          var completa = (next === 'cobrado' && estadoDe(id) !== 'cobrado');
+          if (completa) { card.classList.add('celebrando'); } // que no la oculte antes de animar
           upsert(id, { estado: next });
+          if (completa) { celebrar(card, id); }
         });
       });
       var input = card.querySelector('.fecha-input');
@@ -1132,6 +1175,7 @@ def construir_html(data: dict) -> str:
             "comision_pagada": bool(e.get("comision_pagada", False)),
             "tel": solo_digitos(e.get("telefono", "")),
             "banos": cantidad_banos(e),
+            "tipo": "limpieza" if e.get("comision") is False else "bano",
         }
         for e in entregas
     ]
