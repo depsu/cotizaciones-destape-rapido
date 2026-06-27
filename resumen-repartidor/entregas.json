@@ -35,7 +35,10 @@
     },
     {
       "id": "2026-06-26-b-carcamo-mair-mantencion",
-      "retiro": { "fecha": "2026-07-07", "nota": "Retiro de la unidad (sin limpieza)." },
+      "retiro": {
+        "fecha": "2026-07-07",
+        "nota": "Retiro de la unidad (sin limpieza)."
+      },
       "cliente": "B. Cárcamo (MAIR) — mantención reforzada + retiro",
       "telefono": "+56 9 3380 0237",
       "direccion": "Curicó 517, Santiago Centro, Región Metropolitana",
@@ -121,7 +124,10 @@
     },
     {
       "id": "2026-06-25-tania-soria-768",
-      "retiro": { "fecha": "2026-07-09", "nota": "Al finalizar las 2 semanas (aprox.)." },
+      "retiro": {
+        "fecha": "2026-07-09",
+        "nota": "Al finalizar las 2 semanas (aprox.)."
+      },
       "cliente": "Tania (obra Soria 768, Las Condes)",
       "telefono": "+56 9 5911 4408",
       "direccion": "Soria 768, Las Condes, Región Metropolitana",
@@ -146,7 +152,10 @@
     },
     {
       "id": "2026-06-24-loreley-190-la-reina",
-      "retiro": { "fecha": "2026-07-08", "nota": "Al finalizar las 2 semanas (aprox.)." },
+      "retiro": {
+        "fecha": "2026-07-08",
+        "nota": "Al finalizar las 2 semanas (aprox.)."
+      },
       "cliente": "Cliente — Loreley 190 (La Reina)",
       "telefono": "+56 9 4210 7260",
       "direccion": "Loreley 190, La Reina, Región Metropolitana",
@@ -171,7 +180,10 @@
     },
     {
       "id": "2026-06-23-b-carcamo-mair",
-      "retiro": { "fecha": "2026-07-07", "nota": "Al finalizar las 2 semanas (aprox.)." },
+      "retiro": {
+        "fecha": "2026-07-07",
+        "nota": "Al finalizar las 2 semanas (aprox.)."
+      },
       "cliente": "B. Cárcamo (MAIR)",
       "telefono": "+56 9 3380 0237",
       "direccion": "Curicó 517, Santiago Centro, Región Metropolitana",
@@ -199,11 +211,15 @@
       ],
       "notas": "Baño PAGADO. Pendiente: coordinar y cobrar el aseo extra / plan de mantención (2 limpiezas/sem + recarga de agua). Cliente con factura (empresa MAIR) — confirmar razón social y RUT. Comuna de 'Curicó 517' por confirmar. Apodo del repartidor: 'Líder' (se instala casi dentro de un Líder). Comisión ($26.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).",
       "estado": "cobrado",
-      "comision_pagada": true
+      "comision_pagada": true,
+      "pagada_at": "2026-06-24"
     },
     {
       "id": "2026-06-23-gino-munoz",
-      "retiro": { "fecha": "2026-06-30", "nota": "Al finalizar la semana (aprox.)." },
+      "retiro": {
+        "fecha": "2026-06-30",
+        "nota": "Al finalizar la semana (aprox.)."
+      },
       "cliente": "Gino Muñoz (Constructora GMP)",
       "telefono": "+56 9 5387 2435",
       "direccion": "Condominio Polo de Manquehue 2, Chicureo, Colina, Región Metropolitana",
@@ -231,7 +247,8 @@
       ],
       "notas": "Arriendo por 1 semana. Recibe durante el día, cualquier horario. El cliente manda ubicación exacta por WhatsApp. Factura a Gino Enrique Muñoz Pavez (persona natural con giro). Se paga al entregar. Apodo del repartidor: 'El Valle'. ENTREGADO Y COBRADO. Comisión ($20.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).",
       "estado": "cobrado",
-      "comision_pagada": true
+      "comision_pagada": true,
+      "pagada_at": "2026-06-24"
     },
     {
       "id": "2026-06-23-don-daniel",
@@ -313,7 +330,8 @@
       ],
       "notas": "Preguntar por PILAR CASANUEVA al llegar. Jefe de obra en terreno: David Durán, +56 9 8805 1486. Contacto que coordinó por WhatsApp: +56 9 4550 7354. Cliente necesita el baño HOY (trabajadores ya en obra). Arriendo mensual, puede extenderse. ENTREGADO Y COBRADO. Comisión ($32.000, apodo 'Barnechea') ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).",
       "estado": "cobrado",
-      "comision_pagada": true
+      "comision_pagada": true,
+      "pagada_at": "2026-06-24"
     },
     {
       "id": "2026-06-26-villagra-conchali",
@@ -397,7 +415,8 @@
       ],
       "notas": "Persona en terreno: Jonathan Bastías +56 9 5083 1752. Persona con la que se cerró el negocio: +56 9 9538 4264. Arriendo por 2 meses. ENTREGADO Y COBRADO. Comisión de Alejandro ($32.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).",
       "estado": "cobrado",
-      "comision_pagada": true
+      "comision_pagada": true,
+      "pagada_at": "2026-06-24"
     },
     {
       "id": "2026-06-27-mair-recambio",
@@ -428,5 +447,8 @@
       "notas": "Apodo del repartidor: 'Líder' (se instala casi dentro de un Líder). Recambio del 27/06/2026 por filtración de líquidos. ENTREGADO Y REALIZADO. Pendiente de cobro: factura a MAIR ($47.600). Confirmar si MAIR ya pagó para marcar cobrado.",
       "estado": "entregado"
     }
-  ]
+  ],
+  "comprobantes": {
+    "2026-06-24": "comprobantes/pago-2026-06-24.png"
+  }
 }

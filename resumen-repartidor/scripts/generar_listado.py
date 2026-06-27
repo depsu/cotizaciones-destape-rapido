@@ -554,6 +554,16 @@ ESTILOS_EXTRA = """
   .com-wa:active, .com-info:active { filter:brightness(.96); }
   .info-reag { margin-top:8px; font-weight:800; color:#B91C1C; background:#FEE2E2; border:1px solid #FCA5A5; padding:7px 10px; border-radius:8px; }
   .info-clon { margin-top:10px; }
+  /* Grupos de pago (Pago 1, Pago 2…) en "Mis pagos recibidos" */
+  .pago-grupo { background:#F8FAFC; border:1px solid var(--linea); border-radius:14px; padding:12px; margin-bottom:12px; }
+  .pago-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .pago-tit { font-weight:800; color:#166534; }
+  .pago-tot { font-weight:800; color:#166534; font-variant-numeric:tabular-nums; }
+  .com-ver-transf { width:100%; margin:8px 0 10px; padding:10px; border-radius:9px; font-family:inherit;
+    font-weight:700; font-size:13px; cursor:pointer; background:#fff; color:#1F5AA8; border:1px solid #BFDBFE; }
+  .com-ver-transf:active { filter:brightness(.96); }
+  .transf-img { max-width:100%; border-radius:10px; display:block; }
+  .transf-falta { color:var(--gris); font-size:14px; padding:12px; text-align:center; }
   .com-card.com-pagada { background:#F0FDF4; border-color:#BBF7D0; opacity:.85; }
   .com-check { width:22px; height:22px; flex:none; accent-color:#16A34A; }
   .com-main { flex:1 1 auto; min-width:0; }
@@ -600,6 +610,7 @@ SCRIPT_ESTADO = r"""<script>
   var SUPA = { url: APP.url, key: APP.key };
   var WA = APP.whatsapp || '';
   var BANCO = APP.banco || {};
+  var COMPROB = APP.comprobantes || {}; // fecha de pago -> ruta de la foto del comprobante
   var META = {};
   (APP.entregas || []).forEach(function (e) { META[e.id] = e; });
   var estado = {}; // id -> {id, estado, fecha, comision_pagada, pagada_at}
@@ -679,6 +690,11 @@ SCRIPT_ESTADO = r"""<script>
     return !!(META[id] && META[id].comision_pagada);
   }
   function contactadoDe(id) { var st = estado[id]; return !!(st && st.contactado); }
+  function pagadaAtDe(id) {
+    var st = estado[id];
+    if (st && st.pagada_at) return st.pagada_at;
+    return (META[id] && META[id].pagada_at) || '';
+  }
 
   function pintarCard(card) {
     var id = card.getAttribute('data-id');
@@ -1100,6 +1116,31 @@ SCRIPT_ESTADO = r"""<script>
     bg.querySelector('.cancelar').addEventListener('click', function () { document.body.removeChild(bg); });
   }
 
+  // Modal con la foto del comprobante de un pago (la sube Alejandro manual).
+  function verTransferencia(key) {
+    var url = COMPROB[key];
+    var bg = document.createElement('div');
+    bg.className = 'modal-bg';
+    bg.innerHTML = '<div class="modal"><h3>Comprobante de transferencia</h3>'
+      + '<div class="transf-cuerpo"></div>'
+      + '<div class="modal-acciones"><button type="button" class="btn-modal cancelar">Cerrar</button></div></div>';
+    var cuerpo = bg.querySelector('.transf-cuerpo');
+    if (url) {
+      var img = document.createElement('img');
+      img.className = 'transf-img'; img.alt = 'comprobante'; img.src = url;
+      var falta = document.createElement('div');
+      falta.className = 'transf-falta'; falta.style.display = 'none';
+      falta.textContent = 'Aún no subiste la foto de este pago (' + url + ').';
+      img.addEventListener('error', function () { img.style.display = 'none'; falta.style.display = 'block'; });
+      cuerpo.appendChild(img); cuerpo.appendChild(falta);
+    } else {
+      cuerpo.innerHTML = '<div class="transf-falta">Aún no hay comprobante para este pago. Súbelo manualmente.</div>';
+    }
+    document.body.appendChild(bg);
+    bg.addEventListener('click', function (ev) { if (ev.target === bg) { document.body.removeChild(bg); } });
+    bg.querySelector('.cancelar').addEventListener('click', function () { document.body.removeChild(bg); });
+  }
+
   function renderComision() {
     actualizarGanado();
     var cont = document.getElementById('comision-panel');
@@ -1140,8 +1181,25 @@ SCRIPT_ESTADO = r"""<script>
       html += '<p class="cp-vacio">No hay comisiones pendientes de pago. 🎉</p>';
     }
     if (pagadas.length) {
-      html += '<div class="com-sec-tit">Ya pagadas · ' + clp(yaPagada) + '</div>'
-        + pagadas.map(function (id) { return card(id, true); }).join('');
+      // Agrupar por momento de pago: cada grupo es un "Pago N" con su comprobante.
+      var grupos = {};
+      pagadas.forEach(function (id) {
+        var k = pagadaAtDe(id) || 'sin-fecha';
+        (grupos[k] = grupos[k] || []).push(id);
+      });
+      var claves = Object.keys(grupos).sort();
+      html += '<div class="com-sec-tit">Mis pagos recibidos · ' + clp(yaPagada) + '</div>';
+      claves.forEach(function (k, i) {
+        var idsg = grupos[k];
+        var tot = idsg.reduce(function (s, id) { return s + META[id].comision; }, 0);
+        var fechaTxt = (k === 'sin-fecha') ? 'sin fecha' : fechaLarga(k.split('T')[0]);
+        html += '<div class="pago-grupo"><div class="pago-head">'
+          + '<span class="pago-tit">Pago ' + (i + 1) + ' · ' + fechaTxt + '</span>'
+          + '<span class="pago-tot">' + clp(tot) + '</span></div>'
+          + '<button type="button" class="com-ver-transf" data-key="' + escapeHtml(k) + '">📷 Ver transferencia</button>'
+          + idsg.map(function (id) { return card(id, true); }).join('')
+          + '</div>';
+      });
     }
     cont.innerHTML = html;
 
@@ -1167,6 +1225,9 @@ SCRIPT_ESTADO = r"""<script>
     });
     cont.querySelectorAll('.com-info').forEach(function (b) {
       b.addEventListener('click', function () { verInfoEntrega(b.getAttribute('data-id')); });
+    });
+    cont.querySelectorAll('.com-ver-transf').forEach(function (b) {
+      b.addEventListener('click', function () { verTransferencia(b.getAttribute('data-key')); });
     });
     updateBarra();
   }
@@ -1485,6 +1546,7 @@ def construir_html(data: dict) -> str:
             "comisiona": comisiona(e),
             "estado": e.get("estado", "pendiente"),
             "comision_pagada": bool(e.get("comision_pagada", False)),
+            "pagada_at": e.get("pagada_at"),
             "tel": solo_digitos(e.get("telefono", "")),
             "banos": cantidad_banos(e),
             "tipo": "limpieza" if e.get("comision") is False else "bano",
@@ -1500,6 +1562,7 @@ def construir_html(data: dict) -> str:
             "banco": DATOS_BANCARIOS,
             "entregas": meta,
             "tareas": tareas,
+            "comprobantes": data.get("comprobantes", {}),
         },
         ensure_ascii=False,
     ).replace("</", "<\\/")  # evita cerrar el <script> con datos
