@@ -902,12 +902,11 @@ SCRIPT_ESTADO = r"""<script>
     return ids;
   }
 
-  // Dinero ganado en total: tu comisión de TODO lo cobrado (pagado por el cliente).
+  // Total recaudado: el monto bruto de TODO lo cobrado (lo que ganan en general).
   function actualizarGanado() {
     var total = 0;
     Object.keys(META).forEach(function (id) {
-      var m = META[id];
-      if (m.comisiona && m.comision && cobradoDe(id)) { total += m.comision; }
+      if (cobradoDe(id)) { total += (META[id].monto || 0); }
     });
     var el = document.getElementById('ganado-total');
     if (el) { el.textContent = '💰 Ganado en total: ' + clp(total); }
@@ -1229,6 +1228,7 @@ def construir_html(data: dict) -> str:
             "tel": solo_digitos(e.get("telefono", "")),
             "banos": cantidad_banos(e),
             "tipo": "limpieza" if e.get("comision") is False else "bano",
+            "monto": (e.get("pago") or {}).get("monto") or 0,
         }
         for e in entregas
     ]
