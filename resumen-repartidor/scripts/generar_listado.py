@@ -421,7 +421,7 @@ ESTILOS_EXTRA = """
   .ver-anteriores.modo-activo { position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
     width:calc(100% - 24px); max-width:536px; z-index:30; background:var(--azul); color:#fff;
     border-style:solid; border-color:var(--azul); box-shadow:0 6px 18px rgba(15,23,42,.30); }
-  body.modo-completadas main { padding-bottom:84px; }
+  body.modo-completadas main { padding-bottom:140px; }
   /* Gestión ARRIBA de la card */
   .card-wrap { margin-bottom:10px; }
   .gestion-top { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 12px;
@@ -495,9 +495,12 @@ ESTILOS_EXTRA = """
   .conf-no, .conf-si { font-family:inherit; font-weight:700; font-size:13px; padding:10px 16px; border-radius:9px; cursor:pointer; min-height:42px; }
   .conf-no { background:#fff; border:1px solid var(--linea); color:var(--tinta); }
   .conf-si { background:#DC2626; border:none; color:#fff; }
-  /* Título del modo "Ver completadas" */
-  .modo-titulo { font-weight:800; color:#166534; background:#DCFCE7; border:1px solid #BBF7D0;
-    border-radius:10px; padding:10px 12px; margin:0 0 10px; text-align:center; font-size:14px; }
+  /* Título del modo "Ver completadas": flota justo encima del botón */
+  .modo-titulo { position:fixed; bottom:72px; left:50%; transform:translateX(-50%);
+    width:calc(100% - 24px); max-width:536px; z-index:30; margin:0;
+    font-weight:800; color:#166534; background:#DCFCE7; border:1px solid #BBF7D0;
+    border-radius:10px; padding:9px 12px; text-align:center; font-size:13px;
+    box-shadow:0 4px 14px rgba(15,23,42,.18); }
   /* Tareas (limpiezas / retiros) interactivas */
   .tarea-lista { margin:8px 0 0; }
   .tarea-card { background:#fff; border:1px solid var(--linea); border-radius:12px; padding:11px 13px; margin-bottom:8px; }
