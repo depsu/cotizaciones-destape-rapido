@@ -245,8 +245,16 @@
   .com-deuda b { font-size:24px; font-weight:800; color:#92600A; font-variant-numeric:tabular-nums; }
   .com-sec-tit { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--gris);
     font-weight:700; margin:18px 2px 8px; }
-  .com-card { display:flex; align-items:center; gap:10px; padding:11px 13px; margin-bottom:8px;
-    background:#FFFBEB; border:1px solid #FCD34D; border-radius:12px; }
+  .com-card { padding:11px 13px; margin-bottom:8px; background:#FFFBEB; border:1px solid #FCD34D; border-radius:12px; }
+  .com-top { display:flex; align-items:center; gap:10px; }
+  .com-acciones { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .com-wa, .com-info { flex:1 1 0; min-width:0; padding:9px 6px; border-radius:9px; font-family:inherit;
+    font-size:12.5px; font-weight:700; cursor:pointer; min-height:42px; }
+  .com-wa { background:#16A34A; color:#fff; border:none; }
+  .com-info { background:#fff; color:#1F5AA8; border:1px solid #BFDBFE; }
+  .com-wa:active, .com-info:active { filter:brightness(.96); }
+  .info-reag { margin-top:8px; font-weight:800; color:#B91C1C; background:#FEE2E2; border:1px solid #FCA5A5; padding:7px 10px; border-radius:8px; }
+  .info-clon { margin-top:10px; }
   .com-card.com-pagada { background:#F0FDF4; border-color:#BBF7D0; opacity:.85; }
   .com-check { width:22px; height:22px; flex:none; accent-color:#16A34A; }
   .com-main { flex:1 1 auto; min-width:0; }
@@ -1211,6 +1219,27 @@
     setHeaderH(); // el alto del header cambia con la línea de "ganado"
   }
 
+  // Modal con TODA la info del cliente/entrega (reusa el detalle de su card).
+  function verInfoEntrega(id) {
+    var m = META[id] || {};
+    var card = document.querySelector('.card-wrap[data-id="' + String(id).replace(/"/g, '\\"') + '"]');
+    var detalle = card ? card.querySelector('.detalle').innerHTML : '<p>Sin detalle disponible.</p>';
+    var estLbl = (ESTADOS[estadoDe(id)] || ESTADOS['pendiente'])[0];
+    var fOrig = m.fecha, fAct = fechaDe(id);
+    var reag = (fAct && fOrig && fAct !== fOrig)
+      ? '<div class="info-reag">⚠ Reagendada: de ' + fechaLarga(fOrig) + ' a ' + fechaLarga(fAct) + '</div>' : '';
+    var bg = document.createElement('div');
+    bg.className = 'modal-bg';
+    bg.innerHTML = '<div class="modal"><h3>' + escapeHtml(m.cliente || 'Cliente') + '</h3>'
+      + '<div class="modal-sub">Estado: ' + estLbl + ' · Entrega: ' + fechaLarga(fAct || fOrig) + '</div>'
+      + reag
+      + '<div class="info-clon">' + detalle + '</div>'
+      + '<div class="modal-acciones"><button type="button" class="btn-modal cancelar">Cerrar</button></div></div>';
+    document.body.appendChild(bg);
+    bg.addEventListener('click', function (ev) { if (ev.target === bg) { document.body.removeChild(bg); } });
+    bg.querySelector('.cancelar').addEventListener('click', function () { document.body.removeChild(bg); });
+  }
+
   function renderComision() {
     actualizarGanado();
     var cont = document.getElementById('comision-panel');
@@ -1231,10 +1260,15 @@
         ? '<span class="com-pagada-tag">✓ Pagada</span>'
         : '<input type="checkbox" class="com-check" data-id="' + escapeHtml(id) + '"' + (comDesel.has(id) ? '' : ' checked') + '>';
       var rev = paid ? '<button type="button" class="com-revocar" data-id="' + escapeHtml(id) + '">Revocar</button>' : '';
-      return '<div class="com-card' + (paid ? ' com-pagada' : '') + '">' + check
+      var wa = m.tel ? '<button type="button" class="com-wa" data-id="' + escapeHtml(id) + '">💬 Revisar en WhatsApp</button>' : '';
+      return '<div class="com-card' + (paid ? ' com-pagada' : '') + '">'
+        + '<div class="com-top">' + check
         + '<div class="com-main"><div class="com-cli">' + escapeHtml(m.cliente) + '</div>'
         + '<div class="com-dir">📍 ' + escapeHtml(m.direccion || '') + ' · ' + fechaLarga(fechaDe(id)) + '</div></div>'
-        + '<div class="com-monto">' + clp(m.comision) + '</div>' + rev + '</div>';
+        + '<div class="com-monto">' + clp(m.comision) + '</div>' + rev + '</div>'
+        + '<div class="com-acciones">' + wa
+        + '<button type="button" class="com-info" data-id="' + escapeHtml(id) + '">📋 Ver toda la info</button></div>'
+        + '</div>';
     }
 
     var html = '<div class="cp-head"><span class="cp-titulo">💰 Comisión a pagar</span></div>'
@@ -1264,6 +1298,15 @@
           upsert(b.getAttribute('data-id'), { comision_pagada: false, pagada_at: null });
         }
       });
+    });
+    cont.querySelectorAll('.com-wa').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var tel = (META[b.getAttribute('data-id')] || {}).tel;
+        if (tel) { window.location.href = 'whatsapp://send?phone=' + tel; }
+      });
+    });
+    cont.querySelectorAll('.com-info').forEach(function (b) {
+      b.addEventListener('click', function () { verInfoEntrega(b.getAttribute('data-id')); });
     });
     updateBarra();
   }
