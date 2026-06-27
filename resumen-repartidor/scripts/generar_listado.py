@@ -264,7 +264,9 @@ def tarjeta(e: dict) -> str:
     # cuando es un servicio extra (comision:false), no un arriendo de baño.
     if e.get("comision") is False:
         sl = (e.get("servicio") or "").lower()
-        if "retiro" in sl and "limpieza" not in sl and "mantenci" not in sl:
+        if "recambio" in sl:
+            res_icono, res_txt = "♻️", "Recambio"
+        elif "retiro" in sl and "limpieza" not in sl and "mantenci" not in sl:
             res_icono, res_txt = "📦", "Retiro"
         else:
             res_icono, res_txt = "🧽", "Limpieza extra"
@@ -474,9 +476,8 @@ ESTILOS_EXTRA = """
   .card-wrap.is-contactado > .card, .card-wrap.is-contactado > .gestion-top { border-color:#86EFAC; background:#F0FDF4; }
   .card-wrap.is-pendiente-reagendar > .card, .card-wrap.is-pendiente-reagendar > .gestion-top { border-color:#CBD5E1; background:#F1F5F9; }
   .card-wrap.oculto-anterior { display:none; }
-  /* Botón "Pendiente reagendar" (reemplaza el de contacto cuando se venció) */
-  .btn-contacto.reagendar-prompt { background:#D97706; color:#fff; }
-  .btn-contacto.reagendar-prompt:disabled { background:#D97706; color:#fff; }
+  /* "Falta actualizar la fecha" (tras avisar, mientras no se mueve la fecha) */
+  .btn-contacto.falta-fecha, .btn-contacto.falta-fecha:disabled { background:#FEF3C7; color:#92600A; border:1px solid #FCD34D; }
   /* Brillo del reagendar cuando hay que reposicionar (la primera vez) */
   .gt-fecha.glow .fecha-input { animation: glow-pulse 1.1s ease 3; }
   @keyframes glow-pulse { 0%,100% { box-shadow:0 0 0 0 rgba(217,119,6,0); } 50% { box-shadow:0 0 0 5px rgba(217,119,6,.5); } }
@@ -718,10 +719,11 @@ SCRIPT_ESTADO = r"""<script>
   function contactadoDe(id) { var st = estado[id]; return !!(st && st.contactado); }
   function reagendarAvisadoDe(id) { var st = estado[id]; return !!(st && st.reagendar_avisado); }
   // Entrega contactada pero vencida sin entregar: hay que reagendar con el cliente.
-  function pendienteReagendar(id) {
-    return estadoDe(id) === 'pendiente' && contactadoDe(id) && !reagendarAvisadoDe(id)
-      && !!fechaDe(id) && fechaDe(id) < todayISO();
+  function requiereReagendar(id) {
+    return estadoDe(id) === 'pendiente' && contactadoDe(id) && !!fechaDe(id) && fechaDe(id) < todayISO();
   }
+  function pendienteReagendar(id) { return requiereReagendar(id) && !reagendarAvisadoDe(id); }
+  function faltaActualizarFecha(id) { return requiereReagendar(id) && reagendarAvisadoDe(id); }
   function pagadaAtDe(id) {
     var st = estado[id];
     if (st && st.pagada_at) return st.pagada_at;
@@ -736,9 +738,6 @@ SCRIPT_ESTADO = r"""<script>
     var reagendado = !!(fAct && fOrig && fAct !== fOrig);
     var info = ESTADOS[est] || ESTADOS['pendiente'];
 
-    var badge = card.querySelector('.badge');
-    if (badge) { badge.textContent = info[0]; badge.style.color = info[1]; badge.style.background = info[2]; }
-
     // Dimensiones independientes.
     var entregado = entregadoDe(id);
     var cobrado = cobradoDe(id);
@@ -746,15 +745,24 @@ SCRIPT_ESTADO = r"""<script>
     var listo = (est === 'cobrado');                   // entregado + cobrado
     var esPendiente = (est === 'pendiente');
     var contactado = contactadoDe(id);
-    var pr = pendienteReagendar(id); // contactada pero vencida sin entregar
+    var esServ = !!(META[id] && META[id].es_servicio); // recambio/limpieza/retiro
+    var rr = requiereReagendar(id); // contactada pero vencida sin entregar
+    var pr = pendienteReagendar(id);
+    var ff = faltaActualizarFecha(id);
+
+    var badge = card.querySelector('.badge');
+    if (badge) {
+      var blbl = (est === 'entregado' && esServ) ? 'Realizado' : info[0];
+      badge.textContent = blbl; badge.style.color = info[1]; badge.style.background = info[2];
+    }
 
     // Color de la card. Prioridad: listo(dorado) > pago adelantado(ámbar) > entregado(azul) > reagendado(rojo) > pendiente-reagendar(gris) > contactado(verde).
     card.classList.toggle('is-cobrado', listo);
     card.classList.toggle('is-pago-adelantado', pagoAdelantado);
     card.classList.toggle('is-entregado', entregado && !cobrado);
     card.classList.toggle('is-reagendado', esPendiente && reagendado);
-    card.classList.toggle('is-pendiente-reagendar', pr);
-    card.classList.toggle('is-contactado', esPendiente && !reagendado && contactado && !pr);
+    card.classList.toggle('is-pendiente-reagendar', rr);
+    card.classList.toggle('is-contactado', esPendiente && !reagendado && contactado && !rr);
 
     // Botones de estado (entregado y cobrado independientes).
     card.querySelectorAll('.est-btn').forEach(function (b) {
@@ -762,6 +770,7 @@ SCRIPT_ESTADO = r"""<script>
       var activo = (e === 'entregado' && entregado) || (e === 'cobrado' && cobrado);
       b.classList.toggle('activo', activo);
       if (e === 'cobrado') { b.textContent = cobrado ? 'Cliente ya pagó' : 'Cobrado'; }
+      else if (e === 'entregado') { b.textContent = esServ ? 'Realizado' : 'Entregado'; }
     });
 
     // Aviso "pagó adelantado, falta entregar".
@@ -772,8 +781,9 @@ SCRIPT_ESTADO = r"""<script>
     var hint = card.querySelector('.estado-hint');
     if (hint) {
       var ht = '';
-      if (est === 'entregado') { ht = '🔵 Entregado · falta cobrar'; }
+      if (est === 'entregado') { ht = esServ ? '🔵 Realizado · falta cobrar' : '🔵 Entregado · falta cobrar'; }
       else if (esPendiente && reagendado) { ht = '🔴 Reagendada · no se entregó a tiempo'; }
+      else if (ff) { ht = '⚫ Falta actualizar la fecha'; }
       else if (pr) { ht = '⚫ Pendiente reagendar · no se entregó a tiempo'; }
       else if (esPendiente && contactado) { ht = '🟢 Cliente contactado · listo para entregar'; }
       else if (esPendiente) { ht = '⚪ Pendiente · aún sin contactar'; }
@@ -808,24 +818,28 @@ SCRIPT_ESTADO = r"""<script>
     var mostrar = esPendiente && !reagendado && !!tel;
     if (crow) { crow.hidden = !mostrar; }
     if (cbtn) {
+      cbtn.classList.remove('contactado', 'reagendar-prompt', 'falta-fecha');
       if (pr) {
-        cbtn.textContent = '📅 Pendiente reagendar — escribir al cliente';
-        cbtn.disabled = false; cbtn.classList.remove('contactado'); cbtn.classList.add('reagendar-prompt');
+        cbtn.textContent = '💬 Pendiente reagendar — escribir al cliente'; cbtn.disabled = false;
+      } else if (ff) {
+        cbtn.textContent = '📅 Falta actualizar la fecha'; cbtn.disabled = true; cbtn.classList.add('falta-fecha');
       } else if (contactado) {
-        cbtn.textContent = '✓ Cliente contactado'; cbtn.disabled = true;
-        cbtn.classList.add('contactado'); cbtn.classList.remove('reagendar-prompt');
+        cbtn.textContent = '✓ Cliente contactado'; cbtn.disabled = true; cbtn.classList.add('contactado');
       } else {
         cbtn.textContent = '💬 Avisar al cliente que voy a entregar'; cbtn.disabled = false;
-        cbtn.classList.remove('contactado'); cbtn.classList.remove('reagendar-prompt');
       }
     }
-    // Accesos rápidos: cuando ya se contactó (no en pendiente-reagendar, para que haya
-    // un solo botón), o en las reagendadas (rojas) para re-coordinar.
+    // Accesos rápidos (Llamar / Llegar / WhatsApp): SIEMPRE visibles. En reagendar
+    // se oculta el WhatsApp (el botón de arriba ya va a WhatsApp), quedan Llamar y Llegar.
     var accesos = card.querySelector('.contacto-accesos');
-    if (accesos) { accesos.hidden = !((mostrar && contactado && !pr) || (esPendiente && reagendado)); }
-    // Brillo en el reagendar cuando hay que reagendar (la primera vez).
+    if (accesos) { accesos.hidden = false; }
+    // Oculta el WhatsApp de accesos solo cuando el botón de arriba ya va a WhatsApp
+    // (avisar o pendiente-reagendar), para no duplicar. Quedan Llamar y Llegar.
+    var awa = card.querySelector('.acc-wa');
+    if (awa) { awa.hidden = pr || (mostrar && !contactado); }
+    // Brillo en el reagendar mientras esté vencida sin reagendar.
     var gtf = card.querySelector('.gt-fecha');
-    if (gtf) { gtf.classList.toggle('glow', pr); }
+    if (gtf) { gtf.classList.toggle('glow', rr); }
   }
   function pintarTodo() { document.querySelectorAll('.card-wrap[data-id]').forEach(pintarCard); }
 
@@ -1676,6 +1690,7 @@ def construir_html(data: dict) -> str:
             "tel": solo_digitos(e.get("telefono", "")),
             "banos": cantidad_banos(e),
             "tipo": "limpieza" if e.get("comision") is False else "bano",
+            "es_servicio": e.get("comision") is False,
             "monto": (e.get("pago") or {}).get("monto") or 0,
         }
         for e in entregas
