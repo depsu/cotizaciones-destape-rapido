@@ -451,6 +451,8 @@ ESTILOS_EXTRA = """
   .card-wrap.is-cobrado > .card, .card-wrap.is-cobrado > .gestion-top { border-color:#FCD34D; background:#FFFBEB; }
   .card-wrap.is-pago-adelantado > .card, .card-wrap.is-pago-adelantado > .gestion-top { border-color:#F59E0B; background:#FFFBEB; }
   .estado-hint { margin-top:6px; font-size:12px; font-weight:600; color:var(--gris); }
+  header .ganado { margin-top:3px; font-weight:800; opacity:1; font-variant-numeric:tabular-nums; }
+  header .ganado:empty { display:none; }
   .pago-adelantado-txt { margin-top:8px; font-size:13px; font-weight:800; color:#B45309;
     background:#FEF3C7; border:1px solid #FCD34D; border-radius:9px; padding:8px 10px; text-align:center; }
   .card-wrap.is-reagendado > .card, .card-wrap.is-reagendado > .gestion-top { border-color:#F87171; background:#FEF2F2; }
@@ -900,7 +902,19 @@ SCRIPT_ESTADO = r"""<script>
     return ids;
   }
 
+  // Dinero ganado en total: tu comisión de TODO lo cobrado (pagado por el cliente).
+  function actualizarGanado() {
+    var total = 0;
+    Object.keys(META).forEach(function (id) {
+      var m = META[id];
+      if (m.comisiona && m.comision && cobradoDe(id)) { total += m.comision; }
+    });
+    var el = document.getElementById('ganado-total');
+    if (el) { el.textContent = '💰 Ganado en total: ' + clp(total); }
+  }
+
   function renderComision() {
+    actualizarGanado();
     var cont = document.getElementById('comision-panel');
     if (!cont) return;
     var ids = comisionables();
@@ -1367,6 +1381,7 @@ def construir_html(data: dict) -> str:
   <header>
     <h1>🚚 Entregas — Destape Rápido</h1>
     <div class="sub">{pendientes} pendiente(s) · Actualizado {actualizado}</div>
+    <div class="sub ganado" id="ganado-total"></div>
   </header>
   <main>
     {cuerpo}
