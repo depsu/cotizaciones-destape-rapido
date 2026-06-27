@@ -99,6 +99,12 @@
   /* El atributo hidden siempre oculta (varios contenedores usan display:flex/block
      que de otro modo le ganarían al hidden). */
   [hidden] { display: none !important; }
+  /* Velo de carga: evita que parpadeen las completadas antes de ocultarlas.
+     El contenido aparece (con fade) cuando el JS ya aplicó el estado. La animación
+     'velo-fallback' lo revela igual a los 2.2s aunque algo falle. */
+  main { opacity:0; transition:opacity .3s ease; animation:velo-fallback 0s linear 2.2s forwards; }
+  main.listo { opacity:1; }
+  @keyframes velo-fallback { to { opacity:1; } }
   /* Barra de progreso de entregas del día (🚚 en la punta). */
   .prog { flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:8px; }
   .prog-bar { position:relative; flex:1 1 auto; min-width:48px; height:16px;
@@ -812,8 +818,10 @@
       if (reagendado) { fo.hidden = false; fo.textContent = 'Fecha original: ' + fechaLarga(fOrig); }
       else { fo.hidden = true; }
     }
-    var top = card.querySelector('.gestion-top');
-    if (top) { top.hidden = !!(fOrig && fOrig > todayISO()); }
+    // En entregas FUTURAS solo se puede reagendar (se ocultan Entregado/Cobrado).
+    var esFutura = !!(fOrig && fOrig > todayISO());
+    var estados = card.querySelector('.gt-estados');
+    if (estados) { estados.hidden = esFutura; }
 
     // Botón "Avisar al cliente": solo en pendientes NO reagendadas y con teléfono.
     var tel = (META[id] && META[id].tel) || '';
@@ -1127,7 +1135,7 @@
   }
 
   function load() {
-    var done = function () { pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); renderComision(); };
+    var done = function () { pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); renderComision(); revelar(); };
     if (!SUPA.url || !SUPA.key) { done(); return; }
     fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
@@ -1212,8 +1220,14 @@
     });
   }
 
+  function revelar() { var m = document.querySelector('main'); if (m) { m.classList.add('listo'); } }
+
   setHeaderH();
   window.addEventListener('resize', setHeaderH);
+  // Pintura inicial con META (bajo el velo) para que, si la red tarda, lo que se
+  // revele ya esté lo más correcto posible. El velo se levanta en done() tras el fetch.
+  pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); renderComision();
+  setTimeout(revelar, 1500); // fallback si la red tarda demasiado
   wireVistas();
   wire();
   load();
