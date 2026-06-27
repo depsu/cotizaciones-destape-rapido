@@ -16,7 +16,7 @@
 create table if not exists public.entrega_estado (
   id              text primary key,
   estado          text not null default 'pendiente'
-                    check (estado in ('pendiente','en-camino','entregado','cobrado')),
+                    check (estado in ('pendiente','en-camino','entregado','cobrado','pagado-pendiente')),
   fecha           date,                      -- override al reagendar; null = usa la de entregas.json
   comision_pagada boolean not null default false,
   pagada_at       timestamptz,               -- hora en que el repartidor marcó el pago (para verificar/revocar)

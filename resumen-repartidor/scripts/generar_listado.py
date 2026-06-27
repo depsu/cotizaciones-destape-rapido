@@ -359,6 +359,7 @@ def tarjeta(e: dict) -> str:
             <span class="dir">📍 {esc(direccion)}</span>
             {monto_chip}
           </div>
+          <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
           <div class="contacto-row" hidden>
             <button type="button" class="btn-contacto"></button>
           </div>
@@ -432,6 +433,9 @@ ESTILOS_EXTRA = """
   /* Colores de la card según estado */
   .card-wrap.is-entregado > .card, .card-wrap.is-entregado > .gestion-top { border-color:#93C5FD; background:#EFF6FF; }
   .card-wrap.is-cobrado > .card, .card-wrap.is-cobrado > .gestion-top { border-color:#FCD34D; background:#FFFBEB; }
+  .card-wrap.is-pago-adelantado > .card, .card-wrap.is-pago-adelantado > .gestion-top { border-color:#F59E0B; background:#FFFBEB; }
+  .pago-adelantado-txt { margin-top:8px; font-size:13px; font-weight:800; color:#B45309;
+    background:#FEF3C7; border:1px solid #FCD34D; border-radius:9px; padding:8px 10px; text-align:center; }
   .card-wrap.is-reagendado > .card, .card-wrap.is-reagendado > .gestion-top { border-color:#F87171; background:#FEF2F2; }
   .card-wrap.is-reagendado > .gestion-top { border-bottom:2px solid #FECACA; }
   .card-wrap.is-contactado > .card, .card-wrap.is-contactado > .gestion-top { border-color:#86EFAC; background:#F0FDF4; }
@@ -549,8 +553,13 @@ SCRIPT_ESTADO = r"""<script>
     'pendiente': ['Pendiente', '#B45309', '#FEF3C7'],
     'en-camino': ['En camino', '#1E40AF', '#DBEAFE'],
     'entregado': ['Entregado', '#1E40AF', '#DBEAFE'],
-    'cobrado':   ['Cliente ya pagó', '#92600A', '#FEF3C7']
+    'cobrado':   ['Cliente ya pagó', '#92600A', '#FEF3C7'],
+    'pagado-pendiente': ['Pagó · falta entregar', '#B45309', '#FEF3C7']
   };
+  // entregado y cobrado son dimensiones independientes (un cliente puede pagar
+  // adelantado: cobrado sin estar entregado => estado 'pagado-pendiente').
+  function entregadoDe(id) { var e = estadoDe(id); return e === 'entregado' || e === 'cobrado'; }
+  function cobradoDe(id) { var e = estadoDe(id); return e === 'cobrado' || e === 'pagado-pendiente'; }
   var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   var MESESL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   var DIAS = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
@@ -616,21 +625,32 @@ SCRIPT_ESTADO = r"""<script>
     var badge = card.querySelector('.badge');
     if (badge) { badge.textContent = info[0]; badge.style.color = info[1]; badge.style.background = info[2]; }
 
-    // Color de la card. Prioridad: cobrado > entregado > reagendado(rojo) > contactado(verde).
+    // Dimensiones independientes.
+    var entregado = entregadoDe(id);
+    var cobrado = cobradoDe(id);
+    var pagoAdelantado = (est === 'pagado-pendiente'); // cobrado sin entregar
+    var listo = (est === 'cobrado');                   // entregado + cobrado
     var esPendiente = (est === 'pendiente');
     var contactado = contactadoDe(id);
-    card.classList.toggle('is-cobrado', est === 'cobrado');
-    card.classList.toggle('is-entregado', est === 'entregado');
+
+    // Color de la card. Prioridad: listo(dorado) > pago adelantado(ámbar) > entregado(azul) > reagendado(rojo) > contactado(verde).
+    card.classList.toggle('is-cobrado', listo);
+    card.classList.toggle('is-pago-adelantado', pagoAdelantado);
+    card.classList.toggle('is-entregado', entregado && !cobrado);
     card.classList.toggle('is-reagendado', esPendiente && reagendado);
     card.classList.toggle('is-contactado', esPendiente && !reagendado && contactado);
 
-    // Botones de estado.
+    // Botones de estado (entregado y cobrado independientes).
     card.querySelectorAll('.est-btn').forEach(function (b) {
       var e = b.getAttribute('data-estado');
-      var activo = (e === 'entregado' && (est === 'entregado' || est === 'cobrado')) || (e === 'cobrado' && est === 'cobrado');
+      var activo = (e === 'entregado' && entregado) || (e === 'cobrado' && cobrado);
       b.classList.toggle('activo', activo);
-      if (e === 'cobrado') { b.textContent = (est === 'cobrado') ? 'Cliente ya pagó' : 'Cobrado'; }
+      if (e === 'cobrado') { b.textContent = cobrado ? 'Cliente ya pagó' : 'Cobrado'; }
     });
+
+    // Aviso "pagó adelantado, falta entregar".
+    var pa = card.querySelector('.pago-adelantado-txt');
+    if (pa) { pa.hidden = !pagoAdelantado; }
 
     // Reagendar: input + chip + fecha original; oculta la gestión en entregas FUTURAS (gate por fecha original).
     var input = card.querySelector('.fecha-input');
@@ -801,7 +821,7 @@ SCRIPT_ESTADO = r"""<script>
   function comisionables() {
     var ids = Object.keys(META).filter(function (id) {
       var m = META[id];
-      return m.comisiona && m.comision && estadoDe(id) === 'cobrado';
+      return m.comisiona && m.comision && cobradoDe(id);
     });
     ids.sort(function (a, b) { return (fechaDe(a) || '').localeCompare(fechaDe(b) || ''); });
     return ids;
@@ -945,10 +965,10 @@ SCRIPT_ESTADO = r"""<script>
         b.addEventListener('click', function (ev) {
           ev.preventDefault(); ev.stopPropagation();
           var e = b.getAttribute('data-estado');
-          var act = estadoDe(id);
-          var next;
-          if (e === 'entregado') { next = (act === 'entregado') ? 'pendiente' : 'entregado'; }
-          else { next = (act === 'cobrado') ? 'entregado' : 'cobrado'; }
+          // Combina las dos dimensiones (entregado/cobrado) en el estado guardado.
+          var ent = entregadoDe(id), cob = cobradoDe(id);
+          if (e === 'entregado') { ent = !ent; } else { cob = !cob; }
+          var next = cob ? (ent ? 'cobrado' : 'pagado-pendiente') : (ent ? 'entregado' : 'pendiente');
           upsert(id, { estado: next });
         });
       });
