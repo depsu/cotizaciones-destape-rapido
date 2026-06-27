@@ -154,8 +154,10 @@
   .card-wrap.is-cobrado > .card, .card-wrap.is-cobrado > .gestion-top { border-color:#FCD34D; background:#FFFBEB; }
   .card-wrap.is-pago-adelantado > .card, .card-wrap.is-pago-adelantado > .gestion-top { border-color:#F59E0B; background:#FFFBEB; }
   .estado-hint { margin-top:6px; font-size:12px; font-weight:600; color:var(--gris); }
-  header .ganado { margin-top:3px; font-weight:800; opacity:1; font-variant-numeric:tabular-nums; }
+  header .ganado { margin-top:3px; font-weight:800; font-variant-numeric:tabular-nums;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   header .ganado:empty { display:none; }
+  header .ganado .proy { font-weight:600; opacity:.75; font-size:12px; }
   .pago-adelantado-txt { margin-top:8px; font-size:13px; font-weight:800; color:#B45309;
     background:#FEF3C7; border:1px solid #FCD34D; border-radius:9px; padding:8px 10px; text-align:center; }
   .card-wrap.is-reagendado > .card, .card-wrap.is-reagendado > .gestion-top { border-color:#F87171; background:#FEF2F2; }
@@ -1044,14 +1046,16 @@
     return ids;
   }
 
-  // Total recaudado: el monto bruto de TODO lo cobrado (lo que ganan en general).
+  // Total recaudado: lo que LLEVAN (cobrado) y el total si se concreta TODO.
   function actualizarGanado() {
-    var total = 0;
+    var llevan = 0, total = 0;
     Object.keys(META).forEach(function (id) {
-      if (cobradoDe(id)) { total += (META[id].monto || 0); }
+      var mm = META[id].monto || 0;
+      total += mm;
+      if (cobradoDe(id)) { llevan += mm; }
     });
     var el = document.getElementById('ganado-total');
-    if (el) { el.textContent = '💰 Ganado en total: ' + clp(total); }
+    if (el) { el.innerHTML = '💰 <b>' + clp(llevan) + '</b> <span class="proy">/ ' + clp(total) + ' si se cobra todo</span>'; }
   }
 
   function renderComision() {
