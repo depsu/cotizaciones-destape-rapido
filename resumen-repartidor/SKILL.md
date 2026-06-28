@@ -7,6 +7,8 @@ description: Gestiona las entregas de Destape Rápido para el repartidor. Úsalo
 
 Skill para que el repartidor de **Destape Rápido** sepa exactamente a dónde ir, qué entregar, y pueda hablarle al cliente y llegar desde el celular. Todo sale de un único archivo de datos: `entregas.json`.
 
+> 🛠️ **¿Vas a MODIFICAR la página web** (estados, comisión, tareas, animaciones, Supabase)? Lee primero **`resumen-repartidor/ARQUITECTURA.md`** — ahí está cómo funciona la app interactiva, el modelo de estados, las tablas de Supabase, el inventario de features y cómo probar. Este SKILL.md es solo para el flujo de **agregar/enviar una entrega**.
+
 ## Flujo rápido (POR DEFECTO — una sola pasada, sin preguntar de más)
 
 Cuando Alejandro diga **"resumen para repartidor"** y pegue un chat de cliente confirmado, ejecutar TODO de corrido. **No hacer preguntas salvo que falte un dato crítico: dirección, fecha o valor.** Todo lo demás se asume con los defaults.
