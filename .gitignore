@@ -15,3 +15,7 @@ cotizaciones/*.pdf
 
 # Config local de Claude Code
 .claude/
+
+# PII de clientes — nunca pública
+clientes/historial.md
+clientes/.aprendidos.txt
