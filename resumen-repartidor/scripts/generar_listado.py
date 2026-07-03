@@ -532,10 +532,19 @@ ESTILOS_EXTRA = """
     box-shadow:0 4px 14px rgba(15,23,42,.18); }
   /* Tareas (limpiezas / retiros) interactivas */
   .tarea-lista { margin:8px 0 0; }
+  /* Agrupación por día: encabezado de fecha por bloque */
+  .tarea-dia { margin-top:6px; }
+  .tarea-dia.oculto { display:none; }
+  .dia-cab { font-size:12.5px; font-weight:800; color:var(--gris); text-transform:capitalize;
+    letter-spacing:.3px; margin:10px 2px 6px; padding-bottom:4px; border-bottom:1px solid var(--linea); }
   .tarea-card { background:#fff; border:1px solid var(--linea); border-radius:12px; padding:11px 13px; margin-bottom:8px; }
   .tarea-info { display:flex; align-items:flex-start; gap:10px; }
   .tarea-card .btn-contacto, .tarea-card .contacto-accesos { margin-top:8px; }
-  .btn-realizada { width:100%; margin-top:8px; background:#7C3AED; color:#fff; border:none;
+  /* "Coordinar con el cliente" abre WhatsApp -> verde WhatsApp + su logo. */
+  .btn-coordinar { background:#25D366; display:flex; align-items:center; justify-content:center; gap:6px; }
+  .btn-coordinar .ico-wa { vertical-align:0; }
+  /* "Realizada" es VERDE pero distinto del de WhatsApp (verde bosque, más oscuro). */
+  .btn-realizada { width:100%; margin-top:8px; background:#15803D; color:#fff; border:none;
     font-family:inherit; font-weight:800; font-size:14px; padding:12px; border-radius:10px; cursor:pointer; min-height:46px; }
   .btn-realizada:active { filter:brightness(.95); }
   .tarea-card.oculto-anterior, .tarea-card.oculto-futuro, .tarea-card.oculto-no-entregado { display:none; }
@@ -663,6 +672,8 @@ SCRIPT_ESTADO = r"""<script>
   var APP = window.__APP__ || {};
   var SUPA = { url: APP.url, key: APP.key };
   var WA = APP.whatsapp || '';
+  // Logo de WhatsApp (para botones cuyo texto se fija por JS: hereda el color del texto).
+  var WA_SVG = '<svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
   var BANCO = APP.banco || {};
   var COMPROB = APP.comprobantes || {}; // fecha de pago -> ruta de la foto del comprobante
   var META = {};
@@ -1080,7 +1091,7 @@ SCRIPT_ESTADO = r"""<script>
     var cb = card.querySelector('.btn-coordinar');
     if (cb) {
       if (cont) { cb.textContent = '✓ Ya lo contacté'; cb.disabled = true; cb.classList.add('contactado'); }
-      else { cb.textContent = '📞 Coordinar con el cliente'; cb.disabled = false; cb.classList.remove('contactado'); }
+      else { cb.innerHTML = WA_SVG + ' Coordinar con el cliente'; cb.disabled = false; cb.classList.remove('contactado'); }
     }
     var acc = card.querySelector('.contacto-accesos');
     if (acc) { acc.hidden = !cont; }
@@ -1133,6 +1144,11 @@ SCRIPT_ESTADO = r"""<script>
         if (entregado && realizada) nReal++;
         if (entregado && !realizada && futuro) nFuturo++;
         if (!hideNoEnt && !hideReal && !hideFut) nVisible++;
+      });
+      // Ocultar encabezados de día sin tareas visibles.
+      sec.querySelectorAll('.tarea-dia').forEach(function (dia) {
+        var vis = dia.querySelectorAll('.tarea-card:not(.oculto-no-entregado):not(.oculto-anterior):not(.oculto-futuro)').length;
+        dia.classList.toggle('oculto', !vis);
       });
       var cnt = sec.querySelector('.conteo');
       if (cnt) { cnt.textContent = nVisible; }
@@ -1675,8 +1691,9 @@ def _tarea_card(tid, fecha, cliente, direccion, tel, etiqueta, nota, extra_html,
     """Card interactiva de una tarea (limpieza/retiro): coordinar, accesos, realizada."""
     num = solo_digitos(tel)
     accesos = []
+    # OJO: el botón WhatsApp NO va aquí; "Coordinar con el cliente" ya abre WhatsApp
+    # (mismo verde + logo), así que ponerlo también en los accesos sería redundante.
     if num:
-        accesos.append(f'<a class="acc-link acc-wa" href="whatsapp://send?phone={num}">{WA_ICON}WhatsApp</a>')
         accesos.append(f'<a class="acc-link acc-call" href="tel:{esc(tel)}">📞 Llamar</a>')
     if direccion:
         maps_q = f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
@@ -1688,7 +1705,6 @@ def _tarea_card(tid, fecha, cliente, direccion, tel, etiqueta, nota, extra_html,
     return (
         f'<div class="tarea-card" data-tid="{esc(tid)}" data-ent="{esc(ent_tarea)}" data-fecha="{esc(fecha)}">'
         '<div class="tarea-info">'
-        f'<span class="ag-fecha">{esc(fecha_corta(fecha))}</span>'
         f'<span class="ag-main"><b>{esc(cliente)}</b>'
         f'<span class="ag-dir">📍 {calle_negrita(direccion)}</span>'
         f'<span class="ag-sub">{esc(etiqueta)}</span>{nota_html}</span>'
@@ -1701,8 +1717,35 @@ def _tarea_card(tid, fecha, cliente, direccion, tel, etiqueta, nota, extra_html,
     )
 
 
+def _lista_por_dia(cards) -> str:
+    """Agrupa cards [(fecha, html), ...] (ya ordenadas) en bloques por día, con
+    un encabezado de fecha por bloque. Facilita ver las tareas de cada día."""
+    from itertools import groupby
+    bloques = []
+    for fecha, grupo in groupby(cards, key=lambda x: x[0]):
+        cs = "".join(html for _, html in grupo)
+        cab = esc(fecha_corta(fecha)) if fecha else "Sin fecha"
+        bloques.append(
+            f'<div class="tarea-dia" data-dia="{esc(fecha)}">'
+            f'<div class="dia-cab">{cab}</div>{cs}</div>'
+        )
+    return "".join(bloques)
+
+
+def _seccion_tareas(titulo, cards, n_total):
+    """HTML de una sección de tareas: título + toggle 'Ver realizadas' (arriba),
+    lista agrupada por día, y toggle 'Ver todas — próximas' (abajo, tras el límite)."""
+    return (
+        f'<section class="agregado" data-tareas><h2 class="fecha-titulo">{titulo}'
+        f'<span class="conteo">{n_total}</span></h2>'
+        '<button class="ver-anteriores ver-realizadas" type="button" hidden></button>'
+        f'<div class="tarea-lista">{_lista_por_dia(cards)}</div>'
+        '<button class="ver-anteriores ver-todas" type="button" hidden></button></section>'
+    )
+
+
 def seccion_limpiezas(entregas: list):
-    """(html, tareas) — cada limpieza es una tarea interactiva, ordenadas por fecha."""
+    """(html, tareas) — cada limpieza es una tarea interactiva, agrupada por día."""
     filas = []
     for e in entregas:
         for idx, lp in enumerate(e.get("limpiezas") or []):
@@ -1710,7 +1753,7 @@ def seccion_limpiezas(entregas: list):
     if not filas:
         return "", []
     filas.sort(key=lambda x: x[0])
-    items, tareas = [], []
+    cards, tareas = [], []
     for fecha, e, idx, lp in filas:
         tid = f'{e.get("id", "")}::lim::{idx}'
         tipo = lp.get("tipo", "incluida")
@@ -1718,43 +1761,29 @@ def seccion_limpiezas(entregas: list):
         extra = f'<span class="lp-badge" style="color:{col_t};background:{bg_t}">{etq_t}</span>'
         if tipo == "extra" and lp.get("valor"):
             extra += f'<span class="lp-valor">{esc(clp(lp.get("valor")))}</span>'
-        items.append(_tarea_card(tid, fecha, e.get("cliente", "—"), e.get("direccion", ""),
-                                 e.get("telefono", ""), lp.get("etiqueta") or "Limpieza",
-                                 lp.get("nota"), extra, "limpieza"))
+        cards.append((fecha, _tarea_card(tid, fecha, e.get("cliente", "—"), e.get("direccion", ""),
+                                         e.get("telefono", ""), lp.get("etiqueta") or "Limpieza",
+                                         lp.get("nota"), extra, "limpieza")))
         tareas.append({"id": tid, "tel": solo_digitos(e.get("telefono", "")), "fecha": fecha,
                        "tipo": "limpieza", "hecha": lp.get("estado") == "hecha"})
-    html = (
-        '<section class="agregado" data-tareas><h2 class="fecha-titulo">🧽 Limpiezas a realizar'
-        f'<span class="conteo">{len(filas)}</span></h2>'
-        '<button class="ver-anteriores ver-todas" type="button" hidden></button>'
-        '<button class="ver-anteriores ver-realizadas" type="button" hidden></button>'
-        f'<div class="tarea-lista">{"".join(items)}</div></section>'
-    )
-    return html, tareas
+    return _seccion_tareas("🧽 Limpiezas a realizar", cards, len(filas)), tareas
 
 
 def seccion_retiros(entregas: list):
-    """(html, tareas) — cada retiro es una tarea interactiva, ordenadas por fecha."""
+    """(html, tareas) — cada retiro es una tarea interactiva, agrupada por día."""
     datos = [(r.get("fecha", ""), e, r) for e in entregas if (r := e.get("retiro"))]
     if not datos:
         return "", []
     datos.sort(key=lambda x: x[0])
-    items, tareas = [], []
+    cards, tareas = [], []
     for fecha, e, r in datos:
         tid = f'{e.get("id", "")}::retiro'
         extra = '<span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span>'
-        items.append(_tarea_card(tid, fecha, e.get("cliente", "—"), e.get("direccion", ""),
-                                 e.get("telefono", ""), "Retiro", r.get("nota"), extra, "retiro"))
+        cards.append((fecha, _tarea_card(tid, fecha, e.get("cliente", "—"), e.get("direccion", ""),
+                                         e.get("telefono", ""), "Retiro", r.get("nota"), extra, "retiro")))
         tareas.append({"id": tid, "tel": solo_digitos(e.get("telefono", "")), "fecha": fecha,
                        "tipo": "retiro", "hecha": False})
-    html = (
-        '<section class="agregado" data-tareas><h2 class="fecha-titulo">📦 Retiros'
-        f'<span class="conteo">{len(datos)}</span></h2>'
-        '<button class="ver-anteriores ver-todas" type="button" hidden></button>'
-        '<button class="ver-anteriores ver-realizadas" type="button" hidden></button>'
-        f'<div class="tarea-lista">{"".join(items)}</div></section>'
-    )
-    return html, tareas
+    return _seccion_tareas("📦 Retiros", cards, len(datos)), tareas
 
 
 def construir_html(data: dict) -> str:
