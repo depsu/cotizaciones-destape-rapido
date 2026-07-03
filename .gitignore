@@ -19,3 +19,11 @@ cotizaciones/*.pdf
 # PII de clientes — nunca pública
 clientes/historial.md
 clientes/.aprendidos.txt
+clientes/reglas-aprendidas.md
+
+# Dependencias / build
+node_modules/
+correo-worker/.wrangler/
+
+# Cotizaciones con PII de clientes (RUT, email, dirección) — nunca públicas
+cotizaciones/*.json
