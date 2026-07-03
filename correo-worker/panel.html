@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bandeja · Agente de Cotizaciones</title>
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="apple-touch-icon" href="/icon-180.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Cotizaciones" />
+<meta name="theme-color" content="#0F6E6E" />
+<style>
+  :root{
+    --brand:#0F6E6E; --brand-soft:#EAF4F2; --accent:#E0A82E;
+    --dark:#1E2A2A; --gray:#5F6B6B; --line:#e3e8e8; --bg:#f5f7f7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--dark)}
+  header{background:var(--brand);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:12px;
+         position:sticky;top:0;z-index:10}
+  header h1{font-size:17px;margin:0;font-weight:600;flex:1}
+  header button{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;padding:7px 12px;
+                font-size:13px;cursor:pointer}
+  header button:hover{background:rgba(255,255,255,.28)}
+  .wrap{max-width:880px;margin:0 auto;padding:14px}
+
+  #login{max-width:360px;margin:14vh auto;background:#fff;border:1px solid var(--line);border-radius:14px;
+         padding:26px;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.06)}
+  #login h2{margin:0 0 4px;color:var(--brand)}
+  #login p{color:var(--gray);font-size:13px;margin:0 0 18px}
+  #login input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;font-size:15px}
+  #login button{margin-top:12px;width:100%;background:var(--brand);color:#fff;border:0;border-radius:9px;
+                padding:11px;font-size:15px;font-weight:600;cursor:pointer}
+  .err{color:#b5462e;font-size:13px;margin-top:10px;min-height:16px}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:10px;
+        cursor:pointer;transition:.12s}
+  .card:hover{border-color:var(--brand);box-shadow:0 3px 12px rgba(15,110,110,.08)}
+  .row1{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+  .de{font-weight:600;font-size:14px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fecha{font-size:12px;color:var(--gray);white-space:nowrap}
+  .asunto{font-size:14px;color:var(--dark);margin-bottom:3px}
+  .snippet{font-size:12.5px;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .badge{font-size:10.5px;background:var(--brand-soft);color:var(--brand);padding:2px 7px;border-radius:20px;font-weight:600}
+  .est{font-size:10.5px;padding:2px 7px;border-radius:20px;font-weight:700}
+  .est-nuevo{background:#fdebd0;color:#9c6b16}
+  .est-borrador{background:#e7e0fb;color:#5b3fbf}
+  .est-respondido{background:#d6f0e2;color:#1c7a4d}
+  .est-ajuste{background:#fde0e0;color:#b5462e}
+  .est-spam{background:#e7e7e7;color:#777}
+  .card-spam{opacity:.62}
+  .spam-head{margin:18px 4px 8px;font-size:13px;font-weight:700;color:var(--gray);cursor:pointer;user-select:none}
+  .btn-nospam{font-size:11.5px;background:#fff;border:1px solid var(--line);border-radius:7px;padding:4px 9px;cursor:pointer;color:#b5462e}
+  .tabs{display:flex;gap:8px;max-width:760px;margin:0 auto;padding:12px 16px 0}
+  .tab{flex:0 0 auto;font-size:13.5px;font-weight:600;background:#fff;border:1px solid var(--line);color:var(--gray);
+       border-radius:999px;padding:7px 16px;cursor:pointer}
+  .tab.activo{background:var(--brand);border-color:var(--brand);color:#fff}
+  .tab-cnt{display:inline-block;min-width:18px;height:18px;line-height:18px;padding:0 5px;margin-left:4px;
+           background:#e5484d;color:#fff;border-radius:999px;font-size:11px;text-align:center;vertical-align:1px}
+  .vacio{text-align:center;color:var(--gray);padding:50px 0;font-size:14px}
+
+  #overlay{position:fixed;inset:0;background:rgba(20,30,30,.45);display:none;align-items:flex-start;
+           justify-content:center;padding:20px;z-index:20;overflow:auto}
+  #modal{background:#fff;border-radius:14px;max-width:760px;width:100%;margin:24px auto;overflow:hidden}
+  .mhead{background:var(--brand);color:#fff;padding:16px 18px}
+  .mhead .masunto{font-size:16px;font-weight:600;margin-bottom:6px}
+  .mhead .meta{font-size:12.5px;opacity:.92;line-height:1.5}
+  .mbody{padding:16px 18px;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word;
+         max-height:34vh;overflow:auto;border-bottom:1px solid var(--line)}
+  .mbody iframe{width:100%;border:0;min-height:240px}
+  .mclose{position:sticky;top:0;float:right;background:rgba(255,255,255,.2);border:0;color:#fff;
+          width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:18px;line-height:1}
+  .resp{padding:16px 18px;background:#fafcfc}
+  .resp h3{margin:0 0 8px;font-size:13px;color:var(--brand);text-transform:uppercase;letter-spacing:.04em}
+  .resp textarea{width:100%;min-height:160px;border:1px solid var(--line);border-radius:9px;padding:11px;
+                 font-size:14px;font-family:inherit;line-height:1.6;resize:vertical}
+  .acciones{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+  .btn{border:0;border-radius:9px;padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer}
+  .btn-claude{background:#5b3fbf;color:#fff}
+  .btn-guardar{background:#eef2f2;color:var(--dark)}
+  .btn-enviar{background:var(--brand);color:#fff}
+  .btn[disabled]{opacity:.55;cursor:default}
+  .estado-msg{font-size:12.5px;color:var(--gray);margin-top:8px;min-height:16px}
+  .enviada{background:#d6f0e2;border:1px solid #aedcc4;border-radius:9px;padding:12px;white-space:pre-wrap;
+           font-size:13.5px;line-height:1.6}
+  .ajuste-box textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:9px;padding:10px;
+           font-size:13.5px;font-family:inherit;margin-bottom:8px}
+  .ajuste-cola{background:#fff6ed;border:1px solid #f1d3b5;border-radius:9px;padding:11px;font-size:13px;line-height:1.55}
+  .ajuste-tit{font-size:12px;color:#5b3fbf;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h2>🔒 Bandeja</h2>
+  <p>Agente de Cotizaciones — ingresa la contraseña del panel.</p>
+  <input id="pass" type="password" placeholder="Contraseña" autocomplete="current-password" />
+  <button onclick="entrar()">Entrar</button>
+  <div class="err" id="loginErr"></div>
+</div>
+
+<div id="app" style="display:none">
+  <header>
+    <h1>📥 Bandeja de cotizaciones</h1>
+    <button onclick="activarNotis()" title="Activar notificaciones">🔔</button>
+    <button onclick="cargar()">↻ Actualizar</button>
+    <button onclick="salir()">Salir</button>
+  </header>
+  <div class="tabs">
+    <button id="tab-recibidos" class="tab activo" onclick="setFiltro('recibidos')">Recibidos</button>
+    <button id="tab-enviados" class="tab" onclick="setFiltro('enviados')">Enviados</button>
+    <button id="tab-todos" class="tab" onclick="setFiltro('todos')">Todos</button>
+  </div>
+  <div class="wrap" id="lista"><div class="vacio">Cargando…</div></div>
+</div>
+
+<div id="overlay" onclick="if(event.target.id==='overlay')cerrar()">
+  <div id="modal">
+    <div class="mhead">
+      <button class="mclose" onclick="cerrar()">×</button>
+      <div class="masunto" id="mAsunto"></div>
+      <div class="meta" id="mMeta"></div>
+    </div>
+    <div class="mbody" id="mBody"></div>
+    <div class="resp" id="mResp"></div>
+  </div>
+</div>
+
+<script>
+const KEY = "panel_pass_agente";
+let pass = localStorage.getItem(KEY) || "";
+let actual = null; // correo abierto
+
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));}
+function fmtFecha(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d)) return esc(iso); // escapar: recibido_en puede venir de la cabecera Date (XSS)
+  return d.toLocaleString("es-CL",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
+}
+function estadoLabel(e){return e==="respondido"?"Respondido":e==="ajuste"?"Ajuste IA":e==="borrador"?"Borrador":e==="spam"?"Spam":"Nuevo";}
+
+async function api(path, opts){
+  const o = opts || {};
+  o.headers = Object.assign({ "x-panel-pass": pass }, o.headers || {});
+  const r = await fetch(path, o);
+  if (r.status === 401) throw new Error("401");
+  return r.json();
+}
+
+function entrar(){
+  pass = document.getElementById("pass").value.trim();
+  if(!pass) return;
+  localStorage.setItem(KEY, pass);
+  iniciar();
+}
+function salir(){ localStorage.removeItem(KEY); pass=""; location.reload(); }
+
+async function iniciar(){
+  try{
+    await cargar();
+    document.getElementById("login").style.display="none";
+    document.getElementById("app").style.display="block";
+    asegurarPush();
+  }catch(e){
+    document.getElementById("login").style.display="block";
+    document.getElementById("app").style.display="none";
+    document.getElementById("loginErr").textContent = "Contraseña incorrecta.";
+    localStorage.removeItem(KEY); pass="";
+  }
+}
+
+function cardHtml(c, esSpam){
+  return `
+    <div class="card${esSpam?' card-spam':''}" onclick="ver(${c.id})">
+      <div class="row1">
+        <span class="de">${esc(c.de)}</span>
+        <span class="est est-${esc(c.estado)}">${estadoLabel(c.estado)}</span>
+        ${c.confianza==="baja"?`<span class="est est-ajuste">⚠️ Revisar</span>`:""}
+        ${c.dominio?`<span class="badge">${esc(c.dominio)}</span>`:""}
+        <span class="fecha">${fmtFecha(c.recibido_en)}</span>
+      </div>
+      <div class="asunto">${esc(c.asunto)}</div>
+      <div class="snippet">${esc(c.snippet)}</div>
+      ${esSpam?`<div style="text-align:right;margin-top:6px"><button class="btn-nospam" onclick="event.stopPropagation();noSpam(${c.id})">↩️ No es spam (mover a la bandeja)</button></div>`:""}
+    </div>`;
+}
+
+let filtro = "recibidos";
+function setFiltro(f){
+  filtro = f;
+  for(const t of ["recibidos","enviados","todos"]){
+    const el=document.getElementById("tab-"+t); if(el) el.classList.toggle("activo", t===f);
+  }
+  cargar();
+}
+
+async function cargar(){
+  const data = await api("/api/correos");
+  const lista = document.getElementById("lista");
+  const cs = data.correos || [];
+  const noSpam = cs.filter(c => c.estado!=="spam");
+  const spam = cs.filter(c => c.estado==="spam");
+  // Badge de pendientes (como WhatsApp): nuevos + borradores de baja confianza.
+  const pendientes = noSpam.filter(c => c.estado==="nuevo" || (c.estado==="borrador" && c.confianza==="baja")).length;
+  if(navigator.setAppBadge){ try{ pendientes>0 ? navigator.setAppBadge(pendientes) : navigator.clearAppBadge(); }catch(e){} }
+  const tr=document.getElementById("tab-recibidos");
+  if(tr) tr.innerHTML = "Recibidos" + (pendientes>0 ? ' <span class="tab-cnt">'+pendientes+'</span>' : "");
+  const activos = filtro==="enviados"  ? noSpam.filter(c => c.estado==="respondido")
+                : filtro==="recibidos" ? noSpam.filter(c => ["nuevo","borrador","ajuste"].includes(c.estado))
+                : noSpam; // todos (sin spam)
+  const vacioMsg = filtro==="enviados"  ? "Aún no hay correos enviados."
+                 : filtro==="recibidos" ? "Sin correos por responder. Cuando llegue uno a contacto@destaperapido.cl aparecerá aquí."
+                 : "Sin correos todavía.";
+  const abierto = (document.getElementById("spamBox")||{}).style?.display === "block";
+  let html = activos.length
+    ? activos.map(c=>cardHtml(c,false)).join("")
+    : `<div class="vacio">${vacioMsg}</div>`;
+  if(spam.length){
+    html += `<div class="spam-head" onclick="toggleSpam()"><span id="spamCaret">${abierto?"▾":"▸"}</span> 🚫 Spam / automáticos (${spam.length})</div>
+             <div id="spamBox" style="display:${abierto?"block":"none"}">${spam.map(c=>cardHtml(c,true)).join("")}</div>`;
+  }
+  lista.innerHTML = html;
+}
+
+function toggleSpam(){
+  const box=document.getElementById("spamBox"), car=document.getElementById("spamCaret");
+  if(!box) return;
+  const abrir = box.style.display==="none";
+  box.style.display = abrir?"block":"none";
+  if(car) car.textContent = abrir?"▾":"▸";
+}
+
+async function noSpam(id){
+  try{ await api("/api/no-spam",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id})}); }catch(e){}
+  cargar();
+}
+
+async function ver(id){
+  const c = await api("/api/correo?id="+id);
+  actual = c;
+  document.getElementById("mAsunto").textContent = c.asunto || "(sin asunto)";
+  document.getElementById("mMeta").innerHTML =
+    `De: <b>${esc(c.de)}</b><br>Para: ${esc(c.para)}<br>${fmtFecha(c.recibido_en)}`;
+  const body = document.getElementById("mBody");
+  if (c.cuerpo_texto && c.cuerpo_texto.trim()){
+    body.textContent = c.cuerpo_texto;
+  } else if (c.cuerpo_html){
+    body.innerHTML = '<iframe sandbox></iframe>';
+    body.querySelector("iframe").srcdoc = c.cuerpo_html;
+  } else {
+    body.textContent = "(sin contenido)";
+  }
+  renderResp(c);
+  document.getElementById("overlay").style.display="flex";
+}
+
+function adjuntoHtml(c){
+  if(!c.adjunto_nombre) return "";
+  return `<div style="margin-bottom:10px;font-size:13px">📎 <b>${esc(c.adjunto_nombre)}</b>
+    <button class="btn btn-guardar" style="padding:4px 10px;font-size:12px" onclick="verAdjunto(${c.id})">Ver PDF</button></div>`;
+}
+async function verAdjunto(id){
+  try{
+    const r = await fetch("/api/adjunto?id="+id, { headers: { "x-panel-pass": pass } });
+    if(!r.ok){ alert("No se pudo abrir el PDF"); return; }
+    const blob = await r.blob();
+    window.open(URL.createObjectURL(blob), "_blank");
+  }catch(e){ alert("Error: "+e.message); }
+}
+
+function renderResp(c){
+  const r = document.getElementById("mResp");
+  if (c.estado === "respondido"){
+    r.innerHTML = `<h3>✅ Respuesta enviada</h3>${adjuntoHtml(c)}<div class="enviada">${esc(c.respuesta_enviada)}</div>`;
+    return;
+  }
+  const ajusteBlock = c.ajuste_pedido
+    ? `<div class="ajuste-cola">⏳ <b>Ajuste en cola:</b> "${esc(c.ajuste_pedido)}"${c.ajuste_enviar?" · se <b>enviará</b> al terminar":""}
+         <br><span style="color:var(--gray)">La IA lo aplicará y te avisará cuando esté listo.</span></div>`
+    : `<div class="ajuste-box">
+         <div class="ajuste-tit">💬 Ajuste IA</div>
+         <textarea id="ajusteTxt" placeholder="Ej: 'cóbrale 180mil por baño, no 160mil'. Agrega 'envíalo' para que la IA lo mande sin tu validación."></textarea>
+         <button class="btn btn-claude" onclick="pedirAjuste()">Pedir ajuste a la IA</button>
+       </div>`;
+  const revisarBlock = (c.confianza==="baja" && c.motivo_revision)
+    ? `<div class="ajuste-cola" style="background:#fdecea;border-color:#f3b9b0;margin-bottom:10px">⚠️ <b>La IA sugiere que revises:</b> ${esc(c.motivo_revision)}</div>`
+    : "";
+  r.innerHTML = `
+    <h3>✍️ Respuesta</h3>
+    ${revisarBlock}
+    ${adjuntoHtml(c)}
+    <textarea id="respTxt" placeholder="Borrador del agente (revísalo y edítalo) o escribe tu respuesta…">${esc(c.respuesta_borrador||"")}</textarea>
+    <div class="acciones">
+      <button class="btn btn-guardar" onclick="guardar()">💾 Guardar borrador</button>
+      <button class="btn btn-enviar" onclick="enviar()">📤 Aprobar y enviar</button>
+    </div>
+    <div class="estado-msg" id="respMsg"></div>
+    <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />
+    ${ajusteBlock}`;
+}
+
+function msg(t){ const m=document.getElementById("respMsg"); if(m) m.textContent=t; }
+function botones(dis){ document.querySelectorAll(".resp .btn").forEach(b=>b.disabled=dis); }
+
+async function guardar(){
+  botones(true); msg("Guardando…");
+  try{
+    const texto=document.getElementById("respTxt").value;
+    const d = await api("/api/borrador",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:actual.id,texto})});
+    msg(d.ok?"Borrador guardado.":"⚠️ "+(d.error||"error"));
+  }catch(e){ msg("⚠️ error: "+e.message); }
+  botones(false);
+}
+
+async function enviar(){
+  const texto=document.getElementById("respTxt").value.trim();
+  if(!texto){ msg("Escribe o redacta una respuesta primero."); return; }
+  if(!confirm("¿Enviar esta respuesta como contacto@destaperapido.cl a "+actual.de+"?")) return;
+  botones(true); msg("Enviando…");
+  try{
+    const d = await api("/api/enviar",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:actual.id,texto})});
+    if(d.ok){ msg("✅ Enviado."); actual.estado="respondido"; actual.respuesta_enviada=texto; renderResp(actual); cargar(); }
+    else msg("⚠️ "+(d.error||"no se pudo enviar"));
+  }catch(e){ msg("⚠️ error: "+e.message); }
+  botones(false);
+}
+
+async function pedirAjuste(){
+  const t=document.getElementById("ajusteTxt").value.trim();
+  if(!t){ return; }
+  botones(true); msg("Encolando ajuste…");
+  try{
+    const d=await api("/api/ajuste",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:actual.id,texto:t})});
+    if(d.ok){ actual.estado="ajuste"; actual.ajuste_pedido=t; actual.ajuste_enviar=d.enviar?1:0; renderResp(actual); cargar(); }
+    else { msg("⚠️ "+(d.error||"error")); botones(false); }
+  }catch(e){ msg("⚠️ error: "+e.message); botones(false); }
+}
+
+function cerrar(){ document.getElementById("overlay").style.display="none"; }
+
+// --- PWA / Notificaciones push ---
+function urlB64ToUint8Array(b64){
+  const pad="=".repeat((4-b64.length%4)%4);
+  const s=(b64+pad).replace(/-/g,"+").replace(/_/g,"/");
+  const raw=atob(s); const arr=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i);
+  return arr;
+}
+async function registrarSW(){
+  if("serviceWorker" in navigator){ try{ await navigator.serviceWorker.register("/sw.js"); }catch(e){} }
+}
+async function activarNotis(){
+  if(!("serviceWorker" in navigator) || !("PushManager" in window)){
+    alert("Para recibir notificaciones en iPhone: abre el panel en Safari, Compartir → Añadir a pantalla de inicio, ábrelo desde ese ícono y reintenta.");
+    return;
+  }
+  if(!pass){ alert("Primero ingresa al panel."); return; }
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted"){ alert("Permiso de notificaciones denegado."); return; }
+    const reg=await navigator.serviceWorker.ready;
+    const vapid=(await (await fetch("/vapid-public")).text()).trim();
+    // Borra la suscripción anterior (puede estar caducada) y crea una nueva limpia.
+    const vieja=await reg.pushManager.getSubscription();
+    if(vieja){ try{ await vieja.unsubscribe(); }catch(e){} }
+    const sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:urlB64ToUint8Array(vapid)});
+    const d=await api("/api/push-subscribe",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(sub)});
+    alert(d.ok? "🔔 Notificaciones activadas en este dispositivo." : "No se pudo activar: "+(d.error||""));
+  }catch(e){
+    alert("Error: "+e.message+"\n\nEn iPhone debe estar agregado a la pantalla de inicio y abierto desde ahí.");
+  }
+}
+// Re-sincroniza la suscripción push en cada apertura (auto-repara las que iOS caduca).
+async function asegurarPush(){
+  if(!pass) return;
+  if(!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  if(Notification.permission!=="granted") return; // solo si ya diste permiso antes
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    const vapid=(await (await fetch("/vapid-public")).text()).trim();
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub){ sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:urlB64ToUint8Array(vapid)}); }
+    await api("/api/push-subscribe",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(sub)});
+  }catch(e){}
+}
+registrarSW();
+// Panel vivo: refresca la lista cada 15s sin tocar el correo que tengas abierto.
+setInterval(()=>{ if(pass && document.getElementById("app").style.display!=="none") cargar(); }, 15000);
+
+// Si ya hay clave guardada, oculta el login de una (no parpadea al recargar).
+if(pass){ document.getElementById("login").style.display="none"; iniciar(); }
+document.getElementById("pass").addEventListener("keydown",e=>{ if(e.key==="Enter") entrar(); });
+</script>
+</body>
+</html>

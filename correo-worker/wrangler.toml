@@ -1,0 +1,30 @@
+# Worker que captura los correos entrantes (Email Routing) y sirve el panel.
+# Deploy:  cd correo-worker && npx wrangler deploy
+name = "agente-correos"
+main = "src/index.js"
+compatibility_date = "2026-06-25"
+
+# Base de datos D1 (se completa el database_id tras `wrangler d1 create`)
+[[d1_databases]]
+binding = "DB"
+database_name = "agente-correos-db"
+database_id = "9fee15c3-fbed-4949-87af-72389faac64c"
+
+# Cron: cada 20 min revisa si hay correos nuevos y manda push (acumulado).
+[triggers]
+crons = ["*/20 * * * *"]
+
+# Variables públicas (los secretos van con `wrangler secret put`)
+[vars]
+FORWARD_TO = "paginasfastdev@gmail.com"
+VAPID_PUBLIC = "BCC8yMzHYuBxfWp2A5SjERjUu1PxsGgdAU8Klz5BllDcpF-uJR20nyAxZTHYf4UFQXwz9baM8M8P0mFrAEh5-bM"
+
+# Permite importar el panel .html como texto dentro del bundle
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+
+# Permite importar los íconos PNG como binario
+[[rules]]
+type = "Data"
+globs = ["**/*.png"]

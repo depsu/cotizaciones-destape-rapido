@@ -1,0 +1,23 @@
+{
+  "name": "agente-correos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Email Worker: captura correos entrantes en D1 y sirve el panel de cotizaciones",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "postal-mime": "^2.4.4"
+  },
+  "devDependencies": {
+    "wrangler": "^4.105.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "workerd",
+      "sharp"
+    ]
+  }
+}
