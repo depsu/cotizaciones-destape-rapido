@@ -405,6 +405,9 @@ def tarjeta(e: dict) -> str:
           {horario_html}
           {notas_html}
           {botones_html}
+          <div class="detalle-danger">
+            <button type="button" class="btn-eliminar" data-id="{esc(ent_id)}" title="Eliminar esta entrega">✕ Eliminar</button>
+          </div>
         </div>
       </details>
     </div>"""
@@ -532,10 +535,16 @@ ESTILOS_EXTRA = """
   .tarea-card { background:#fff; border:1px solid var(--linea); border-radius:12px; padding:11px 13px; margin-bottom:8px; }
   .tarea-info { display:flex; align-items:flex-start; gap:10px; }
   .tarea-card .btn-contacto, .tarea-card .contacto-accesos { margin-top:8px; }
-  .btn-realizada { width:100%; margin-top:8px; background:#16A34A; color:#fff; border:none;
+  .btn-realizada { width:100%; margin-top:8px; background:#7C3AED; color:#fff; border:none;
     font-family:inherit; font-weight:800; font-size:14px; padding:12px; border-radius:10px; cursor:pointer; min-height:46px; }
   .btn-realizada:active { filter:brightness(.95); }
-  .tarea-card.oculto-anterior { display:none; }
+  .tarea-card.oculto-anterior, .tarea-card.oculto-futuro, .tarea-card.oculto-no-entregado { display:none; }
+  .card-wrap.oculto-eliminado { display:none; }
+  /* Botón eliminar (dentro del detalle, al final): X roja discreta con confirmación */
+  .detalle-danger { margin-top:12px; padding-top:10px; border-top:1px solid var(--linea); text-align:right; }
+  .btn-eliminar { font-family:inherit; font-weight:700; font-size:13px; padding:8px 14px; border-radius:9px;
+    background:#fff; color:#DC2626; border:1px solid #FCA5A5; cursor:pointer; min-height:40px; }
+  .btn-eliminar:active { background:#FEF2F2; }
   .comision-mini { margin-top:2px; font-size:14px; color:#92600A; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 8px; }
   .comision-mini b { font-size:16px; }
   .comision-mini .cm-base { color:var(--gris); font-size:12px; }
@@ -681,6 +690,13 @@ SCRIPT_ESTADO = r"""<script>
   // adelantado: cobrado sin estar entregado => estado 'pagado-pendiente').
   function entregadoDe(id) { var e = estadoDe(id); return e === 'entregado' || e === 'cobrado'; }
   function cobradoDe(id) { var e = estadoDe(id); return e === 'cobrado' || e === 'pagado-pendiente'; }
+  function eliminadoDe(id) { var st = estado[id]; return !!(st && st.eliminado); }
+  // Fecha ISO (AAAA-MM-DD) de hoy y de hoy+N (medianoche local). Comparables como texto.
+  function isoDesplazado(dias) {
+    var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + (dias || 0));
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  function parentEntId(tid) { return String(tid).split('::')[0]; }
   var MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   var MESESL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   var DIAS = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
@@ -939,6 +955,7 @@ SCRIPT_ESTADO = r"""<script>
       sec.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
         var id = cw.getAttribute('data-id');
         if (!META[id] || META[id].tipo !== 'bano') return; // limpiezas/retiros no cuentan baños
+        if (eliminadoDe(id)) return; // eliminada no cuenta en el progreso
         var b = META[id].banos || 1;
         total += b;
         var e = estadoDe(id);
@@ -962,13 +979,17 @@ SCRIPT_ESTADO = r"""<script>
     var nComp = 0;
     document.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
       if (cw.classList.contains('celebrando') || cw.classList.contains('saliendo')) { return; } // animándose
-      var completada = estadoDe(cw.getAttribute('data-id')) === 'cobrado';
+      var id = cw.getAttribute('data-id');
+      var elim = eliminadoDe(id);
+      cw.classList.toggle('oculto-eliminado', elim);
+      if (elim) { cw.classList.remove('oculto-anterior'); return; } // eliminada: fuera de la vista y de los conteos
+      var completada = estadoDe(id) === 'cobrado';
       if (completada) { nComp++; }
       var ocultar = modoCompletadas ? !completada : completada;
       cw.classList.toggle('oculto-anterior', ocultar);
     });
     document.querySelectorAll('.vista[data-vista="entregas"] section[data-fecha]').forEach(function (sec) {
-      var vis = sec.querySelectorAll('.card-wrap:not(.oculto-anterior)').length;
+      var vis = sec.querySelectorAll('.card-wrap:not(.oculto-anterior):not(.oculto-eliminado)').length;
       sec.style.display = vis ? '' : 'none';
     });
     // En "Ver completadas" se ocultan también limpiezas/retiros (solo completadas).
@@ -1084,24 +1105,58 @@ SCRIPT_ESTADO = r"""<script>
       .catch(function (e) { console.warn(e); bannerOnline(false); });
   }
 
-  // Oculta las tareas ya realizadas por sección, con su botón "Ver realizadas".
-  function aplicarTareasRealizadas() {
+  // Filtra las tareas (limpiezas/retiros) por sección:
+  //  - solo se muestran las de entregas ENTREGADAS (y no eliminadas);
+  //  - por defecto solo hasta hoy+5 días (más los pendientes vencidos);
+  //  - las realizadas se ocultan salvo "Ver realizadas".
+  // Dos toggles arriba (bajo el título): "Ver todas" (futuras) y "Ver realizadas".
+  function aplicarTareas() {
+    var lim = isoDesplazado(5); // ventana: hasta hoy + 5 días
     document.querySelectorAll('section.agregado[data-tareas]').forEach(function (sec) {
-      var colap = sec.getAttribute('data-real-colap') !== 'no';
-      var ocultables = [];
+      var verReal = sec.getAttribute('data-ver-real') === 'si';
+      var verTodas = sec.getAttribute('data-ver-todas') === 'si';
+      var nReal = 0, nFuturo = 0, nVisible = 0;
       sec.querySelectorAll('.tarea-card[data-tid]').forEach(function (c) {
         if (c.classList.contains('celebrando')) return;
-        var r = tRealizadaDe(c.getAttribute('data-tid'));
-        if (r) ocultables.push(c);
-        c.classList.toggle('oculto-anterior', r && colap);
+        var tid = c.getAttribute('data-tid');
+        var ent = c.getAttribute('data-ent') || parentEntId(tid);
+        var f = c.getAttribute('data-fecha') || '';
+        var entregado = entregadoDe(ent) && !eliminadoDe(ent);
+        var realizada = tRealizadaDe(tid);
+        var futuro = f > lim;
+        var hideNoEnt = !entregado;
+        var hideReal = entregado && realizada && !verReal;
+        var hideFut = entregado && !realizada && futuro && !verTodas;
+        c.classList.toggle('oculto-no-entregado', hideNoEnt);
+        c.classList.toggle('oculto-anterior', hideReal);
+        c.classList.toggle('oculto-futuro', hideFut);
+        if (entregado && realizada) nReal++;
+        if (entregado && !realizada && futuro) nFuturo++;
+        if (!hideNoEnt && !hideReal && !hideFut) nVisible++;
       });
       var cnt = sec.querySelector('.conteo');
-      if (cnt) { cnt.textContent = sec.querySelectorAll('.tarea-card:not(.oculto-anterior)').length; }
-      var btn = sec.querySelector('.ver-realizadas');
-      if (btn) {
-        if (!ocultables.length) { btn.hidden = true; }
-        else { btn.hidden = false; btn.textContent = (colap ? '✓ Ver realizadas (' : '▴ Ocultar realizadas (') + ocultables.length + ')'; }
+      if (cnt) { cnt.textContent = nVisible; }
+      var bTodas = sec.querySelector('.ver-todas');
+      if (bTodas) {
+        if (!nFuturo) { bTodas.hidden = true; }
+        else {
+          bTodas.hidden = false;
+          bTodas.textContent = (verTodas ? '▴ Mostrar solo próximos 5 días' : '📅 Ver todas — próximas (' + nFuturo + ')');
+          bTodas.classList.toggle('modo-activo', verTodas);
+        }
       }
+      var bReal = sec.querySelector('.ver-realizadas');
+      if (bReal) {
+        if (!nReal) { bReal.hidden = true; }
+        else {
+          bReal.hidden = false;
+          bReal.textContent = (verReal ? '▴ Ocultar realizadas (' : '✓ Ver realizadas (') + nReal + ')';
+          bReal.classList.toggle('modo-activo', verReal);
+        }
+      }
+      // Si no queda nada visible ni toggles disponibles, se oculta la sección
+      // (a menos que estemos en "Ver completadas", que lo maneja aplicarAnteriores).
+      if (!modoCompletadas) { sec.style.display = (nVisible || nReal || nFuturo) ? '' : 'none'; }
     });
   }
 
@@ -1134,32 +1189,43 @@ SCRIPT_ESTADO = r"""<script>
         rb.addEventListener('click', function (ev) {
           ev.preventDefault();
           if (tRealizadaDe(id)) return;
-          card.classList.add('celebrando');
-          tUpsert(id, { realizada: true, realizada_at: new Date().toISOString() });
-          var msg = (t.tipo === 'retiro') ? '✅ Retiro realizado con éxito' : '✅ Limpieza realizada con éxito';
-          celebrar(card, msg, aplicarTareasRealizadas);
+          var pregunta = (t.tipo === 'retiro') ? '¿Confirmas que hiciste el retiro?' : '¿Confirmas que hiciste la limpieza?';
+          confirmarEnCard(card, pregunta, function () {
+            card.classList.add('celebrando');
+            tUpsert(id, { realizada: true, realizada_at: new Date().toISOString() });
+            var msg = (t.tipo === 'retiro') ? '✅ Retiro realizado con éxito' : '✅ Limpieza realizada con éxito';
+            celebrar(card, msg, aplicarTareas);
+          });
         });
       }
     });
+    // Toggle "Ver realizadas": muestra/oculta las tareas ya hechas de esa sección.
     document.querySelectorAll('.ver-realizadas').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var sec = btn.closest('section.agregado');
         if (!sec) return;
-        var colapAhora = sec.getAttribute('data-real-colap') !== 'no';
-        if (colapAhora) { sec.setAttribute('data-real-colap', 'no'); }
-        else { sec.setAttribute('data-real-colap', 'si'); sec.scrollIntoView({ behavior: 'smooth' }); }
-        aplicarTareasRealizadas();
+        sec.setAttribute('data-ver-real', sec.getAttribute('data-ver-real') === 'si' ? 'no' : 'si');
+        aplicarTareas();
+      });
+    });
+    // Toggle "Ver todas": muestra/oculta las tareas más allá de los próximos 5 días.
+    document.querySelectorAll('.ver-todas').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var sec = btn.closest('section.agregado');
+        if (!sec) return;
+        sec.setAttribute('data-ver-todas', sec.getAttribute('data-ver-todas') === 'si' ? 'no' : 'si');
+        aplicarTareas();
       });
     });
   }
 
   function loadTareas() {
-    if (!SUPA.url || !SUPA.key) { pintarTareas(); aplicarTareasRealizadas(); return; }
+    if (!SUPA.url || !SUPA.key) { pintarTareas(); aplicarTareas(); return; }
     fetch(SUPA.url + '/rest/v1/tarea_estado?select=*', { headers: headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) { rows.forEach(function (row) { tEstado[row.id] = row; }); })
       .catch(function (e) { console.warn(e); })
-      .then(function () { pintarTareas(); aplicarTareasRealizadas(); });
+      .then(function () { pintarTareas(); aplicarTareas(); });
   }
 
   function bannerOnline(ok) {
@@ -1174,7 +1240,7 @@ SCRIPT_ESTADO = r"""<script>
     var row = {
       id: id, estado: estadoDe(id), fecha: fechaDe(id) || null,
       comision_pagada: pagadaDe(id), pagada_at: prev.pagada_at || null, contactado: contactadoDe(id),
-      reagendar_avisado: reagendarAvisadoDe(id)
+      reagendar_avisado: reagendarAvisadoDe(id), eliminado: eliminadoDe(id)
     };
     for (var k in patch) { row[k] = patch[k]; }
     if (row.fecha === '') { row.fecha = null; }
@@ -1184,6 +1250,8 @@ SCRIPT_ESTADO = r"""<script>
     reubicarCards();
     actualizarProgreso();
     aplicarAnteriores();
+    aplicarTareas();
+    actualizarGanado();
     renderComision();
     if (!SUPA.url || !SUPA.key) return Promise.resolve(true);
     return fetch(SUPA.url + '/rest/v1/entrega_estado', {
@@ -1204,7 +1272,7 @@ SCRIPT_ESTADO = r"""<script>
   function comisionables() {
     var ids = Object.keys(META).filter(function (id) {
       var m = META[id];
-      return m.comisiona && m.comision && cobradoDe(id);
+      return m.comisiona && m.comision && cobradoDe(id) && !eliminadoDe(id);
     });
     ids.sort(function (a, b) { return (fechaDe(a) || '').localeCompare(fechaDe(b) || ''); });
     return ids;
@@ -1215,6 +1283,7 @@ SCRIPT_ESTADO = r"""<script>
   function actualizarGanado() {
     var llevan = 0, total = 0, pend = 0;
     Object.keys(META).forEach(function (id) {
+      if (eliminadoDe(id)) { return; }
       var mm = META[id].monto || 0;
       total += mm;
       if (cobradoDe(id)) { llevan += mm; }
@@ -1435,7 +1504,7 @@ SCRIPT_ESTADO = r"""<script>
   }
 
   function load() {
-    var done = function () { pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); renderComision(); revelar(); };
+    var done = function () { pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); renderComision(); revelar(); };
     if (!SUPA.url || !SUPA.key) { done(); return; }
     fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
@@ -1488,6 +1557,21 @@ SCRIPT_ESTADO = r"""<script>
           flipReubicar(function () { upsert(id, { fecha: input.value || null }); });
         });
       }
+      var del = card.querySelector('.btn-eliminar');
+      if (del) {
+        del.addEventListener('click', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          if (eliminadoDe(id)) return;
+          confirmarEnCard(card, '¿Eliminar esta entrega? Se quitará de la lista.', function () {
+            card.classList.add('saliendo');
+            upsert(id, { eliminado: true });
+            salirIzquierda(card, function () {
+              card.classList.remove('saliendo');
+              reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); actualizarGanado(); renderComision();
+            });
+          });
+        });
+      }
       var cbtn = card.querySelector('.btn-contacto');
       if (cbtn) {
         cbtn.addEventListener('click', function (ev) {
@@ -1536,6 +1620,7 @@ SCRIPT_ESTADO = r"""<script>
       ta.addEventListener('click', function () {
         modoCompletadas = !modoCompletadas;
         aplicarAnteriores();
+        aplicarTareas();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     }
@@ -1575,7 +1660,7 @@ SCRIPT_ESTADO = r"""<script>
   // Pintura inicial con META (bajo el velo) para que, si la red tarda, lo que se
   // revele ya esté lo más correcto posible. El velo se levanta en done() tras el fetch.
   pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); renderComision();
-  pintarTareas(); aplicarTareasRealizadas();
+  pintarTareas(); aplicarTareas();
   setTimeout(revelar, 1500); // fallback si la red tarda demasiado
   wireVistas();
   wire();
@@ -1599,8 +1684,9 @@ def _tarea_card(tid, fecha, cliente, direccion, tel, etiqueta, nota, extra_html,
     accesos_html = f'<div class="contacto-accesos" hidden>{"".join(accesos)}</div>'
     realizada_lbl = "✅ Limpieza realizada" if contexto == "limpieza" else "✅ Retiro realizado"
     nota_html = f'<span class="ag-sub">{esc(nota)}</span>' if nota else ""
+    ent_tarea = tid.split("::")[0]
     return (
-        f'<div class="tarea-card" data-tid="{esc(tid)}">'
+        f'<div class="tarea-card" data-tid="{esc(tid)}" data-ent="{esc(ent_tarea)}" data-fecha="{esc(fecha)}">'
         '<div class="tarea-info">'
         f'<span class="ag-fecha">{esc(fecha_corta(fecha))}</span>'
         f'<span class="ag-main"><b>{esc(cliente)}</b>'
@@ -1640,8 +1726,9 @@ def seccion_limpiezas(entregas: list):
     html = (
         '<section class="agregado" data-tareas><h2 class="fecha-titulo">🧽 Limpiezas a realizar'
         f'<span class="conteo">{len(filas)}</span></h2>'
-        f'<div class="tarea-lista">{"".join(items)}</div>'
-        '<button class="ver-anteriores ver-realizadas" type="button" hidden></button></section>'
+        '<button class="ver-anteriores ver-todas" type="button" hidden></button>'
+        '<button class="ver-anteriores ver-realizadas" type="button" hidden></button>'
+        f'<div class="tarea-lista">{"".join(items)}</div></section>'
     )
     return html, tareas
 
@@ -1663,8 +1750,9 @@ def seccion_retiros(entregas: list):
     html = (
         '<section class="agregado" data-tareas><h2 class="fecha-titulo">📦 Retiros'
         f'<span class="conteo">{len(datos)}</span></h2>'
-        f'<div class="tarea-lista">{"".join(items)}</div>'
-        '<button class="ver-anteriores ver-realizadas" type="button" hidden></button></section>'
+        '<button class="ver-anteriores ver-todas" type="button" hidden></button>'
+        '<button class="ver-anteriores ver-realizadas" type="button" hidden></button>'
+        f'<div class="tarea-lista">{"".join(items)}</div></section>'
     )
     return html, tareas
 

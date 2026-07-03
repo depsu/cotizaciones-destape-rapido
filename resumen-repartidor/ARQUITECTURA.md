@@ -44,7 +44,7 @@ GitHub Pages lo publica solo en ~1 min. (También existe `publicar.sh` para el f
 - Proyecto **`abmzkzraptmjgebwjzys`** · URL `https://abmzkzraptmjgebwjzys.supabase.co` (es el mismo de `../destaperapido-app`, **free tier: se pausa por inactividad** → si fallan los fetch, reactivar).
 - **anon key** (pública por diseño) está incrustada en `generar_listado.py` (`SUPABASE_ANON_KEY`) y en `destaperapido-app/frontend/.env.local`.
 - Tablas (RLS con acceso anónimo solo a ellas):
-  - **`entrega_estado`**: `id` (= id de la entrega), `estado`, `fecha` (override reagendado), `comision_pagada`, `pagada_at`, `contactado`, `reagendar_avisado`, `nota`, `updated_at`.
+  - **`entrega_estado`**: `id` (= id de la entrega), `estado`, `fecha` (override reagendado), `comision_pagada`, `pagada_at`, `contactado`, `reagendar_avisado`, `eliminado` (oculta la entrega y la saca de conteos/comisión), `nota`, `updated_at`.
   - **`tarea_estado`**: `id` (= `"<entrega_id>::lim::<idx>"` o `"<entrega_id>::retiro"`), `contactado`, `realizada`, `realizada_at`, `updated_at`.
 
 ### Aplicar migraciones / correr SQL (sin CLI ni psql)
@@ -100,7 +100,8 @@ Helpers en JS: `entregadoDe(id)`, `cobradoDe(id)`, `estadoDe(id)`. La comisión 
 - Botón **"Avisar al cliente"** (WhatsApp con mensaje "voy a entregar hoy/mañana/el X") → se marca contactado (1 vez) → aparecen accesos **💬 WhatsApp · 📞 Llamar · 🗺️ Llegar** + **"Ver toda la info"**.
 - Texto sutil que explica el color de cada card.
 - **Animación de éxito** al completar (card dorada "✅ Baño entregado / Limpieza realizada con éxito", se desvanece y colapsa suave).
-- Secciones **🧽 Limpiezas a realizar** y **📦 Retiros**: cada una es una tarea interactiva (Coordinar por WhatsApp → "Ya lo contacté" + accesos → botón "Realizada" con animación; toggle "Ver realizadas").
+- Secciones **🧽 Limpiezas a realizar** y **📦 Retiros**: cada una es una tarea interactiva (Coordinar por WhatsApp → "Ya lo contacté" + accesos → botón "Realizada" **violeta** con **confirmación** y animación). **Solo aparecen las tareas de entregas ya ENTREGADAS** (filtro por `entregadoDe`, salta las eliminadas). Por defecto muestran hasta **hoy+5 días** (más los vencidos pendientes); dos toggles bajo el título: **"📅 Ver todas — próximas (N)"** (futuras) y **"✓ Ver realizadas (N)"**.
+- Cada card de entrega tiene, al final del detalle, un botón **"✕ Eliminar"** (rojo, con confirmación en la card) que marca `eliminado` en Supabase y la saca de la vista, conteos, progreso y comisión.
 - Botón **"Ver completadas"**: muestra SOLO las cobradas y oculta el resto; encabezado y botón "Volver" flotan abajo y te siguen; des-marcar una hace que **salga por la izquierda** y cierre el hueco suave.
 
 **Vista Comisión** (pestaña 💰):
