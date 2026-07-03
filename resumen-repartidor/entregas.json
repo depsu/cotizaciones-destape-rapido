@@ -31,7 +31,27 @@
         "Reserva confirmada para el martes 30."
       ],
       "notas": "Confirmar dirección exacta / número y punto de instalación con la clienta antes de llegar. Falta RUT para la factura.",
-      "estado": "pendiente"
+      "estado": "pendiente",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-10",
+          "etiqueta": "Aseo 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-20",
+          "etiqueta": "Aseo 2",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        }
+      ],
+      "retiro": {
+        "fecha": "2026-07-30",
+        "nota": "Fin del mes de arriendo (incluye limpieza al retirar)."
+      }
     },
     {
       "id": "2026-06-26-b-carcamo-mair-mantencion",
@@ -120,7 +140,30 @@
         "Aseo semanal incluido (cada 7 a 10 días)."
       ],
       "notas": "Cliente necesita el baño HOY. PENDIENTE: confirmar hora de recepción al coordinar (el cliente aún no la dio). Factura a Stock Diseño Ltda. (RUT 76.327.169-2). Ubicación: Local Astop Aramco (estación de servicio).",
-      "estado": "pendiente"
+      "estado": "pendiente",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-05",
+          "etiqueta": "Aseo 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-15",
+          "etiqueta": "Aseo 2",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-25",
+          "etiqueta": "Aseo 3",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        }
+      ]
     },
     {
       "id": "2026-06-25-tania-soria-768",
@@ -148,7 +191,16 @@
         "Retiro al finalizar (aprox. 09 de julio)."
       ],
       "notas": "Obra de construcción. Recibe a las 9:00 AM, lo más tardar cuando puedan en la mañana. SIN factura (boleta). Cobrar al entregar: transferencia o efectivo. Cliente: Tania.",
-      "estado": "pendiente"
+      "estado": "pendiente",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-05",
+          "etiqueta": "Aseo incluido",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "1 aseo durante el período (incluido en el arriendo)."
+        }
+      ]
     },
     {
       "id": "2026-06-24-loreley-190-la-reina",
@@ -176,7 +228,16 @@
         "Retiro al finalizar las 2 semanas (aprox. 08 de julio)."
       ],
       "notas": "ADULTOS MAYORES — tener paciencia y buen trato. No se tiene el nombre de la persona. Teléfono principal +56 9 4210 7260 sirve para WhatsApp y llamada; 2º teléfono +56 9 9694 0919 es SOLO para llamada (no WhatsApp).",
-      "estado": "pendiente"
+      "estado": "pendiente",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-04",
+          "etiqueta": "Aseo incluido",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "1 aseo durante el período (incluido en el arriendo)."
+        }
+      ]
     },
     {
       "id": "2026-06-23-b-carcamo-mair",
@@ -273,7 +334,30 @@
         "Dejar insumos: papel higiénico y desodorizante."
       ],
       "notas": "Cliente confirmó para hoy. PENDIENTE: pedir/confirmar los datos de facturación (razón social, RUT, giro, dirección, email) al llegar. Lo contacta el repartidor antes de ir.",
-      "estado": "pendiente"
+      "estado": "pendiente",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-03",
+          "etiqueta": "Aseo 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-13",
+          "etiqueta": "Aseo 2",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-23",
+          "etiqueta": "Aseo 3",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        }
+      ]
     },
     {
       "id": "2026-06-25-hercha-ingenieria",
@@ -301,7 +385,30 @@
         "Dejar insumos: papel higiénico y desodorizante."
       ],
       "notas": "Lo contacta el repartidor. Confirmar ubicación exacta y acceso con Don Eliecer al llegar.",
-      "estado": "pendiente"
+      "estado": "pendiente",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-05",
+          "etiqueta": "Aseo 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-15",
+          "etiqueta": "Aseo 2",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-25",
+          "etiqueta": "Aseo 3",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        }
+      ]
     },
     {
       "id": "2026-06-23-pilar-casanueva",
@@ -331,7 +438,30 @@
       "notas": "Preguntar por PILAR CASANUEVA al llegar. Jefe de obra en terreno: David Durán, +56 9 8805 1486. Contacto que coordinó por WhatsApp: +56 9 4550 7354. Cliente necesita el baño HOY (trabajadores ya en obra). Arriendo mensual, puede extenderse. ENTREGADO Y COBRADO. Comisión ($32.000, apodo 'Barnechea') ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).",
       "estado": "cobrado",
       "comision_pagada": true,
-      "pagada_at": "2026-06-24"
+      "pagada_at": "2026-06-24",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-03",
+          "etiqueta": "Aseo 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-13",
+          "etiqueta": "Aseo 2",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-23",
+          "etiqueta": "Aseo 3",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        }
+      ]
     },
     {
       "id": "2026-06-26-villagra-conchali",
@@ -357,7 +487,30 @@
         "Aseo semanal incluido (cada 7 a 10 días)."
       ],
       "notas": "Lo contacta el repartidor. Arriendo mensual (30 días), puede extenderse si lo pide. Confirmar acceso al llegar.",
-      "estado": "pendiente"
+      "estado": "pendiente",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-06",
+          "etiqueta": "Aseo 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-16",
+          "etiqueta": "Aseo 2",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-26",
+          "etiqueta": "Aseo 3",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        }
+      ]
     },
     {
       "id": "2026-06-26-gamarra-santiago",
@@ -383,7 +536,30 @@
         "Aseo semanal incluido (cada 7 a 10 días)."
       ],
       "notas": "Lo contacta el repartidor para coordinar horario. PEDIR LOS DATOS DE FACTURACIÓN al coordinar la entrega (razón social, RUT, giro, dirección). Arriendo por 2 meses con prolongación a 3. Confirmar acceso al llegar.",
-      "estado": "pendiente"
+      "estado": "pendiente",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-06",
+          "etiqueta": "Aseo 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-16",
+          "etiqueta": "Aseo 2",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-26",
+          "etiqueta": "Aseo 3",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        }
+      ]
     },
     {
       "id": "2026-06-23-grupo-b-nunoa",
@@ -416,7 +592,34 @@
       "notas": "Persona en terreno: Jonathan Bastías +56 9 5083 1752. Persona con la que se cerró el negocio: +56 9 9538 4264. Arriendo por 2 meses. ENTREGADO Y COBRADO. Comisión de Alejandro ($32.000) ya pagada el 24/06/2026 (transferencia $110.000, código BG-BX8-20225325).",
       "estado": "cobrado",
       "comision_pagada": true,
-      "pagada_at": "2026-06-24"
+      "pagada_at": "2026-06-24",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-03",
+          "etiqueta": "Aseo 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-13",
+          "etiqueta": "Aseo 2",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-23",
+          "etiqueta": "Aseo 3",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        }
+      ],
+      "retiro": {
+        "fecha": "2026-08-22",
+        "nota": "Fin de los 2 meses (aprox.; incluye limpieza al retirar). Faltan aseos del mes 2 por agendar."
+      }
     },
     {
       "id": "2026-06-27-mair-recambio",

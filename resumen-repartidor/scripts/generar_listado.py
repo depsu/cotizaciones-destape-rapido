@@ -25,6 +25,22 @@ BASE = Path(__file__).resolve().parent.parent
 DATA_PATH = BASE / "entregas.json"
 DEFAULT_OUT = BASE / "listado.html"
 
+# Logo real de WhatsApp (SVG inline, hereda el color del texto del botón: blanco).
+WA_ICON = (
+    '<svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" '
+    'aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15'
+    '-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48'
+    '-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099'
+    '-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01'
+    '-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 '
+    '2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006'
+    '-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031'
+    '-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888'
+    '-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413'
+    '-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305'
+    '-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>'
+)
+
 # Supabase: estado mutable de las entregas (lo cambia el repartidor desde la
 # página y lo ve Alejandro). La anon key es pública por diseño (ya viaja en el
 # bundle de la app); el acceso está acotado por RLS a la tabla entrega_estado.
@@ -337,7 +353,7 @@ def tarjeta(e: dict) -> str:
     num = solo_digitos(telefono)
     botones = []
     if num:
-        botones.append(boton(f"whatsapp://send?phone={num}", "💬 WhatsApp", "#22A45D", target_blank=False))
+        botones.append(boton(f"whatsapp://send?phone={num}", f"{WA_ICON}&nbsp;WhatsApp", "#25D366", target_blank=False))
         botones.append(boton(f"tel:{esc(telefono)}", "📞 Llamar", "#475569", target_blank=False))
     if direccion:
         maps = f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
@@ -347,7 +363,7 @@ def tarjeta(e: dict) -> str:
     # Accesos rápidos (se muestran en la card cuando el cliente ya fue contactado).
     accesos = []
     if num:
-        accesos.append(f'<a class="acc-link acc-wa" href="whatsapp://send?phone={num}">💬 WhatsApp</a>')
+        accesos.append(f'<a class="acc-link acc-wa" href="whatsapp://send?phone={num}">{WA_ICON}WhatsApp</a>')
         accesos.append(f'<a class="acc-link acc-call" href="tel:{esc(telefono)}">📞 Llamar</a>')
     if direccion:
         maps_q = f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
@@ -453,7 +469,9 @@ ESTILOS_EXTRA = """
     text-decoration:none; font-family:inherit; font-size:12.5px; font-weight:700; white-space:nowrap;
     padding:9px 4px; border-radius:9px; min-height:44px; border:none; color:#fff; }
   .acc-link:active { filter:brightness(.92); }
-  .acc-link.acc-wa { background:#16A34A; }
+  .ico-wa { vertical-align:-3px; }
+  .acc-link .ico-wa { flex:0 0 auto; display:block; vertical-align:0; }
+  .acc-link.acc-wa { background:#25D366; }
   .acc-link.acc-call { background:#fff; color:#0F172A; border:1px solid #CBD5E1; }
   .acc-link.acc-map { background:#1F5AA8; }
   .btn-ver-info { flex:1 1 100%; margin-top:2px; padding:12px; border-radius:9px;
@@ -1275,7 +1293,7 @@ SCRIPT_ESTADO = r"""<script>
         ? '<span class="com-pagada-tag">✓ Pagada</span>'
         : '<input type="checkbox" class="com-check" data-id="' + escapeHtml(id) + '"' + (comDesel.has(id) ? '' : ' checked') + '>';
       var rev = paid ? '<button type="button" class="com-revocar" data-id="' + escapeHtml(id) + '">Revocar</button>' : '';
-      var wa = m.tel ? '<button type="button" class="com-wa" data-id="' + escapeHtml(id) + '">💬 Revisar en WhatsApp</button>' : '';
+      var wa = m.tel ? '<button type="button" class="com-wa" data-id="' + escapeHtml(id) + '"><svg class="ico-wa" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Revisar en WhatsApp</button>' : '';
       return '<div class="com-card' + (paid ? ' com-pagada' : '') + '">'
         + '<div class="com-top">' + check
         + '<div class="com-main"><div class="com-cli">' + escapeHtml(m.cliente) + '</div>'
@@ -1573,7 +1591,7 @@ def _tarea_card(tid, fecha, cliente, direccion, tel, etiqueta, nota, extra_html,
     num = solo_digitos(tel)
     accesos = []
     if num:
-        accesos.append(f'<a class="acc-link acc-wa" href="whatsapp://send?phone={num}">💬 WhatsApp</a>')
+        accesos.append(f'<a class="acc-link acc-wa" href="whatsapp://send?phone={num}">{WA_ICON}WhatsApp</a>')
         accesos.append(f'<a class="acc-link acc-call" href="tel:{esc(tel)}">📞 Llamar</a>')
     if direccion:
         maps_q = f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
