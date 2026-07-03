@@ -21,15 +21,26 @@ Ejemplos:
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import smtplib
 import ssl
 import sys
+import urllib.error
+import urllib.request
 from email.message import EmailMessage
 from email.utils import formataddr
 from pathlib import Path
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "smtp.local.json"
+RESEND_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "resend.local.json"
+
+# User-Agent de navegador: Resend está detrás de Cloudflare y responde 403 (error 1010)
+# al User-Agent por defecto de urllib. Con uno de navegador el envío pasa sin problema.
+BROWSER_UA = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/122.0 Safari/537.36"
+)
 
 # Datos de la empresa, para la firma del correo.
 EMPRESA = "Destape Rápido"
@@ -53,6 +64,63 @@ def cargar_config() -> dict:
     if str(cfg.get("password", "")).startswith("PEGA-AQUI"):
         sys.exit("❌ La contraseña en smtp.local.json todavía es el texto de ejemplo.")
     return cfg
+
+
+def cargar_config_resend() -> dict | None:
+    """Carga la config de Resend si existe y es válida; si no, devuelve None.
+
+    Resend es la vía por defecto (el correo migró a Cloudflare Email Routing +
+    Resend; el SMTP del hosting gratuito quedó baneado). El SMTP queda de respaldo.
+    """
+    if not RESEND_CONFIG_PATH.exists():
+        return None
+    try:
+        with RESEND_CONFIG_PATH.open(encoding="utf-8") as f:
+            cfg = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return None
+    if not cfg.get("api_key"):
+        return None
+    return cfg
+
+
+def enviar_resend(cfg: dict, *, from_name: str, from_email: str, destino: str,
+                  cc: list[str], bcc: str | None, asunto: str, cuerpo: str,
+                  ruta_pdf: Path) -> str:
+    """Envía la cotización por la API de Resend (con adjunto PDF). Devuelve el id."""
+    pdf_b64 = base64.b64encode(ruta_pdf.read_bytes()).decode()
+    payload = {
+        "from": f"{from_name} <{from_email}>",
+        "to": [destino],
+        "subject": asunto,
+        "text": cuerpo,
+        "attachments": [{"filename": ruta_pdf.name, "content": pdf_b64}],
+    }
+    if cc:
+        payload["cc"] = cc
+    if bcc:
+        payload["bcc"] = [bcc]
+
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=json.dumps(payload).encode(),
+        headers={
+            "Authorization": f"Bearer {cfg['api_key']}",
+            "Content-Type": "application/json",
+            "User-Agent": BROWSER_UA,
+            "Accept": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            data = json.loads(r.read().decode())
+        return data.get("id", "")
+    except urllib.error.HTTPError as e:
+        detalle = e.read().decode(errors="replace")[:300]
+        sys.exit(f"❌ Resend rechazó el envío (HTTP {e.code}): {detalle}")
+    except (urllib.error.URLError, OSError) as e:
+        sys.exit(f"❌ No se pudo enviar por Resend: {type(e).__name__}: {e}")
 
 
 def construir_cuerpo(cliente: str | None, mensaje: str | None) -> str:
@@ -127,39 +195,59 @@ def main() -> None:
     if ruta_pdf.suffix.lower() != ".pdf":
         sys.exit(f"❌ El archivo no parece un PDF: {ruta_pdf}")
 
-    cfg = cargar_config()
-
     asunto = args.asunto or (
         f"Cotización {EMPRESA} — {args.cliente}" if args.cliente else f"Cotización {EMPRESA}"
     )
+    cuerpo = construir_cuerpo(args.cliente, args.mensaje)
 
-    from_email = cfg.get("from_email", cfg["user"])
+    resend_cfg = cargar_config_resend()
 
-    msg = EmailMessage()
-    msg["Subject"] = asunto
-    msg["From"] = formataddr((cfg.get("from_name", EMPRESA), from_email))
-    msg["To"] = args.destino
-    if args.cc:
-        msg["Cc"] = ", ".join(args.cc)
+    if resend_cfg:
+        # Vía por defecto: Resend (dominio destaperapido.cl verificado).
+        from_email = resend_cfg.get("from_email", "contacto@destaperapido.cl")
+        from_name = resend_cfg.get("from_name", EMPRESA)
+        guardar_copia = bool(resend_cfg.get("guardar_copia", True))
+        bcc = from_email if (guardar_copia and from_email != args.destino) else None
 
-    # Copia oculta a nosotros mismos como respaldo (configurable; activado por defecto).
-    # No se guarda en "Enviados" de Roundcube, pero llega a la bandeja de entrada como registro.
-    guardar_copia = bool(cfg.get("guardar_copia", True))
-    if guardar_copia and from_email != args.destino:
-        msg["Bcc"] = from_email
+        resend_id = enviar_resend(
+            resend_cfg,
+            from_name=from_name,
+            from_email=from_email,
+            destino=args.destino,
+            cc=args.cc,
+            bcc=bcc,
+            asunto=asunto,
+            cuerpo=cuerpo,
+            ruta_pdf=ruta_pdf,
+        )
+        via = f"Resend (id {resend_id})" if resend_id else "Resend"
+    else:
+        # Respaldo: SMTP del hosting (config/smtp.local.json).
+        cfg = cargar_config()
+        from_email = cfg.get("from_email", cfg["user"])
+        guardar_copia = bool(cfg.get("guardar_copia", True))
 
-    msg.set_content(construir_cuerpo(args.cliente, args.mensaje))
-
-    adjuntar_pdf(msg, ruta_pdf)
-
-    enviar(cfg, msg)
+        msg = EmailMessage()
+        msg["Subject"] = asunto
+        msg["From"] = formataddr((cfg.get("from_name", EMPRESA), from_email))
+        msg["To"] = args.destino
+        if args.cc:
+            msg["Cc"] = ", ".join(args.cc)
+        if guardar_copia and from_email != args.destino:
+            msg["Bcc"] = from_email
+        msg.set_content(cuerpo)
+        adjuntar_pdf(msg, ruta_pdf)
+        enviar(cfg, msg)
+        via = "SMTP"
+        bcc = from_email if (guardar_copia and from_email != args.destino) else None
 
     destinatarios = args.destino + (f" (CC: {', '.join(args.cc)})" if args.cc else "")
     print(f"✅ Cotización enviada a {destinatarios}")
     print(f"   Adjunto: {ruta_pdf.name}")
     print(f"   Asunto:  {asunto}")
-    if guardar_copia and from_email != args.destino:
-        print(f"   Copia de respaldo (CCO): {from_email}")
+    print(f"   Vía:     {via}")
+    if bcc:
+        print(f"   Copia de respaldo (CCO): {bcc}")
 
 
 if __name__ == "__main__":

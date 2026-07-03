@@ -7,6 +7,8 @@ description: Gestiona las entregas de Destape Rápido para el repartidor. Úsalo
 
 Skill para que el repartidor de **Destape Rápido** sepa exactamente a dónde ir, qué entregar, y pueda hablarle al cliente y llegar desde el celular. Todo sale de un único archivo de datos: `entregas.json`.
 
+> ⚠️ **NO CONFUNDIR con el skill de correo.** Si Alejandro **pega una conversación de WhatsApp con un cliente** (trato ya conversado) y dice "envía esta cotización" / "mándasela al repartidor", **ES ESTE SKILL** → mandar el **WhatsApp al REPARTIDOR** con `--enviar`, **aunque diga la palabra "cotización"**. **NUNCA** enviar un correo al cliente en este caso (eso es el skill `cotizaciones-destape-rapido`, solo cuando el destino explícito es el cliente por correo). El destino aquí es SIEMPRE el repartidor, por WhatsApp.
+
 > 🛠️ **¿Vas a MODIFICAR la página web** (estados, comisión, tareas, animaciones, Supabase)? Lee primero **`resumen-repartidor/ARQUITECTURA.md`** — ahí está cómo funciona la app interactiva, el modelo de estados, las tablas de Supabase, el inventario de features y cómo probar. Este SKILL.md es solo para el flujo de **agregar/enviar una entrega**.
 
 ## Flujo rápido (POR DEFECTO — una sola pasada, sin preguntar de más)

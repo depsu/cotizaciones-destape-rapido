@@ -7,6 +7,18 @@ description: Genera cotizaciones formales en PDF para la empresa Destape Rápido
 
 Este skill genera cotizaciones formales en PDF con los datos de la empresa **Destape Rápido** ya precargados. El objetivo es producir un documento profesional, listo para enviar al cliente por email o WhatsApp, usando un diseño consistente (paleta azul corporativo, tipografía Helvetica, estructura clara).
 
+## ⚠️ Antes de todo: ¿es ESTE skill, el del repartidor, o el agente de correo?
+
+Hay **tres flujos distintos** que NO se deben mezclar. Antes de enviar nada, identifica cuál es:
+
+| Lo que hace Alejandro | Flujo correcto | Qué se envía |
+|---|---|---|
+| Llega un correo de cliente al **panel** y dice "responde / envía" | agente de correo (`/revisa-correos`) | correo al **cliente** (Resend) |
+| Pide un PDF nuevo: "cotiza para X", "hazme un presupuesto" | **este skill** | (opcional) correo al **cliente**, solo si lo pide explícito |
+| **Pega una conversación de WhatsApp** de un trato ya conversado y dice "envía esta cotización" / "pásasela al repartidor" / "resumen para repartidor" | skill **`resumen-repartidor`** | **WhatsApp al REPARTIDOR** (`--enviar`) — **NO un correo** |
+
+**REGLA CLAVE:** si Alejandro **pega un chat de WhatsApp con el cliente**, el destino por defecto es el **repartidor por WhatsApp**, NO un correo — **aunque use la palabra "cotización"**. En ese caso NO uses `enviar_cotizacion.py`; usa el skill `resumen-repartidor`. Ante cualquier duda de si el destino es el cliente (correo) o el repartidor (WhatsApp), **pregunta antes de enviar**.
+
 ## Datos FIJOS del emisor (no preguntarlos)
 
 - **Empresa:** Destape Rápido
@@ -51,8 +63,8 @@ Todos los valores son **netos** (se les suma IVA 19%). Si el usuario indica un v
 4. **Generar el PDF** ejecutando el script `scripts/generar_cotizacion.py` con los parámetros correspondientes. Ver sección "Uso del script".
    - **Ruta y nombre OBLIGATORIOS:** guardar siempre en `cotizaciones/` con el formato `cotizacion-AAAAMMDD-<cliente>.pdf` (cliente en kebab-case, ej. `cotizacion-20260622-ignacio-cancino.pdf`). **Nunca** generar en `/tmp`.
 
-5. **Enviar el PDF por correo automáticamente** (modalidad elegida: "generar y enviar de una"):
-   - **Si hay email del cliente** → ejecutar `scripts/enviar_cotizacion.py` para enviarlo directo. Ver sección "Envío automático por correo".
+5. **Enviar el PDF por correo automáticamente** (modalidad "generar y enviar de una") — **SOLO cuando el destino es el CLIENTE por correo.** ⛔ Si Alejandro pegó un chat de WhatsApp para el repartidor, o dijo "pásasela al repartidor" / "resumen para repartidor", **NO enviar correo aquí**: usar el skill `resumen-repartidor` (WhatsApp con `--enviar`). Un email extraído de un chat de cliente **no** basta para auto-enviar; solo enviar por correo si Alejandro pide explícitamente emailear al cliente.
+   - **Si hay email del cliente y el destino es el cliente** → ejecutar `scripts/enviar_cotizacion.py` para enviarlo directo. Ver sección "Envío automático por correo".
    - **Si NO hay email del cliente** → no enviar; entregar el PDF y el resumen para correo (sección "Resumen para correo") para que el usuario lo mande manualmente, e indicar que faltó el email.
    - **EXCEPCIÓN — Modo análisis (NO enviar):** ver sección "Modo análisis: dudas o comparación de precios". Si el usuario quiere analizar/comparar precios o tiene dudas antes de responder, generar los PDF pero **NO** enviar hasta que él lo confirme explícitamente.
 
