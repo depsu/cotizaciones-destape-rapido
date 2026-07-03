@@ -649,6 +649,36 @@
       ],
       "notas": "Apodo del repartidor: 'Líder' (se instala casi dentro de un Líder). Recambio del 27/06/2026 por filtración de líquidos. ENTREGADO Y REALIZADO. Pendiente de cobro: factura a MAIR ($47.600). Confirmar si MAIR ya pagó para marcar cobrado.",
       "estado": "entregado"
+    },
+    {
+      "id": "2026-07-06-empresa-gm-buin",
+      "cliente": "EMPRESA GM SPA (contacto: Jordan Mendoza)",
+      "telefono": "+56 9 3029 1827",
+      "direccion": "Buin, Región Metropolitana",
+      "fecha": "2026-07-06",
+      "hora": "",
+      "servicio": "1 baño químico — arriendo mensual con limpieza semanal",
+      "cantidad": 1,
+      "comision": true,
+      "aseo": "",
+      "pago": {
+        "monto": 238000,
+        "nota": "$200.000 neto + IVA = $238.000 mensual. Con factura. Cobrar al entregar."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "EMPRESA GM SPA",
+        "rut": "77.485.476-2",
+        "giro": "Obras menores de construcción",
+        "direccion": "Badajoz 100, Of. 1014, Piso 10, Las Condes",
+        "email": "Jordan.mendoza@casaschilespa.cl"
+      },
+      "detalle": [
+        "Instalar 1 baño químico en Buin.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Ubicación exacta (Google Maps): https://maps.app.goo.gl/E56js7tk5UWe5QvYA — confirmar con el cliente antes de llegar. Arriendo mensual con limpieza semanal.",
+      "estado": "pendiente"
     }
   ],
   "comprobantes": {
