@@ -679,6 +679,66 @@
       ],
       "notas": "Ubicación exacta (Google Maps): https://maps.app.goo.gl/E56js7tk5UWe5QvYA — confirmar con el cliente antes de llegar. Arriendo mensual con limpieza semanal.",
       "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-06-consel-fundo-chena",
+      "cliente": "Consel Capacitaciones SpA (contacto: C. Navarro)",
+      "telefono": "+56 9 8755 6268",
+      "fecha": "2026-07-06",
+      "hora": "",
+      "servicio": "1 baño químico — arriendo mensual con limpieza semanal (contrato 12 meses)",
+      "cantidad": 1,
+      "comision": true,
+      "aseo": "",
+      "direccion": "Fundo Chena — Av. Lonquén N°16450, San Bernardo, Región Metropolitana",
+      "pago": {
+        "monto": 178500,
+        "nota": "$150.000 neto + IVA = $178.500 mensual por baño. Con factura. Contrato Consel: 2 baños en 2 direcciones (total $357.000 c/IVA). Cobrar al entregar."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Consel Capacitaciones Seguridad y Alarmas SpA",
+        "rut": "77.037.854-0",
+        "giro": "Capacitaciones, seguridad y alarmas",
+        "direccion": "Eduardo Cordero 0225, Puente Alto",
+        "email": "cnavarro@conselcapacitaciones.cl"
+      },
+      "detalle": [
+        "Instalar 1 baño químico en Fundo Chena (San Bernardo).",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Contrato Consel: 2 baños en 2 direcciones (el otro va en Casas Santo Domingo, Santiago). Coordinar hacia las 12:00; confirmar con el cliente antes de llegar. Arriendo mensual con limpieza semanal, contrato 12 meses.",
+      "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-06-consel-santo-domingo",
+      "cliente": "Consel Capacitaciones SpA (contacto: C. Navarro)",
+      "telefono": "+56 9 8755 6268",
+      "fecha": "2026-07-06",
+      "hora": "",
+      "servicio": "1 baño químico — arriendo mensual con limpieza semanal (contrato 12 meses)",
+      "cantidad": 1,
+      "comision": true,
+      "aseo": "",
+      "direccion": "Casas Santo Domingo — Santo Domingo N°2423, Santiago, Región Metropolitana",
+      "pago": {
+        "monto": 178500,
+        "nota": "$150.000 neto + IVA = $178.500 mensual por baño. Con factura. Contrato Consel: 2 baños en 2 direcciones (total $357.000 c/IVA). Cobrar al entregar."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Consel Capacitaciones Seguridad y Alarmas SpA",
+        "rut": "77.037.854-0",
+        "giro": "Capacitaciones, seguridad y alarmas",
+        "direccion": "Eduardo Cordero 0225, Puente Alto",
+        "email": "cnavarro@conselcapacitaciones.cl"
+      },
+      "detalle": [
+        "Instalar 1 baño químico en Casas Santo Domingo (Santiago).",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Contrato Consel: 2 baños en 2 direcciones (el otro va en Fundo Chena, San Bernardo). Coordinar hacia las 12:00; confirmar con el cliente antes de llegar. Arriendo mensual con limpieza semanal, contrato 12 meses.",
+      "estado": "pendiente"
     }
   ],
   "comprobantes": {
