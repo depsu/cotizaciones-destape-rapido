@@ -206,7 +206,9 @@ def main() -> None:
         # Vía por defecto: Resend (dominio destaperapido.cl verificado).
         from_email = resend_cfg.get("from_email", "contacto@destaperapido.cl")
         from_name = resend_cfg.get("from_name", EMPRESA)
-        guardar_copia = bool(resend_cfg.get("guardar_copia", True))
+        # Por defecto NO se envía copia a contacto@ (ensuciaba el panel con correos
+        # a uno mismo). Resend ya deja registro del envío; el respaldo era del hosting.
+        guardar_copia = bool(resend_cfg.get("guardar_copia", False))
         bcc = from_email if (guardar_copia and from_email != args.destino) else None
 
         resend_id = enviar_resend(
@@ -225,7 +227,7 @@ def main() -> None:
         # Respaldo: SMTP del hosting (config/smtp.local.json).
         cfg = cargar_config()
         from_email = cfg.get("from_email", cfg["user"])
-        guardar_copia = bool(cfg.get("guardar_copia", True))
+        guardar_copia = bool(cfg.get("guardar_copia", False))
 
         msg = EmailMessage()
         msg["Subject"] = asunto
