@@ -4,6 +4,10 @@
 set -e
 cd "$(dirname "$0")/.."
 
+# GitHub Pages corre Jekyll por defecto y se atasca/erra con este sitio estático.
+# .nojekyll hace que publique los HTML tal cual (build ~15s). Lo garantizamos siempre.
+[ -f .nojekyll ] || touch .nojekyll
+
 python3 resumen-repartidor/scripts/generar_listado.py
 git add -A
 if git diff --cached --quiet; then
