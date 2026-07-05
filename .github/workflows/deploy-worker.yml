@@ -1,0 +1,46 @@
+name: Deploy Worker (Cloudflare)
+
+# Despliega el Worker del panel de correo a Cloudflare en cada push a main
+# que toque correo-worker/. También se puede lanzar a mano (workflow_dispatch).
+# Agregar/editar ESTE archivo no dispara una corrida (el filtro es correo-worker/**).
+#
+# Secretos requeridos en el repo (Settings → Secrets and variables → Actions):
+#   - CLOUDFLARE_API_TOKEN   (token con permiso "Edit Cloudflare Workers")
+#   - CLOUDFLARE_ACCOUNT_ID  (ya configurado)
+# NOTA: `wrangler deploy` NO toca los secretos del Worker (PANEL_PASS, RESEND_API_KEY,
+# VAPID_PRIVATE): esos persisten en Cloudflare entre despliegues.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "correo-worker/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: correo-worker
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: correo-worker/pnpm-lock.yaml
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Desplegar a Cloudflare
+        run: pnpm run deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
