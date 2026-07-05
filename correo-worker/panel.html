@@ -107,6 +107,24 @@
            font-size:13.5px;font-family:inherit;margin-bottom:8px}
   .ajuste-cola{background:#fff6ed;border:1px solid #f1d3b5;border-radius:9px;padding:11px;font-size:13px;line-height:1.55}
   .ajuste-tit{font-size:12px;color:#5b3fbf;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+  .chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+  .chip{font-size:10.5px;background:#eef3f2;color:var(--brand);padding:2px 8px;border-radius:20px;
+        font-weight:600;white-space:nowrap}
+  .metiquetas{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .chip-x{cursor:pointer;margin-left:5px;opacity:.7;font-weight:700}
+  .chip-add,.chip-ia{font-size:11px;background:rgba(255,255,255,.18);color:#fff;border:0;
+        border-radius:20px;padding:3px 10px;cursor:pointer}
+  .chip-ia[disabled]{opacity:.5;cursor:default}
+  .mbar{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff;
+        border-top:1px solid var(--line);padding:10px 14px}
+  .mbar-b{min-height:40px;padding:0 12px;font-size:13.5px;border-radius:9px;border:1px solid var(--line);
+        background:#f2f5f5;color:var(--dark);flex:0 0 auto;cursor:pointer;white-space:nowrap}
+  .mbar-b.primary{border-color:var(--brand);color:var(--brand)}
+  .mbar-b.danger{color:#b5462e}
+  .mbar-b[disabled]{opacity:.5;cursor:default}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--dark);color:#fff;
+        padding:10px 16px;border-radius:10px;font-size:13.5px;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none}
+  .toast.show{opacity:1}
 </style>
 </head>
 <body>
@@ -129,7 +147,9 @@
   <div class="tabs">
     <button id="tab-recibidos" class="tab activo" onclick="setFiltro('recibidos')">Recibidos</button>
     <button id="tab-enviados" class="tab" onclick="setFiltro('enviados')">Enviados</button>
+    <button id="tab-archivados" class="tab" onclick="setFiltro('archivados')">Archivados</button>
     <button id="tab-spam" class="tab" onclick="setFiltro('spam')">Spam</button>
+    <button id="tab-papelera" class="tab" onclick="setFiltro('papelera')">Papelera</button>
     <button id="tab-bloqueados" class="tab" onclick="setFiltro('bloqueados')">Bloqueados</button>
   </div>
   <div class="wrap" id="lista"><div class="vacio">Cargando…</div></div>
@@ -141,8 +161,10 @@
       <button class="mclose" onclick="cerrar()">×</button>
       <div class="masunto" id="mAsunto"></div>
       <div class="meta" id="mMeta"></div>
+      <div class="metiquetas" id="mEtiquetas"></div>
     </div>
     <div class="mbody" id="mBody"></div>
+    <div class="mbar" id="mBar"></div>
     <div class="resp" id="mResp"></div>
   </div>
 </div>
@@ -205,7 +227,7 @@ async function iniciar(){
 // ---------- Navegación por carpetas ----------
 function setFiltro(f){
   filtro = f;
-  for(const t of ["recibidos","enviados","spam","bloqueados"]){
+  for(const t of ["recibidos","enviados","archivados","spam","papelera","bloqueados"]){
     const el=document.getElementById("tab-"+t); if(el) el.classList.toggle("activo", t===f);
   }
   if(f==="bloqueados"){ cargarBloqueados(); return; }
@@ -228,21 +250,34 @@ async function cargarMas(){
 }
 
 function vacioMsg(){
-  return filtro==="enviados" ? "Aún no hay correos ni cotizaciones enviadas."
-       : filtro==="spam"     ? "No hay spam."
+  return filtro==="enviados"   ? "Aún no hay correos ni cotizaciones enviadas."
+       : filtro==="archivados" ? "Sin correos archivados."
+       : filtro==="spam"       ? "No hay spam."
+       : filtro==="papelera"   ? "La papelera está vacía."
        : "Sin correos por responder. Cuando llegue uno a contacto@destaperapido.cl aparecerá aquí.";
 }
 
+function chipsHtml(c){
+  const arr=(c.etiquetas||"").split(",").map(s=>s.trim()).filter(Boolean);
+  if(!arr.length) return "";
+  return `<div class="chips">`+arr.map(e=>`<span class="chip">${esc(e)}</span>`).join("")+`</div>`;
+}
+
 function accionesHtml(c){
+  const stop='event.stopPropagation();';
   if(filtro==="spam"){
     return `<div class="qa">
-      <button class="qa-b" onclick="event.stopPropagation();noSpam(${c.id})">↩️ No es spam</button>
-      <button class="qa-b" onclick="event.stopPropagation();bloquear(${c.id},'email')">🚫 Bloquear remitente</button>
-      <button class="qa-b" onclick="event.stopPropagation();bloquear(${c.id},'dominio')">🌐 Bloquear dominio</button>
+      <button class="qa-b" onclick="${stop}noSpam(${c.id})">↩️ No es spam</button>
+      <button class="qa-b" onclick="${stop}bloquear(${c.id},'email')">🚫 Bloquear remitente</button>
+      <button class="qa-b" onclick="${stop}bloquear(${c.id},'dominio')">🌐 Bloquear dominio</button>
     </div>`;
   }
+  if(filtro==="papelera")   return `<div class="qa"><button class="qa-b" onclick="${stop}accRestaurar(${c.id})">♻️ Restaurar</button></div>`;
+  if(filtro==="archivados") return `<div class="qa"><button class="qa-b" onclick="${stop}accRestaurar(${c.id})">📥 Mover a Recibidos</button></div>`;
   if(filtro==="enviados") return "";
-  return `<div class="qa"><button class="qa-b" onclick="event.stopPropagation();spam(${c.id})">🚫 Marcar spam</button></div>`;
+  return `<div class="qa">
+    <button class="qa-b" onclick="${stop}accArchivar(${c.id})">✅ Listo</button>
+    <button class="qa-b" onclick="${stop}spam(${c.id})">🚫 Marcar spam</button></div>`;
 }
 
 function cardHtml(c){
@@ -265,6 +300,7 @@ function cardHtml(c){
       </div>
       <div class="asunto${noLeido?' bold':''}">${esc(c.asunto)}</div>
       <div class="snippet">${esc(c.snippet||"")}</div>
+      ${chipsHtml(c)}
       ${accionesHtml(c)}
     </div>`;
 }
@@ -289,19 +325,35 @@ async function refrescarContadores(){
     };
     setB("recibidos", c.recibidos_no_leidos||0, false);
     setB("enviados", c.enviados_no_leidos||0, true);
+    setB("archivados", c.archivados||0, true);
     setB("spam", c.spam||0, true);
+    setB("papelera", c.papelera||0, true);
     if(navigator.setAppBadge){ try{ (c.pendientes>0)?navigator.setAppBadge(c.pendientes):navigator.clearAppBadge(); }catch(e){} }
   }catch(e){}
 }
 
+// ---------- Utilidades de acción (toast + quitar de la lista sin recargar) ----------
+function toast(t){
+  let el=document.getElementById("toast");
+  if(!el){ el=document.createElement("div"); el.id="toast"; el.className="toast"; document.body.appendChild(el); }
+  el.textContent=t; el.classList.add("show"); clearTimeout(el._t);
+  el._t=setTimeout(()=>el.classList.remove("show"),2200);
+}
+function quitarDeLista(id){ const i=items.findIndex(x=>x.id===id); if(i>=0){ items.splice(i,1); render(); } }
+
 // ---------- Acciones spam / bloqueo (con aprendizaje) ----------
 async function spam(id){
   try{ await api("/api/spam",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id})}); }catch(e){}
-  cargar(true); refrescarContadores();
+  quitarDeLista(id); refrescarContadores(); toast("Marcado spam 🚫");
 }
+// "No es spam" saca de spam TODOS los correos de ese remitente de una vez (no 1×1).
 async function noSpam(id){
-  try{ await api("/api/no-spam",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id})}); }catch(e){}
-  cargar(true); refrescarContadores();
+  const c = items.find(x=>x.id===id) || actual;
+  const body = (c && c.de) ? {de:c.de} : {id};
+  let d={};
+  try{ d = await api("/api/no-spam",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)}); }catch(e){}
+  cerrar(); cargar(true); refrescarContadores();
+  toast(d.afectados>1 ? `${d.afectados} correos fuera de spam ↩️` : "Fuera de spam ↩️");
 }
 async function bloquear(id, tipo){
   const c = items.find(x=>x.id===id) || actual;
@@ -367,10 +419,119 @@ async function ver(id){
     else { body.textContent="(sin contenido)"; }
   }
   renderResp(c);
+  renderEtiquetas(c);
+  renderBar(c);
   document.getElementById("overlay").style.display="flex";
   // Marcado como leído server-side al abrir: reflejarlo en la lista sin recargar.
   const it = items.find(x=>x.id===id); if(it){ it.leido=1; render(); }
   refrescarContadores();
+}
+
+// ---------- Barra de acciones del modal (contextual por estado) ----------
+function barBusy(d){ document.querySelectorAll('#mBar button').forEach(x=>x.disabled=d); }
+function renderBar(c){
+  const bar=document.getElementById("mBar"); const e=c.estado;
+  const B=(cls,lbl,fn)=>`<button class="mbar-b ${cls}" onclick="${fn}">${lbl}</button>`;
+  let h="";
+  if(["nuevo","borrador","ajuste"].includes(e)){
+    h = B('primary','✓ Listo','accArchivar('+c.id+')')
+      + B('','🏷️ Etiqueta','agregarEtiqueta('+c.id+')')
+      + B('','✉️ No leído','accNoLeido('+c.id+')')
+      + B('','🚫 Spam','accSpam('+c.id+')')
+      + B('danger','🗑️ Eliminar','accEliminar('+c.id+')');
+  } else if(["respondido","enviado"].includes(e)){
+    h = B('','🏷️ Etiqueta','agregarEtiqueta('+c.id+')')
+      + B('','✉️ No leído','accNoLeido('+c.id+')')
+      + B('danger','🗑️ Eliminar','accEliminar('+c.id+')');
+  } else if(e==="spam"){
+    h = B('','↩️ No es spam','noSpam('+c.id+')')
+      + B('','🚫 Bloquear','bloquear('+c.id+",'email')")
+      + B('','🌐 Bloquear dominio','bloquear('+c.id+",'dominio')")
+      + B('danger','🗑️ Eliminar','accEliminar('+c.id+')');
+  } else if(e==="archivado"){
+    h = B('primary','📥 Mover a Recibidos','accRestaurar('+c.id+')')
+      + B('','🏷️ Etiqueta','agregarEtiqueta('+c.id+')')
+      + B('danger','🗑️ Eliminar','accEliminar('+c.id+')');
+  } else if(e==="papelera"){
+    h = B('primary','♻️ Restaurar','accRestaurar('+c.id+')')
+      + B('danger','⛔ Eliminar definitivo','accEliminarDef('+c.id+')');
+  } else {
+    h = B('','🏷️ Etiqueta','agregarEtiqueta('+c.id+')')
+      + B('danger','🗑️ Eliminar','accEliminar('+c.id+')');
+  }
+  bar.innerHTML=h;
+}
+
+// ---------- Etiquetas en el modal ----------
+function renderEtiquetas(c){
+  const cont=document.getElementById("mEtiquetas");
+  const arr=(c.etiquetas||"").split(",").map(s=>s.trim()).filter(Boolean);
+  const chips=arr.map((e,i)=>`<span class="chip">${esc(e)}<span class="chip-x" onclick="quitarEtiqueta(${c.id},${i})">×</span></span>`).join("");
+  cont.innerHTML=chips
+    +`<button class="chip-add" onclick="agregarEtiqueta(${c.id})">＋ etiqueta</button>`
+    +`<button class="chip-ia" id="iaBtn" onclick="sugerirIA(${c.id})">🤖 Sugerir (IA)</button>`;
+}
+// Refleja etiquetas nuevas en modal + tarjeta abierta, sin recargar.
+function syncEtiquetas(id, arr){
+  const csv=(arr||[]).join(",");
+  if(actual && actual.id===id){ actual.etiquetas=csv; renderEtiquetas(actual); }
+  const it=items.find(x=>x.id===id); if(it){ it.etiquetas=csv; render(); }
+}
+async function agregarEtiqueta(id){
+  const t=prompt("Nueva etiqueta:"); if(!t||!t.trim()) return;
+  try{
+    const d=await api("/api/etiqueta",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({id,etiqueta:t,accion:"add"})});
+    if(d.ok) syncEtiquetas(id,d.etiquetas); else toast("⚠️ "+(d.error||"error"));
+  }catch(e){ toast("⚠️ "+e.message); }
+}
+async function quitarEtiqueta(id,i){
+  const arr=(actual.etiquetas||"").split(",").map(s=>s.trim()).filter(Boolean);
+  const etq=arr[i]; if(!etq) return;
+  try{
+    const d=await api("/api/etiqueta",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({id,etiqueta:etq,accion:"remove"})});
+    if(d.ok) syncEtiquetas(id,d.etiquetas);
+  }catch(e){ toast("⚠️ "+e.message); }
+}
+async function sugerirIA(id){
+  const btn=document.getElementById("iaBtn"); if(btn){ btn.disabled=true; btn.textContent="🤖 Pensando…"; }
+  try{
+    const d=await api("/api/etiquetar-ia",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id})});
+    if(d.error) toast("⚠️ "+d.error);
+    else if(!d.etiqueta) toast("La IA no encontró una etiqueta clara");
+    else { syncEtiquetas(id,d.etiquetas); toast("Etiqueta: "+d.etiqueta); }
+  }catch(e){ toast("⚠️ "+e.message); }
+  if(btn){ btn.disabled=false; btn.textContent="🤖 Sugerir (IA)"; }
+}
+
+// ---------- Acciones del modal (archivar / eliminar / restaurar / no leído) ----------
+async function accion(url, id, okMsg, quitar){
+  barBusy(true);
+  try{
+    const d=await api(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id})});
+    if(!d || d.error){ toast("⚠️ "+((d&&d.error)||"error")); barBusy(false); return; }
+    if(quitar){ cerrar(); quitarDeLista(id); refrescarContadores(); }
+    toast(okMsg);
+  }catch(e){ toast("⚠️ "+e.message); }
+  barBusy(false);
+}
+function accArchivar(id){ accion("/api/archivar",id,"Archivado ✅",true); }
+function accEliminar(id){ accion("/api/eliminar",id,"En papelera 🗑️",true); }
+function accRestaurar(id){ accion("/api/restaurar",id,"Restaurado ♻️",true); }
+function accSpam(id){ accion("/api/spam",id,"Marcado spam 🚫",true); }
+function accEliminarDef(id){
+  if(!confirm("¿Eliminar definitivamente? Esta acción NO se puede deshacer.")) return;
+  accion("/api/eliminar-definitivo",id,"Eliminado ⛔",true);
+}
+async function accNoLeido(id){
+  barBusy(true);
+  try{
+    await api("/api/marcar-leido",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id,leido:0})});
+    cerrar(); const it=items.find(x=>x.id===id); if(it){ it.leido=0; render(); } refrescarContadores();
+    toast("Marcado no leído ✉️");
+  }catch(e){ toast("⚠️ "+e.message); }
+  barBusy(false);
 }
 
 function conversacionHtml(msgs){
@@ -437,7 +598,6 @@ function renderResp(c){
     <div class="acciones">
       <button class="btn btn-guardar" onclick="guardar()">💾 Guardar borrador</button>
       <button class="btn btn-enviar" onclick="enviar()">📤 Aprobar y enviar</button>
-      <button class="btn btn-spam" onclick="spamModal()">🚫 Marcar spam</button>
     </div>
     <div class="estado-msg" id="respMsg"></div>
     <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />
@@ -464,17 +624,10 @@ async function enviar(){
   botones(true); msg("Enviando…");
   try{
     const d = await api("/api/enviar",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:actual.id,texto})});
-    if(d.ok){ msg("✅ Enviado."); actual.estado="respondido"; actual.respuesta_enviada=texto; renderResp(actual); cargar(true); refrescarContadores(); }
+    if(d.ok){ msg("✅ Enviado."); actual.estado="respondido"; actual.respuesta_enviada=texto; renderResp(actual); renderBar(actual); cargar(true); refrescarContadores(); }
     else msg("⚠️ "+(d.error||"no se pudo enviar"));
   }catch(e){ msg("⚠️ error: "+e.message); }
   botones(false);
-}
-
-async function spamModal(){
-  if(!actual) return;
-  if(!confirm("¿Marcar este correo como spam?")) return;
-  await spam(actual.id);
-  cerrar();
 }
 
 async function pedirAjuste(){

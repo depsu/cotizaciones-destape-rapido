@@ -56,16 +56,52 @@ def api(path, method="GET", body=None):
             return {"error": f"HTTP {e.code}"}
 
 
+def correos(filtro, page_size=100, max_pages=20):
+    """Trae TODA una carpeta paginando (fase8+ el endpoint es paginado por filtro)."""
+    out, page = [], 1
+    while page <= max_pages:
+        d = api(f"/api/correos?filtro={filtro}&page={page}&pageSize={page_size}")
+        out.extend(d.get("correos", []))
+        if not d.get("hasMore"):
+            break
+        page += 1
+    return out
+
+
 def main():
     if len(sys.argv) < 2:
-        sys.exit("uso: nuevos | correo <id> | respondidos | borrador <id> (STDIN) | adjuntar <id> <pdf>")
+        sys.exit("uso: nuevos | ajustes | respondidos | correo <id> | borrador <id> (STDIN) | "
+                 "spam <id> | enviar <id> (STDIN) | adjuntar <id> <pdf> | "
+                 "sin-etiqueta | etiqueta <id> <texto>")
     cmd = sys.argv[1]
 
-    if cmd in ("nuevos", "respondidos", "ajustes"):
-        estado = {"nuevos": "nuevo", "respondidos": "respondido", "ajustes": "ajuste"}[cmd]
-        d = api("/api/correos")
-        cs = [c for c in d.get("correos", []) if c.get("estado") == estado]
+    if cmd in ("nuevos", "ajustes"):
+        estado = {"nuevos": "nuevo", "ajustes": "ajuste"}[cmd]
+        cs = [c for c in correos("recibidos") if c.get("estado") == estado]
         print(json.dumps(cs, ensure_ascii=False, indent=2))
+
+    elif cmd == "respondidos":
+        # 'respondido' vive en la carpeta 'enviados' desde fase8.
+        cs = [c for c in correos("enviados") if c.get("estado") == "respondido"]
+        print(json.dumps(cs, ensure_ascii=False, indent=2))
+
+    elif cmd == "sin-etiqueta":
+        # Correos de negocio (recibidos + enviados) que aún no tienen etiquetas -> para el loop de etiquetado IA.
+        vistos, cs = set(), []
+        for c in correos("recibidos") + correos("enviados"):
+            if c["id"] in vistos:
+                continue
+            vistos.add(c["id"])
+            if not (c.get("etiquetas") or "").strip():
+                cs.append({k: c.get(k) for k in ("id", "de", "para", "asunto", "estado", "snippet")})
+        print(json.dumps(cs, ensure_ascii=False, indent=2))
+
+    elif cmd == "etiqueta":
+        if len(sys.argv) < 4:
+            sys.exit("uso: etiqueta <id> <texto de la etiqueta>")
+        etq = " ".join(sys.argv[3:])
+        res = api("/api/etiqueta", "POST", {"id": sys.argv[2], "etiqueta": etq, "accion": "add"})
+        print(json.dumps(res, ensure_ascii=False))
 
     elif cmd == "correo":
         if len(sys.argv) < 3:
