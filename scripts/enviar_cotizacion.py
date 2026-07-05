@@ -34,6 +34,7 @@ from pathlib import Path
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "smtp.local.json"
 RESEND_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "resend.local.json"
+AGENTE_CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "agente.local.json"
 
 # User-Agent de navegador: Resend está detrás de Cloudflare y responde 403 (error 1010)
 # al User-Agent por defecto de urllib. Con uno de navegador el envío pasa sin problema.
@@ -123,6 +124,58 @@ def enviar_resend(cfg: dict, *, from_name: str, from_email: str, destino: str,
         sys.exit(f"❌ No se pudo enviar por Resend: {type(e).__name__}: {e}")
 
 
+def registrar_en_panel(*, destino: str, asunto: str, cuerpo: str,
+                       ruta_pdf: Path, resend_id: str | None) -> dict | None:
+    """Registra la cotización enviada en el panel (worker D1) para que aparezca
+    en la pestaña 'Enviados'. Best-effort: si falla, solo avisa (el correo ya salió).
+
+    Necesita config/agente.local.json con 'worker_url' y 'panel_pass'. Si no está,
+    no hace nada (retrocompatibilidad).
+    """
+    if not AGENTE_CONFIG_PATH.exists():
+        return None
+    try:
+        with AGENTE_CONFIG_PATH.open(encoding="utf-8") as f:
+            cfg = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return None
+    worker_url = (cfg.get("worker_url") or "").rstrip("/")
+    panel_pass = cfg.get("panel_pass")
+    if not worker_url or not panel_pass:
+        return None
+
+    pdf_b64 = base64.b64encode(ruta_pdf.read_bytes()).decode()
+    payload = {
+        "para": destino,
+        "asunto": asunto,
+        "cuerpo": cuerpo,
+        "adjunto_nombre": ruta_pdf.name,
+        "adjunto_b64": pdf_b64,
+        "resend_id": resend_id or None,
+    }
+    req = urllib.request.Request(
+        f"{worker_url}/api/registrar-enviada",
+        data=json.dumps(payload).encode(),
+        headers={
+            "Content-Type": "application/json",
+            "x-panel-pass": panel_pass,
+            "User-Agent": BROWSER_UA,
+            "Accept": "application/json",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        detalle = e.read().decode(errors="replace")[:200]
+        print(f"⚠️  No se pudo registrar en el panel (HTTP {e.code}): {detalle}")
+        return None
+    except (urllib.error.URLError, OSError, json.JSONDecodeError) as e:
+        print(f"⚠️  No se pudo registrar en el panel: {type(e).__name__}: {e}")
+        return None
+
+
 def construir_cuerpo(cliente: str | None, mensaje: str | None) -> str:
     """Arma el texto del correo. Usa un cuerpo formal por defecto."""
     if mensaje:
@@ -201,6 +254,7 @@ def main() -> None:
     cuerpo = construir_cuerpo(args.cliente, args.mensaje)
 
     resend_cfg = cargar_config_resend()
+    resend_id = None
 
     if resend_cfg:
         # Vía por defecto: Resend (dominio destaperapido.cl verificado).
@@ -243,6 +297,12 @@ def main() -> None:
         via = "SMTP"
         bcc = from_email if (guardar_copia and from_email != args.destino) else None
 
+    # Registrar en el panel (pestaña "Enviados") — best-effort, no bloquea el envío.
+    registro = registrar_en_panel(
+        destino=args.destino, asunto=asunto, cuerpo=cuerpo,
+        ruta_pdf=ruta_pdf, resend_id=resend_id,
+    )
+
     destinatarios = args.destino + (f" (CC: {', '.join(args.cc)})" if args.cc else "")
     print(f"✅ Cotización enviada a {destinatarios}")
     print(f"   Adjunto: {ruta_pdf.name}")
@@ -250,6 +310,9 @@ def main() -> None:
     print(f"   Vía:     {via}")
     if bcc:
         print(f"   Copia de respaldo (CCO): {bcc}")
+    if registro and registro.get("ok"):
+        extra = " (ya estaba)" if registro.get("ya_registrada") else ""
+        print(f"   Panel:   registrada en 'Enviados'{extra}")
 
 
 if __name__ == "__main__":

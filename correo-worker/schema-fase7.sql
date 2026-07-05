@@ -1,0 +1,17 @@
+-- Migración Fase 7: cotizaciones ENVIADAS proactivamente (salientes).
+--
+-- No requiere DDL nuevo: reutiliza la tabla `correos` con un nuevo valor de
+-- estado = 'enviado' (además de nuevo|borrador|ajuste|respondido|spam).
+--
+-- Una fila 'enviado' representa una cotización que salió desde el script
+-- enviar_cotizacion.py (no hubo correo entrante previo):
+--   de            = contacto@destaperapido.cl  (nosotros)
+--   para          = email del cliente
+--   cuerpo_texto  = cuerpo del correo enviado
+--   adjunto_*     = PDF de la cotización
+--   estado        = 'enviado'
+--   notificado    = 1  (no genera push)
+--   respondido_en = fecha de envío
+--
+-- La escribe el endpoint POST /api/registrar-enviada del Worker.
+-- El panel la muestra en la pestaña "Enviados".
