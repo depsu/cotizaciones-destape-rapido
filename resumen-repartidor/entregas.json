@@ -781,23 +781,18 @@
       "aseo": "",
       "direccion": "Av. Santa Filomena 13101, Colina, Región Metropolitana",
       "pago": {
-        "monto": 190400,
-        "nota": "$160.000 neto + IVA = $190.400 mensual. Con factura (Aporo SpA). Cobrar al entregar."
+        "monto": 160000,
+        "nota": "$160.000 total mensual. SIN factura (boleta), sin IVA — valor final. Cobrar al entregar: efectivo o transferencia, sin adelanto."
       },
       "factura": {
-        "requiere": true,
-        "razon_social": "Aporo SpA",
-        "rut": "77.799.942-7",
-        "giro": "Servicios informáticos",
-        "direccion": "Guardia Vieja 202, Of. 403, Piso 4, Providencia",
-        "email": "ew.asanchez@gmail.com"
+        "requiere": false
       },
       "detalle": [
         "Instalar 1 baño químico en Av. Santa Filomena 13101, Colina.",
         "Traslado incluido.",
         "Dejar insumos: papel higiénico y desodorizante."
       ],
-      "notas": "Arriendo mensual con limpieza semanal. Entrega hoy o mañana — coordinar día con el cliente. Confirmar dirección exacta y acceso en Colina antes de llegar. Factura Aporo SpA (datos completos).",
+      "notas": "Arriendo mensual con limpieza semanal. El cliente NO necesita factura → valor neto final $160.000 (boleta, sin IVA). Entrega hoy o mañana — coordinar día con el cliente. Confirmar dirección exacta y acceso en Colina antes de llegar. Pago contra entrega (efectivo o transferencia), sin adelanto.",
       "estado": "pendiente"
     }
   ],
