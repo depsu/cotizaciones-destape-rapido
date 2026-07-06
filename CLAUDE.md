@@ -51,13 +51,14 @@ python3 scripts/enviar_cotizacion.py \
 python3 resumen-repartidor/scripts/resumen_repartidor.py --id <id> --enviar
 ```
 `--enviar` manda de una (sin confirmación manual) → **revisar los datos antes**. Usar `--abrir`
-si se quiere revisar en WhatsApp antes de mandar.
+si se quiere revisar en WhatsApp antes de mandar. **Además de mandar el WhatsApp, el `--enviar`
+sube la entrega a Supabase → aparece sola en la página del repartidor.**
 
-### 3. Subir la página del repartidor
-```bash
-bash resumen-repartidor/publicar.sh "agrega entrega <cliente>"
-# Regenera listado.html y lo publica → https://depsu.github.io/cotizaciones-destape-rapido/
-```
+### 3. La página del repartidor se actualiza SOLA
+El paso 2 (`--enviar`) ya subió la entrega a Supabase, así que **aparece sola** en
+https://depsu.github.io/cotizaciones-destape-rapido/ — **NO hace falta `publicar.sh`** para agregar
+una entrega. `publicar.sh` solo se usa si cambia el CÓDIGO/diseño de la página o para refrescar el
+respaldo horneado. Detalle en `resumen-repartidor/ARQUITECTURA.md`.
 
 ### 4. Dejar registro
 - Actualizar la ficha del cliente en `clientes/historial.md` (precio, condiciones, estado).
@@ -81,5 +82,9 @@ bash resumen-repartidor/publicar.sh "agrega entrega <cliente>"
 
 - **Correo:** Resend por defecto (`config/resend.local.json`), SMTP del hosting de respaldo
   (`config/smtp.local.json`). `enviar_cotizacion.py` registra el envío en el panel ("Enviados").
-- **Página repartidor:** GitHub Pages (`publicar.sh` hace commit + push a `main`, ~15s de build).
-- **Estados/comisión de entregas:** los cambia el repartidor desde la página (Supabase), no a mano.
+- **Página repartidor:** GitHub Pages. Lee las entregas **en vivo desde Supabase** (tabla `entrega`);
+  las horneadas quedan de respaldo. Agregar una entrega = `--enviar` (sube sola); `publicar.sh`
+  (regenera + re-sincroniza Supabase + push) solo para cambios de código/diseño. Ver
+  `resumen-repartidor/ARQUITECTURA.md`.
+- **Estados/comisión de entregas:** los cambia el repartidor desde la página (Supabase, tablas
+  `entrega_estado`/`tarea_estado`), no a mano.

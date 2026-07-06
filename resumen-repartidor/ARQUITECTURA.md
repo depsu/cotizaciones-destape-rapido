@@ -18,33 +18,42 @@ Una página **mobile-first estática** que usa el repartidor (y el jefe/Alejandr
 
 | Archivo | Qué es |
 |---|---|
-| `resumen-repartidor/entregas.json` | **Fuente de datos** (curada a mano). Contenido de cada entrega + tareas + comprobantes. |
-| `resumen-repartidor/scripts/generar_listado.py` | **Generador**: lee `entregas.json` y produce `listado.html`. Acá viven el HTML, **todo el CSS** y **todo el JavaScript** embebido. |
+| `resumen-repartidor/entregas.json` | **Input/registro** de las entregas (curado a mano). Se edita para dar de alta una entrega; el `--enviar` la sube a Supabase. Ya **NO** es lo que la página lee en vivo (eso es Supabase), pero se hornea como **respaldo**. |
+| `resumen-repartidor/scripts/generar_listado.py` | **Generador** de `listado.html`. Acá viven el HTML, **todo el CSS** y **todo el JavaScript** embebido. Hornea las entregas de `entregas.json` como RESPALDO; la página, al cargar, las reemplaza por las de Supabase. La función `tarjeta(e)` renderiza cada tarjeta (se reutiliza para el `card_html` de Supabase). |
+| `resumen-repartidor/scripts/sync_entregas_supabase.py` | Sube/actualiza las entregas de `entregas.json` a la tabla **`entrega`** de Supabase (idempotente; `card_html` = `tarjeta(e)`; **preserva** el `informado_at` existente). Expone `upsert_entrega(e)` que usa el flujo del repartidor. |
+| `resumen-repartidor/scripts/resumen_repartidor.py` | Arma el resumen + link/envío de WhatsApp al repartidor. Con `--enviar`/`--abrir` **también sube la entrega a Supabase** (aparece sola en la página, más reciente arriba). |
 | `resumen-repartidor/listado.html` | Salida generada (autocontenida, sin dependencias). **No editar a mano**, se regenera. |
-| `resumen-repartidor/supabase/entrega_estado.sql` | DDL de las tablas de estado en Supabase (idempotente). |
+| `resumen-repartidor/supabase/entrega.sql` | DDL de la tabla **`entrega`** (CONTENIDO de las entregas + `card_html` + `informado_at`). Idempotente. |
+| `resumen-repartidor/supabase/entrega_estado.sql` | DDL de las tablas de **ESTADO** (`entrega_estado`, `tarea_estado`). Idempotente. |
 | `resumen-repartidor/comprobantes/` | Fotos de las transferencias de comisión (se suben a mano). |
 | `index.html` (raíz) | Redirige a `resumen-repartidor/listado.html`. |
 
-## Regenerar y publicar
+## Agregar una entrega / regenerar / publicar
+
+- **Agregar una entrega (flujo normal):** editar `entregas.json` y correr `python3 resumen-repartidor/scripts/resumen_repartidor.py --id <id> --enviar`. Eso manda el WhatsApp al repartidor **y sube la entrega a Supabase** → **aparece sola en la página, sin regenerar ni publicar**.
+- **Publicar cambios de CÓDIGO/diseño** de la página (o refrescar el respaldo horneado): `publicar.sh` regenera `listado.html`, **re-sincroniza Supabase** y hace commit + push. GitHub Pages publica en ~1 min.
 
 ```bash
-python3 resumen-repartidor/scripts/generar_listado.py     # regenera listado.html
-git add resumen-repartidor/ && git commit -m "..." && git push origin main
+python3 resumen-repartidor/scripts/generar_listado.py            # solo regenera listado.html (respaldo)
+bash resumen-repartidor/publicar.sh "mensaje del commit"         # regenera + sincroniza Supabase + push
 ```
-GitHub Pages lo publica solo en ~1 min. (También existe `publicar.sh` para el flujo de agregar entregas.)
 
-## Arquitectura: estático + estado vivo en Supabase
+## Arquitectura: página dinámica desde Supabase (con respaldo horneado)
 
-- El **contenido** (cliente, dirección, monto, servicio…) se **hornea** en `listado.html` desde `entregas.json` al generar.
-- El **estado mutable** que cambia el repartidor desde el celular (entregado/cobrado, fecha reagendada, contactado, comisión pagada, tareas realizadas) se guarda en **Supabase** y se lee/escribe con la **anon key** vía REST (`/rest/v1/...`). Así el repartidor y Alejandro ven lo mismo en vivo.
-- Al cargar: el JS pinta primero con los datos horneados (META), luego hace `fetch` a Supabase y sobreescribe con el estado real. Hay un "velo" (`main` opacity) que evita el parpadeo.
+- El **contenido** de cada entrega (cliente, dirección, monto, servicio…) vive en la tabla **`entrega`** de Supabase, con la tarjeta **ya renderizada** en `card_html` (la genera la misma función Python `tarjeta()`; **NO** se porta el template a JS) y un `informado_at` para el orden.
+- Al cargar, la página hace `fetch` a `entrega` (`select=id,fecha,informado_at,data,card_html&eliminado=eq.false&order=informado_at.desc`) e **inyecta** esas tarjetas. Si el fetch falla o viene vacío (p. ej. Supabase pausado), quedan las **horneadas** desde `entregas.json` como RESPALDO.
+- El **estado mutable** que cambia el repartidor desde el celular (entregado/cobrado, fecha reagendada, contactado, comisión pagada, tareas realizadas) vive en **`entrega_estado`**/**`tarea_estado`** y se lee/escribe con la **anon key** vía REST (`/rest/v1/...`). El JS lo aplica encima de las tarjetas. Así el repartidor y Alejandro ven lo mismo en vivo.
+- **Orden:** agrupado por día; los días de **más nuevo a más viejo** (fecha desc), y dentro de cada día lo **más recientemente informado primero** (`informado_at` desc). Una entrega nueva (informado = `now()`) queda arriba de su día.
+- Al cargar hay un "velo" (`main` opacity) que evita el parpadeo mientras llegan los datos.
+- **Consistencia:** las entregas nuevas entran por `resumen_repartidor.py --enviar` (upsert con `informado_at = now()`); `publicar.sh` re-sincroniza todo `entregas.json` (preservando `informado_at`) para que respaldo horneado y Supabase queden iguales.
 
 ### Supabase
 
 - Proyecto **`abmzkzraptmjgebwjzys`** · URL `https://abmzkzraptmjgebwjzys.supabase.co` (es el mismo de `../destaperapido-app`, **free tier: se pausa por inactividad** → si fallan los fetch, reactivar).
 - **anon key** (pública por diseño) está incrustada en `generar_listado.py` (`SUPABASE_ANON_KEY`) y en `destaperapido-app/frontend/.env.local`.
 - Tablas (RLS con acceso anónimo solo a ellas):
-  - **`entrega_estado`**: `id` (= id de la entrega), `estado`, `fecha` (override reagendado), `comision_pagada`, `pagada_at`, `contactado`, `reagendar_avisado`, `eliminado` (oculta la entrega y la saca de conteos/comisión), `nota`, `updated_at`.
+  - **`entrega`** (CONTENIDO — es lo que la página LEE para mostrar): `id` (= id de la entrega), `fecha`, `informado_at` (timestamptz, orden "más reciente arriba"), `data` (jsonb = objeto completo de la entrega, misma forma que en `entregas.json`), `card_html` (tarjeta ya renderizada por `tarjeta()`), `eliminado`, `updated_at`. DDL: `supabase/entrega.sql`.
+  - **`entrega_estado`** (ESTADO mutable): `id` (= id de la entrega), `estado`, `fecha` (override reagendado), `comision_pagada`, `pagada_at`, `contactado`, `reagendar_avisado`, `eliminado` (oculta la entrega y la saca de conteos/comisión), `nota`, `updated_at`.
   - **`tarea_estado`**: `id` (= `"<entrega_id>::lim::<idx>"` o `"<entrega_id>::retiro"`), `contactado`, `realizada`, `realizada_at`, `updated_at`.
 
 ### Aplicar migraciones / correr SQL (sin CLI ni psql)
@@ -56,12 +65,13 @@ Vía **Management API** (token personal `SUPABASE_ACCESS_TOKEN` y `SUPABASE_PROJ
 # OJO: Cloudflare bloquea el User-Agent por defecto de Python (error 1010) -> mandar UA de navegador.
 # Si el proyecto está pausado: POST /v1/projects/<ref>/restore y esperar status ACTIVE_HEALTHY.
 ```
-(Hay ejemplos de este patrón en el historial; el SQL idempotente está en `supabase/entrega_estado.sql`.)
+(Hay ejemplos de este patrón en el historial; el SQL idempotente está en `supabase/entrega.sql` y `supabase/entrega_estado.sql`.)
 
 ## Modelo de datos
 
-### `entregas.json` (campos por entrega)
+### Campos por entrega (en `entregas.json` y en la columna `data` de la tabla `entrega`)
 
+Mismos campos en ambos lados (el `data` de Supabase es una copia del objeto de `entregas.json`):
 `id, cliente, telefono, direccion, fecha (AAAA-MM-DD), hora, servicio, cantidad, pago{monto, nota}, factura{...}, detalle[], notas, estado`.
 
 Opcionales importantes:
@@ -113,15 +123,19 @@ Helpers en JS: `entregadoDe(id)`, `cobradoDe(id)`, `estadoDe(id)`. La comisión 
 
 - **Todo el CSS** está en `ESTILOS_EXTRA` (string normal, llaves simples) y en el `<style>` del f-string final (llaves **dobles** `{{ }}`). El **JS** está en `SCRIPT_ESTADO` (raw string `r"""..."""`, llaves literales). Datos para el JS van en `window.__APP__` (config blob).
 - **Regla del `[hidden]`**: hay una regla global `[hidden]{display:none!important}` porque muchos contenedores usan `display:flex/block` que de otro modo le ganan al atributo `hidden`. Úsala en vez de pelear con cada elemento.
-- **Probar sin tocar la base**: generar y abrir `listado.html` en Chrome headless, stubbeando `window.fetch` para inyectar estado falso y capturar errores. Patrón:
+- **Probar sin tocar la base**: generar y abrir `listado.html` en Chrome headless y capturar errores. Al cargar, la página hace `fetch` a **DOS** endpoints: `entrega` (contenido → tarjetas) y `entrega_estado`/`tarea_estado` (estado). Dos formas de probar:
+  - **Con Supabase real** (recomendado, es lo que valida CORS + datos): servir por `http` (origen válido) y renderizar — `python3 -m http.server 8791` en `resumen-repartidor/` y abrir `http://localhost:8791/listado.html`. La tabla `entrega` tiene RLS anónima, así que trae los datos reales.
+  - **Stub de `window.fetch`** para inyectar filas falsas de `entrega` y/o `entrega_estado` (probar orden, fallback si `entrega` da 503, estado, etc.), capturando `window.onerror`/`console.error`.
   ```bash
   # extraer scripts y validar sintaxis
   python3 -c "import re;html=open('resumen-repartidor/listado.html').read();[open(f'/tmp/s{i}.js','w').write(s) for i,s in enumerate(re.findall(r'<script>(.*?)</script>',html,re.S))]"
   node --check /tmp/s1.js
-  # render con estado simulado: stub window.fetch (GET devuelve filas, POST ok/falla) + window.onerror
-  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu \
-    --virtual-time-budget=3000 --dump-dom "file://$PWD/tmp.html"
+  # render (con Supabase real, servido por http para tener origen válido)
+  (cd resumen-repartidor && python3 -m http.server 8791 &) ; sleep 1
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu \
+    --virtual-time-budget=9000 --dump-dom "http://localhost:8791/listado.html"
   ```
+  **OJO al verificar el orden por DOM:** las tarjetas se agrupan por su **día efectivo** (reagendado en `entrega_estado`), que puede diferir del `data-fecha`/id original → parsear las cards **anidadas dentro de cada `<section data-fecha>`**, no el atributo suelto de la card.
 - **No subir** archivos temporales/capturas al repo. Commits en español, estilo de los existentes.
 
 ## Reglas de negocio (memoria de Alejandro)

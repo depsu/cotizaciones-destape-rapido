@@ -1,13 +1,13 @@
 -- ============================================================================
 -- Tabla de ESTADO MUTABLE de las entregas (para la página del repartidor).
 --
--- El CONTENIDO de cada entrega (cliente, dirección, monto, etc.) vive en
--- entregas.json y se hornea en listado.html. Esta tabla guarda SOLO lo que el
--- repartidor cambia desde el celular: el estado, la fecha reagendada y el cobro;
--- más el flag 'comision_pagada' que marca Alejandro cuando ya le pagaron su 20%.
+-- El CONTENIDO de cada entrega (cliente, dirección, monto, etc.) vive en la tabla
+-- 'entrega' (ver entrega.sql) — la página lo lee de ahí. Esta tabla guarda SOLO lo
+-- que el repartidor cambia desde el celular: el estado, la fecha reagendada y el
+-- cobro; más el flag 'comision_pagada' que marca Alejandro cuando ya le pagaron 20%.
 --
--- La clave 'id' coincide con el id de la entrega en entregas.json
--- (formato AAAA-MM-DD-cliente-kebab).
+-- La clave 'id' coincide con el id de la entrega (tabla 'entrega' / entregas.json,
+-- formato AAAA-MM-DD-cliente-kebab).
 --
 -- Cómo aplicarlo:  Supabase → SQL Editor → pega TODO esto → Run.
 -- Es idempotente: se puede correr varias veces sin romper nada.

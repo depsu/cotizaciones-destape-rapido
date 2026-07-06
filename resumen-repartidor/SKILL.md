@@ -5,7 +5,7 @@ description: Gestiona las entregas de Destape Rápido para el repartidor. Úsalo
 
 # Resumen para el repartidor + listado de entregas
 
-Skill para que el repartidor de **Destape Rápido** sepa exactamente a dónde ir, qué entregar, y pueda hablarle al cliente y llegar desde el celular. Todo sale de un único archivo de datos: `entregas.json`.
+Skill para que el repartidor de **Destape Rápido** sepa exactamente a dónde ir, qué entregar, y pueda hablarle al cliente y llegar desde el celular. Las entregas se editan en `entregas.json` (input/registro) y el `--enviar` las **sube a Supabase**, que es de donde la página las lee en vivo (con las horneadas como respaldo). Detalle completo de la arquitectura en `ARQUITECTURA.md`.
 
 > ⚠️ **NO CONFUNDIR con el skill de correo.** Si Alejandro **pega una conversación de WhatsApp con un cliente** (trato ya conversado) y dice "envía esta cotización" / "mándasela al repartidor", **ES ESTE SKILL** → mandar el **WhatsApp al REPARTIDOR** con `--enviar`, **aunque diga la palabra "cotización"**. **NUNCA** enviar un correo al cliente en este caso (eso es el skill `cotizaciones-destape-rapido`, solo cuando el destino explícito es el cliente por correo). El destino aquí es SIEMPRE el repartidor, por WhatsApp.
 
@@ -32,9 +32,9 @@ Cuando Alejandro diga **"resumen para repartidor"** y pegue un chat de cliente c
 6. **Actualizar** la ficha del cliente en `clientes/historial.md`.
 7. **Confirmar** al final que la entrega quedó publicada (la reporta el propio `--enviar`: "Entrega publicada en Supabase").
 
-## Fuente de datos: `entregas.json`
+## Fuente de datos: `entregas.json` (input) → Supabase (lo que muestra la página)
 
-Cada entrega tiene esta forma:
+`entregas.json` es el input que editas a mano; el `--enviar` sube cada entrega a la tabla `entrega` de Supabase (con su tarjeta ya renderizada) y de ahí la lee la página. Cada entrega tiene esta forma:
 
 ```json
 {
@@ -83,19 +83,16 @@ Al responder en el chat: entregar el **link de WhatsApp** de forma destacada (es
 
 ### 2. "Agenda / registra una entrega"
 
-Agregar (o editar) el objeto correspondiente en `entregas.json`. Extraer del mensaje del usuario o de una cotización existente: cliente, teléfono, dirección, fecha, servicio, detalle, notas. Mantener el `id` con la convención. Tras editar, **regenerar el listado** (paso 3).
+Agregar (o editar) el objeto correspondiente en `entregas.json`. Extraer del mensaje del usuario o de una cotización existente: cliente, teléfono, dirección, fecha, servicio, detalle, notas. Mantener el `id` con la convención. Para que aparezca en la página, usar `resumen_repartidor.py --id <id> --enviar` (sube la entrega a Supabase); **no** hace falta regenerar ni publicar.
 
 ### 3. "Muéstrame / genera / actualiza el listado de entregas" → página web
 
-Ejecutar `scripts/generar_listado.py`. Genera `listado.html`: página **mobile-first, autocontenida** (sin dependencias), con las entregas agrupadas por fecha; al tocar una se despliega el detalle, con botones de **WhatsApp al cliente**, **Cómo llegar** (Google Maps) y **Llamar**.
+La página **ya está publicada y en vivo** en GitHub Pages: **https://depsu.github.io/cotizaciones-destape-rapido/** — mobile-first, autocontenida, con las entregas agrupadas por fecha; al tocar una se despliega el detalle, con botones de **WhatsApp al cliente**, **Cómo llegar** (Google Maps) y **Llamar**. Lee las entregas de Supabase en vivo, así que se actualiza sola.
 
-```bash
-python scripts/generar_listado.py            # genera listado.html
-```
+- **Ver/probar en local:** servir por http (para tener origen válido y traer datos de Supabase): `cd resumen-repartidor && python3 -m http.server 8791`, y abrir `http://localhost:8791/listado.html`.
+- **Regenerar la página (solo si cambia el CÓDIGO/diseño o para refrescar el respaldo horneado):** `bash resumen-repartidor/publicar.sh "mensaje"` — regenera `listado.html`, **re-sincroniza Supabase** y hace commit + push (GitHub Pages publica en ~1 min).
 
-Para que el repartidor la vea desde su celular, subir `listado.html` al hosting (vía File Manager del panel) y pasarle el enlace. También se puede abrir localmente.
-
-**Importante:** cada vez que se modifica `entregas.json`, hay que regenerar `listado.html` para que refleje los cambios.
+**Importante:** agregar una entrega **NO** requiere regenerar ni publicar — el `--enviar` la sube a Supabase y aparece sola. `publicar.sh` es solo para cambios de código/diseño de la página. Ver `ARQUITECTURA.md`.
 
 ## Reglas
 
@@ -114,7 +111,11 @@ Cuando Alejandro pregunte **cómo abordar o negociar un cliente** (sobre todo ca
 ## Archivos del skill
 
 - `SKILL.md` — este archivo
-- `entregas.json` — datos de las entregas (lo edita Claude/el usuario)
-- `scripts/resumen_repartidor.py` — resumen + link de WhatsApp para el repartidor
-- `scripts/generar_listado.py` — genera `listado.html` (página mobile-first)
-- `listado.html` — salida generada (subir al hosting para verla en el celular)
+- `ARQUITECTURA.md` — cómo funciona la página por dentro (Supabase, tablas, orden, cómo probar). Leer antes de tocar el código de la página.
+- `entregas.json` — input/registro de las entregas (lo edita Claude/el usuario); el `--enviar` lo sube a Supabase
+- `scripts/resumen_repartidor.py` — resumen + WhatsApp al repartidor; con `--enviar`/`--abrir` **sube la entrega a Supabase**
+- `scripts/sync_entregas_supabase.py` — sincroniza `entregas.json` → tabla `entrega` de Supabase (expone `upsert_entrega()`)
+- `scripts/generar_listado.py` — genera `listado.html` (respaldo horneado + JS que lee de Supabase)
+- `supabase/entrega.sql`, `supabase/entrega_estado.sql` — DDL de las tablas (contenido / estado)
+- `listado.html` — página publicada en GitHub Pages (https://depsu.github.io/cotizaciones-destape-rapido/); se regenera con `publicar.sh`
+- `publicar.sh` — regenera la página + re-sincroniza Supabase + commit/push (solo para cambios de código/diseño)
