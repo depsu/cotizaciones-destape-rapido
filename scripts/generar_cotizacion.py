@@ -45,6 +45,19 @@ EMISOR_DEFAULT = {
     "ubicacion_corta": "Maipú, RM",
 }
 
+# Datos para transferencia — van por DEFECTO en toda cotización (se pueden
+# sobreescribir con "datos_transferencia" en el JSON, o desactivar pasándolo en null).
+DATOS_TRANSFERENCIA_DEFAULT = {
+    "campos": [
+        ["Titular", "BAÑOS LOS PINDUS Y ASOCIADOS SPA"],
+        ["RUT", "78.002.039-3"],
+        ["Banco", "Santander"],
+        ["Tipo de cuenta", "Cuenta Corriente"],
+        ["N° de cuenta", "0000-9611698-5"],
+        ["Email", "estebanmoreno347@gmail.com"],
+    ]
+}
+
 # ============================================================
 # PALETA DE COLORES — teal petróleo + acento ámbar (identidad propia)
 # ============================================================
@@ -426,7 +439,10 @@ def generar(config: dict, output_path: str) -> None:
     story.append(cond_tbl)
 
     # ----- Datos para transferencia (opcional) -----
-    datos_tx = config.get("datos_transferencia")
+    # Ausente → usa el bloque por defecto (Los Pindus). null explícito → lo desactiva.
+    datos_tx = config.get("datos_transferencia", "__DEFAULT__")
+    if datos_tx == "__DEFAULT__":
+        datos_tx = DATOS_TRANSFERENCIA_DEFAULT
     if datos_tx:
         story += section_heading("DATOS PARA TRANSFERENCIA")
         tx_data = [

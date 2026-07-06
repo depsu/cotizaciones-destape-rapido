@@ -768,6 +768,37 @@
       ],
       "notas": "⚠️ ANTES DE SALIR: el cliente pidió FOTOS del baño (ficha) y de la ducha por WhatsApp y quiere verlas ANTES de que se lleven las unidades. Ducha NUEVA. Pago contra entrega (efectivo/transferencia), sin adelanto. Factura: pedir al cliente razón social, RUT, giro y dirección. Confirmar acceso en Peñaflor antes de llegar.",
       "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-06-aporo-spa",
+      "cliente": "Aporo SpA",
+      "telefono": "+56 9 6125 3200",
+      "fecha": "2026-07-06",
+      "hora": "Hoy o mañana (coordinar con el cliente)",
+      "servicio": "1 baño químico — arriendo mensual con limpieza semanal",
+      "cantidad": 1,
+      "comision": true,
+      "aseo": "",
+      "direccion": "Av. Santa Filomena 13101, Colina, Región Metropolitana",
+      "pago": {
+        "monto": 190400,
+        "nota": "$160.000 neto + IVA = $190.400 mensual. Con factura (Aporo SpA). Cobrar al entregar."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Aporo SpA",
+        "rut": "77.799.942-7",
+        "giro": "Servicios informáticos",
+        "direccion": "Guardia Vieja 202, Of. 403, Piso 4, Providencia",
+        "email": "ew.asanchez@gmail.com"
+      },
+      "detalle": [
+        "Instalar 1 baño químico en Av. Santa Filomena 13101, Colina.",
+        "Traslado incluido.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Arriendo mensual con limpieza semanal. Entrega hoy o mañana — coordinar día con el cliente. Confirmar dirección exacta y acceso en Colina antes de llegar. Factura Aporo SpA (datos completos).",
+      "estado": "pendiente"
     }
   ],
   "comprobantes": {
