@@ -1313,15 +1313,31 @@
       if (cur && cur.getAttribute('data-fecha') === eff) return;
       getOrCreateSection(cont, eff).appendChild(cw);
     });
-    // Reordena las secciones de día por fecha y quita las que quedaron vacías.
+    // Orden general. UNA sección por día (getOrCreateSection reutiliza la sección de
+    // esa fecha, así que cada data-fecha aparece una sola vez, con sus cards juntas).
+    // Con cards de Supabase (traen data-informado) los días van por FECHA DESCENDENTE
+    // (día más nuevo arriba) y, dentro de cada día, las cards por informado_at DESC
+    // (lo último informado primero). Sin ese dato (horneadas de respaldo) se conserva
+    // el orden histórico por fecha ascendente.
+    var usaInformado = !!cont.querySelector('.card-wrap[data-informado]');
     var secs = Array.prototype.slice.call(cont.querySelectorAll('section[data-fecha]'));
-    secs.sort(function (a, b) { return a.getAttribute('data-fecha').localeCompare(b.getAttribute('data-fecha')); });
+    if (usaInformado) {
+      secs.sort(function (a, b) { return b.getAttribute('data-fecha').localeCompare(a.getAttribute('data-fecha')); });
+    } else {
+      secs.sort(function (a, b) { return a.getAttribute('data-fecha').localeCompare(b.getAttribute('data-fecha')); });
+    }
     secs.forEach(function (s) {
       var n = s.querySelectorAll('.card-wrap[data-id]').length;
       if (!n) { s.remove(); return; }
       var c = s.querySelector('.conteo'); if (c) { c.textContent = n; }
-      // Las reagendadas (urgentes) van primero dentro del día.
       var h2 = s.querySelector('h2');
+      // Dentro del día, las cards por informado DESC (la más reciente informada arriba).
+      if (h2 && usaInformado) {
+        Array.prototype.slice.call(s.querySelectorAll('.card-wrap[data-id]'))
+          .sort(function (a, b) { var ia = a.getAttribute('data-informado') || '', ib = b.getAttribute('data-informado') || ''; return ia < ib ? 1 : (ia > ib ? -1 : 0); })
+          .forEach(function (cw) { s.appendChild(cw); });
+      }
+      // Las reagendadas (urgentes) van primero dentro del día.
       if (h2) {
         Array.prototype.slice.call(s.querySelectorAll('.card-wrap.is-reagendado')).reverse().forEach(function (cw) {
           h2.insertAdjacentElement('afterend', cw);
@@ -1893,19 +1909,107 @@
     });
   }
 
+  // ---- Contenido de entregas desde Supabase (tabla `entrega`) ----
+  // El contenido (cliente, monto, etc.) también vive en Supabase: la tarjeta ya
+  // viene renderizada en `card_html` (misma función Python que hornea el listado).
+  // La página pide ese HTML y lo inyecta, ordenado por `informado_at` DESC (la más
+  // reciente informada arriba). Si el fetch falla o viene vacío, quedan las
+  // horneadas de respaldo (free tier: Supabase se pausa por inactividad).
+
+  // Puertos JS de las funciones puras del generador, para recomputar el META
+  // (comisión, progreso, ganado) desde el `data` crudo de cada fila.
+  function soloDigitosJS(t) {
+    var d = String(t == null ? '' : t).replace(/\D/g, '');
+    if (d.indexOf('56') === 0) { return d; }
+    if (d.charAt(0) === '9' && d.length === 9) { return '56' + d; }
+    return d;
+  }
+  function banosDeJS(e) {
+    var c = e.cantidad;
+    if (typeof c === 'number' && c > 0) { return c; }
+    var m = /(\d+)\s*ba[ñn]o/i.exec(e.servicio || '');
+    return m ? parseInt(m[1], 10) : 1;
+  }
+  function metaDeData(e) {
+    e = e || {};
+    var pago = e.pago || {};
+    var monto = (pago.monto != null) ? pago.monto : null;
+    var esServ = (e.comision === false);
+    var lleva = !!((e.factura || {}).requiere);
+    var neto = (monto == null) ? 0 : Math.round(lleva ? (monto / 1.19) : monto);
+    var comisiona = !esServ && (monto != null);
+    var comision = comisiona ? Math.round(neto * 0.20) : 0;
+    return {
+      id: e.id || '', cliente: e.cliente || '—', fecha: e.fecha || '',
+      neto: neto, comision: comision, comisiona: comisiona,
+      estado: e.estado || 'pendiente',
+      comision_pagada: !!e.comision_pagada, pagada_at: e.pagada_at || null,
+      tel: soloDigitosJS(e.telefono || ''), banos: banosDeJS(e),
+      tipo: esServ ? 'limpieza' : 'bano', es_servicio: esServ,
+      monto: monto || 0
+    };
+  }
+  // Reemplaza las cards horneadas por las de Supabase (ya ordenadas por el fetch).
+  function aplicarEntregas(rows) {
+    // 1) META desde el `data` crudo → comisión, progreso y ganado se recomputan solos.
+    var nuevo = {};
+    rows.forEach(function (row) {
+      var e = (row && row.data) || {};
+      var id = e.id || (row && row.id);
+      if (id) { nuevo[id] = metaDeData(e); }
+    });
+    META = nuevo;
+    // 2) Inyecta las tarjetas pre-renderizadas, en el orden recibido (informado DESC).
+    var cont = document.querySelector('.vista[data-vista="entregas"]');
+    if (!cont) { return; }
+    cont.querySelectorAll('.card-wrap[data-id]').forEach(function (c) { c.remove(); });
+    cont.querySelectorAll('section[data-fecha]').forEach(function (s) {
+      if (!s.querySelector('.card-wrap[data-id]')) { s.remove(); }
+    });
+    var tpl = document.createElement('template');
+    rows.forEach(function (row) {
+      if (!row || !row.card_html) { return; }
+      tpl.innerHTML = String(row.card_html).trim();
+      var cw = tpl.content.firstElementChild;
+      if (!cw) { return; }
+      // data-informado: sella cuándo se informó, para ordenar por eso en JS.
+      if (row.informado_at) { cw.setAttribute('data-informado', row.informado_at); }
+      var f = cw.getAttribute('data-fecha') || (row.fecha || '');
+      getOrCreateSection(cont, f).appendChild(cw);
+    });
+    // Re-engancha los listeners sobre las cards inyectadas (guardado por card.__wired
+    // y wire.__globals: no duplica listeners de cards ni globales ya enganchados).
+    wire();
+  }
+
   function load() {
     var done = function () { pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); renderComision(); revelar(); };
     if (!SUPA.url || !SUPA.key) { done(); return; }
-    fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })
+    // Estado mutable (entregado/cobrado/…): puebla el mapa `estado`.
+    var pEstado = fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) { rows.forEach(function (row) { estado[row.id] = row; }); })
-      .catch(function (e) { console.warn(e); })
-      .then(done);
+      .catch(function (e) { console.warn(e); });
+    // Contenido de entregas (card_html) ordenado por informado_at DESC.
+    var pEntrega = fetch(SUPA.url + '/rest/v1/entrega?select=id,fecha,informado_at,data,card_html&eliminado=eq.false&order=informado_at.desc', { headers: headers() })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function (e) { console.warn(e); return null; });
+    Promise.all([pEstado, pEntrega]).then(function (res) {
+      var rows = res[1];
+      if (rows && rows.length) {
+        // Si algo falla al inyectar, dejamos las horneadas (respaldo).
+        try { aplicarEntregas(rows); }
+        catch (e) { console.warn('No se pudo aplicar entregas de Supabase, uso las horneadas:', e); }
+      }
+      done();
+    });
   }
 
   function wire() {
     document.querySelectorAll('.card-wrap[data-id]').forEach(function (card) {
       var id = card.getAttribute('data-id');
+      if (card.__wired) { return; } // no re-enganchar (cards ya inyectadas desde Supabase)
+      card.__wired = true;
       card.querySelectorAll('.est-btn').forEach(function (b) {
         b.addEventListener('click', function (ev) {
           ev.preventDefault(); ev.stopPropagation();
@@ -2005,6 +2109,8 @@
         });
       }
     });
+    if (wire.__globals) { return; } // los listeners globales se enganchan una sola vez
+    wire.__globals = true;
     var ta = document.getElementById('toggle-anteriores');
     if (ta) {
       ta.addEventListener('click', function () {
