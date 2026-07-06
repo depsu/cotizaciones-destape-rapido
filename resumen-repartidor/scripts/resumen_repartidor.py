@@ -24,6 +24,11 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import quote
 
+# Módulo hermano: sube la entrega a Supabase para que aparezca sola en la página
+# del repartidor (sin regenerar ni publicar el HTML). Ver sync_entregas_supabase.py.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import sync_entregas_supabase as sync  # noqa: E402
+
 DATA_PATH = Path(__file__).resolve().parent.parent / "entregas.json"
 
 MESES = [
@@ -270,6 +275,14 @@ def main() -> None:
                 print(f"💬 Enviar a {destino} por WhatsApp:\n{wa}")
         else:
             print(f"💬 Enviar a {destino} por WhatsApp (link pre-escrito):\n{wa}")
+        # Al confirmar la entrega al repartidor (enviar/abrir), súbela a Supabase:
+        # aparece sola en la página (más reciente arriba), sin regenerar ni publicar.
+        if args.enviar or args.abrir:
+            if sync.upsert_entrega(e):
+                print("🗂️  Entrega publicada en Supabase → aparece sola en la página del repartidor.")
+            else:
+                print("⚠️  No se pudo subir a Supabase (el WhatsApp sí se envió). "
+                      "Corre sync_entregas_supabase.py o revisa la conexión.")
         print("=" * 56)
         if i < len(seleccion):
             print()

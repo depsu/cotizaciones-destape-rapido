@@ -22,15 +22,15 @@ Cuando Alejandro diga **"resumen para repartidor"** y pegue un chat de cliente c
 1. **Extraer del chat** lo necesario para el mensaje: cliente, teléfono, dirección, fecha (convertir "el jueves" a la fecha real), hora, servicio, **cantidad de baños**, valor, datos de factura.
 2. **Cobro (REGLA FIJA, NO preguntar):** el repartidor es el dueño/jefe y **siempre cobra**. `pago.monto` = el valor acordado; **si el cliente lleva factura, el monto es neto + IVA 19%**. Incluir los datos de facturación en `factura`. **Aseo:** si el chat no especifica, default semanal (7–10 días).
 3. **Agregar** la entrega a `entregas.json` (paso mínimo para poder enviar).
-4. **🔝 ENVIAR:** verificar que los datos estén correctos y correr `python3 resumen-repartidor/scripts/resumen_repartidor.py --id <id> --enviar` (o `--abrir` para revisar antes). Esto abre WhatsApp y manda el mensaje al repartidor. **Reportar este envío como lo primero del mensaje de chat**, con el link como respaldo.
+4. **🔝 ENVIAR:** verificar que los datos estén correctos y correr `python3 resumen-repartidor/scripts/resumen_repartidor.py --id <id> --enviar` (o `--abrir` para revisar antes). Esto (a) abre WhatsApp y manda el mensaje al repartidor y (b) **sube la entrega a Supabase automáticamente** → **aparece sola en la página** (más reciente arriba), SIN regenerar ni publicar. **Reportar este envío como lo primero del mensaje de chat**, con el link como respaldo.
 
 → Hasta aquí es lo urgente. **No demorar la Fase 1 por nada de la Fase 2.**
 
 ### FASE 2 — DESPUÉS (ya enviado el WhatsApp): el resto, en el mismo turno
 
-5. **Publicar la página:** `bash resumen-repartidor/publicar.sh "agrega entrega <cliente>"`.
+5. **La página ya se actualizó sola** (el `--enviar` subió la entrega a Supabase). **NO hace falta `publicar.sh`** para que aparezca una entrega. `publicar.sh` solo se usa cuando cambia el CÓDIGO/diseño de la página o para refrescar el respaldo horneado (por si Supabase se pausa). Ver [[project-migracion-entregas-supabase]].
 6. **Actualizar** la ficha del cliente en `clientes/historial.md`.
-7. **Confirmar** al final que la página quedó en línea.
+7. **Confirmar** al final que la entrega quedó publicada (la reporta el propio `--enviar`: "Entrega publicada en Supabase").
 
 ## Fuente de datos: `entregas.json`
 

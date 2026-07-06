@@ -42,41 +42,87 @@ def cargar_entregas() -> list[dict]:
     return data.get("entregas", [])
 
 
+def _headers(extra: dict | None = None) -> dict:
+    h = {
+        "apikey": gl.SUPABASE_ANON_KEY,
+        "Authorization": f"Bearer {gl.SUPABASE_ANON_KEY}",
+    }
+    if extra:
+        h.update(extra)
+    return h
+
+
+def _informado_existente() -> dict:
+    """{id: informado_at} de las filas ya en Supabase. Sirve para PRESERVAR el
+    orden informado al re-sincronizar (no reescribir el que ya tienen, incluido
+    el `now()` que puso el flujo del repartidor). Si falla, devuelve {}."""
+    url = f"{gl.SUPABASE_URL}/rest/v1/entrega?select=id,informado_at"
+    req = urllib.request.Request(url, headers=_headers())
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            filas = json.loads(resp.read().decode())
+        return {f["id"]: f["informado_at"] for f in filas if f.get("id")}
+    except (urllib.error.URLError, urllib.error.HTTPError, ValueError):
+        return {}
+
+
+def fila_de(e: dict, informado_at: str) -> dict:
+    """Fila de Supabase para una entrega. `card_html` sale de la MISMA función que
+    hornea el listado (no se porta el template a JS)."""
+    return {
+        "id": e.get("id"),
+        "fecha": e.get("fecha") or None,
+        "informado_at": informado_at,
+        "data": e,
+        "card_html": gl.tarjeta(e),
+        "eliminado": False,
+    }
+
+
 def construir_filas(entregas: list[dict]) -> list[dict]:
+    # Preserva el informado_at ya existente; solo asigna base+index (determinista)
+    # a las entregas que aún NO están en Supabase.
+    existentes = _informado_existente()
     filas = []
     for i, e in enumerate(entregas):
         eid = e.get("id")
         if not eid:
             continue
-        informado = _BASE_TS + timedelta(minutes=i)
-        filas.append({
-            "id": eid,
-            "fecha": e.get("fecha") or None,
-            "informado_at": informado.isoformat(),
-            "data": e,
-            # card_html: la tarjeta ya renderizada por la misma función que hornea
-            # el listado. La página la inyecta tal cual (no porta el template a JS).
-            "card_html": gl.tarjeta(e),
-            "eliminado": False,
-        })
+        informado = existentes.get(eid) or (_BASE_TS + timedelta(minutes=i)).isoformat()
+        filas.append(fila_de(e, informado))
     return filas
 
 
-def upsert(filas: list[dict]) -> None:
+def upsert(filas: list[dict]) -> int:
+    """Upsert por id. Devuelve el status HTTP. Lanza RuntimeError ante error
+    (para no matar el proceso que la use embebida)."""
     url = f"{gl.SUPABASE_URL}/rest/v1/entrega?on_conflict=id"
     body = json.dumps(filas).encode("utf-8")
-    req = urllib.request.Request(url, data=body, method="POST")
-    req.add_header("apikey", gl.SUPABASE_ANON_KEY)
-    req.add_header("Authorization", f"Bearer {gl.SUPABASE_ANON_KEY}")
-    req.add_header("Content-Type", "application/json")
-    req.add_header("Prefer", "resolution=merge-duplicates,return=minimal")
+    req = urllib.request.Request(url, data=body, method="POST", headers=_headers({
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=minimal",
+    }))
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
-            print(f"✅ Upsert OK ({len(filas)} entregas) — HTTP {resp.status}")
+            return resp.status
     except urllib.error.HTTPError as e:
-        sys.exit(f"❌ Supabase rechazó el upsert (HTTP {e.code}): {e.read().decode()[:500]}")
+        raise RuntimeError(f"Supabase rechazó el upsert (HTTP {e.code}): {e.read().decode()[:500]}")
     except urllib.error.URLError as e:
-        sys.exit(f"❌ No se pudo conectar a Supabase: {e}")
+        raise RuntimeError(f"No se pudo conectar a Supabase: {e}")
+
+
+def upsert_entrega(e: dict, informado_at: str | None = None) -> bool:
+    """Sube UNA entrega a Supabase (la usa el flujo del repartidor al avisar).
+    Por defecto informado_at = AHORA → queda arriba en la página. No lanza: devuelve
+    True/False para no matar el flujo del repartidor si el WhatsApp ya se envió."""
+    if not e.get("id"):
+        return False
+    ts = informado_at or datetime.now(timezone.utc).isoformat()
+    try:
+        upsert([fila_de(e, ts)])
+        return True
+    except RuntimeError:
+        return False
 
 
 def main() -> None:
@@ -91,7 +137,11 @@ def main() -> None:
         for f in filas:
             print(f"  {f['informado_at']}  {f['id']}  (fecha {f['fecha']})")
         return
-    upsert(filas)
+    try:
+        status = upsert(filas)
+        print(f"✅ Upsert OK ({len(filas)} entregas) — HTTP {status}")
+    except RuntimeError as ex:
+        sys.exit(f"❌ {ex}")
 
 
 if __name__ == "__main__":
