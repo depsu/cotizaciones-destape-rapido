@@ -739,6 +739,35 @@
       ],
       "notas": "Contrato Consel: 2 baños en 2 direcciones (el otro va en Fundo Chena, San Bernardo). Coordinar hacia las 12:00; confirmar con el cliente antes de llegar. Arriendo mensual con limpieza semanal, contrato 12 meses.",
       "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-06-cristian-ulloa",
+      "cliente": "Cristian Ulloa",
+      "telefono": "+56 9 4206 4515",
+      "fecha": "2026-07-06",
+      "hora": "Hoy antes de mediodía (repartidor disponible en ~2h)",
+      "servicio": "1 baño químico + 1 ducha — arriendo mensual con limpieza semanal",
+      "cantidad": 1,
+      "comision": true,
+      "aseo": "",
+      "direccion": "Av. Central 999, Peñaflor, Región Metropolitana",
+      "pago": {
+        "monto": 309400,
+        "nota": "$260.000 neto + IVA = $309.400 mensual (baño $160.000 + ducha $100.000 neto). Con factura. Cobrar al entregar: efectivo o transferencia, SIN adelanto."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "",
+        "rut": "",
+        "email": "CristianUlloaLagos@gmail.com"
+      },
+      "detalle": [
+        "Instalar 1 baño químico + 1 ducha en Av. Central 999, Peñaflor.",
+        "Traslado y retiro incluidos.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "⚠️ ANTES DE SALIR: el cliente pidió FOTOS del baño (ficha) y de la ducha por WhatsApp y quiere verlas ANTES de que se lleven las unidades. Ducha NUEVA. Pago contra entrega (efectivo/transferencia), sin adelanto. Factura: pedir al cliente razón social, RUT, giro y dirección. Confirmar acceso en Peñaflor antes de llegar.",
+      "estado": "pendiente"
     }
   ],
   "comprobantes": {
