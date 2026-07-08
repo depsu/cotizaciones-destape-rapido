@@ -794,6 +794,200 @@
       ],
       "notas": "Arriendo mensual con limpieza semanal. El cliente NO necesita factura → valor neto final $160.000 (boleta, sin IVA). Entrega hoy o mañana — coordinar día con el cliente. Confirmar dirección exacta y acceso en Colina antes de llegar. Pago contra entrega (efectivo o transferencia), sin adelanto.",
       "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-08-rene-etchegaray",
+      "cliente": "René Etchegaray Ponce",
+      "telefono": "+56 9 5095 2488",
+      "direccion": "Cerro Lagunillas 11805, Lo Barnechea, Región Metropolitana",
+      "fecha": "2026-07-08",
+      "hora": "",
+      "servicio": "1 baño químico con lavamanos — arriendo mensual (contrato 2 meses)",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": {
+        "monto": 190400,
+        "nota": "$160.000 neto + IVA = $190.400. Cobrar el primer mes al entregar (efectivo o transferencia, sin adelanto). Contrato total por 2 meses."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "René Etchegaray Ponce",
+        "rut": "78.269.364-6",
+        "email": "sebaandres260198@gmail.com"
+      },
+      "detalle": [
+        "Instalar 1 baño químico con lavamanos.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Número principal: René Etchegaray +56 9 5095 2488. También se puede contactar a Sebastian (+56 9 5617 3783), quien coordinó el trato por WhatsApp. Confirmar acceso a la obra.",
+      "estado": "pendiente",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-15",
+          "etiqueta": "Aseo 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-25",
+          "etiqueta": "Aseo 2",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-08-04",
+          "etiqueta": "Aseo 3",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        }
+      ],
+      "retiro": {
+        "fecha": "2026-09-08",
+        "nota": "Fin de los 2 meses (aprox.); faltan aseos del mes 2 por agendar."
+      }
+    },
+    {
+      "id": "2026-07-08-robcar",
+      "cliente": "Ingeniería Eléctrica y Construcción ROBCAR Limitada (contacto: Cristina)",
+      "telefono": "+56 9 4139 0043",
+      "direccion": "Los Montes 1022, Colina, Región Metropolitana",
+      "fecha": "2026-07-08",
+      "hora": "Desde las 11:00 AM aprox.",
+      "servicio": "1 baño químico con lavamanos — arriendo mensual (contrato 2 meses)",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": {
+        "monto": 190400,
+        "nota": "$160.000 neto + IVA = $190.400. Cobrar el primer mes al entregar (efectivo o transferencia, sin adelanto). Contrato total por 2 meses."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Ingeniería Eléctrica y Construcción ROBCAR Limitada",
+        "rut": "76.552.851-8",
+        "giro": "Instalaciones eléctricas; otras actividades especializadas de construcción; instalación de gasfitería, calefacción y climatización; transporte de carga por carretera; fabricación de productos metálicos para uso estructural",
+        "email": "conta@robcar.cl"
+      },
+      "detalle": [
+        "Instalar 1 baño químico con lavamanos en Los Montes 1022, Colina.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Obra lejos (Colina) pero se mantuvo el precio de $160.000 neto/mes. Contacto: Cristina. Confirmar acceso a la obra. Cliente pidió atención en la mañana; se coordinó desde las 11:00 AM aprox.",
+      "estado": "pendiente",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-15",
+          "etiqueta": "Aseo 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-07-25",
+          "etiqueta": "Aseo 2",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-08-04",
+          "etiqueta": "Aseo 3",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        }
+      ],
+      "retiro": {
+        "fecha": "2026-09-08",
+        "nota": "Fin de los 2 meses (aprox.); faltan aseos del mes 2 por agendar."
+      }
+    },
+    {
+      "id": "2026-07-08-duble-almeyda",
+      "cliente": "Cliente Duble Almeyda (tel. +56 9 9347 6621)",
+      "telefono": "+56 9 9347 6621",
+      "fecha": "2026-07-08",
+      "hora": "",
+      "servicio": "1 baño químico — arriendo por 2 días",
+      "cantidad": 1,
+      "comision": true,
+      "aseo": "",
+      "direccion": "Duble Almeyda 3164, Ñuñoa, Región Metropolitana (frente al Registro Civil)",
+      "pago": {
+        "monto": 100000,
+        "nota": "$100.000 total por los 2 días. SIN factura (boleta), sin IVA — valor final. Cobrar al entregar: efectivo o transferencia."
+      },
+      "factura": {
+        "requiere": false
+      },
+      "detalle": [
+        "Instalar 1 baño químico en Duble Almeyda 3164, Ñuñoa (frente al Registro Civil).",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Arriendo corto: 2 días (retirar el 2026-07-10). Sin aseo periódico (no aplica en arriendos ≤1 semana); limpieza al finalizar el servicio. No se tiene el nombre del cliente — solo el teléfono +56 9 9347 6621; contactar para confirmar hora y acceso antes de llegar. Chat venía bajo la marca \"Limpia Fosas y Destape\", pero el emisor es Destape Rápido. Pago contra entrega, sin adelanto.",
+      "estado": "pendiente",
+      "retiro": {
+        "fecha": "2026-07-10",
+        "nota": "Fin del arriendo de 2 días."
+      }
+    },
+    {
+      "id": "2026-07-10-metalcort-canoas",
+      "cliente": "Metalcort — Club de Canoas Santiago",
+      "telefono": "+56 9 9277 1291",
+      "direccion": "Parque Laguna Caren, km 18 — Club de Canoas Santiago, Pudahuel, Región Metropolitana (https://maps.google.com/maps/search/Club%20de%20Canoas%20Santiago/@-33.432308197021484,-70.84268951416016,17z?hl=es)",
+      "fecha": "2026-07-10",
+      "hora": "",
+      "servicio": "1 baño químico — arriendo mensual renovable",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": {
+        "monto": 190400,
+        "nota": "Mensual, renovable. Cobrar al entregar. $160.000 neto + IVA (lleva factura)."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "",
+        "rut": "",
+        "email": "metalcort@gmail.com"
+      },
+      "detalle": [
+        "Instalar 1 baño químico en Parque Laguna Caren, km 18, Club de Canoas Santiago, Pudahuel.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Entrega pedida para viernes 10 o sábado 11 de julio — coordinar día/hora exacta con el cliente (+56 9 9277 1291). El repartidor coordina directo con el cliente. Faltan datos de facturación (razón social, RUT).",
+      "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-09-constructora-ag",
+      "cliente": "Constructora A&G SPA",
+      "telefono": "+56 9 8248 9749",
+      "direccion": "7 Condominio San Pedro, Fundo Los Hornos, Chicureo, Colina, Región Metropolitana (frente al Easy de Chicureo) — Waze: https://waze.com/ul/h66jdxmh13",
+      "fecha": "2026-07-09",
+      "hora": "Desde las 12:00 en adelante",
+      "servicio": "1 baño químico — arriendo mensual renovable",
+      "cantidad": 1,
+      "aseo": "Semanal (cada 7 a 10 días), incluido",
+      "pago": {
+        "monto": 190400,
+        "nota": "Mensual, renovable. Cobrar al entregar. $160.000 neto + IVA (lleva factura). Sin cobro de flete ni limpiezas extra — se respetó el valor original."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Constructora A&G SPA",
+        "rut": "77.451.144-K",
+        "direccion": "Av. Lo Ovalle 1757, San Ramón",
+        "giro": "Construcción",
+        "email": "C.casas.santarosa@gmail.com"
+      },
+      "detalle": [
+        "Instalar 1 baño químico en 7 Condominio San Pedro, Fundo Los Hornos, Chicureo, Colina.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Obra lejos (Chicureo/Colina) pero se mantuvo el precio original de $160.000 neto/mes, sin cobrar flete ni limpiezas extra (se le respetó al cliente). Contacto: +56 9 8248 9749. Pago contra entrega, sin adelanto.",
+      "estado": "pendiente"
     }
   ],
   "comprobantes": {

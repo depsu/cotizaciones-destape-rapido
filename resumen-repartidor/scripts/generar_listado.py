@@ -638,12 +638,17 @@ ESTILOS_EXTRA = """
     border-radius:20px; flex:none; text-transform:uppercase; letter-spacing:.4px; }
   .com-revocar { font-size:12px; font-weight:600; padding:6px 9px; border:1px solid var(--linea);
     background:#fff; border-radius:8px; color:#B91C1C; cursor:pointer; flex:none; }
-  /* Barra y botón pagar */
-  .barra-pagar { position:sticky; bottom:0; margin:10px -12px 0; padding:12px;
-    background:rgba(255,255,255,.96); border-top:1px solid var(--linea); }
-  .btn-pagar { width:100%; background:#16A34A; color:#fff; border:none; font-family:inherit;
+  /* Barra y botón pagar: fijo al fondo del viewport (sticky no es confiable en
+     iOS por la barra de Safari dinámica; con fixed queda siempre a la vista). */
+  .barra-pagar { position:fixed; left:0; right:0; bottom:0; z-index:30;
+    padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    background:rgba(255,255,255,.97); border-top:1px solid var(--linea);
+    box-shadow:0 -4px 14px rgba(15,23,42,.10); }
+  .btn-pagar { width:100%; max-width:536px; margin:0 auto; display:block;
+    background:#16A34A; color:#fff; border:none; font-family:inherit;
     font-size:16px; font-weight:800; padding:15px; border-radius:13px; cursor:pointer; min-height:54px; }
   .btn-pagar:disabled { background:#CBD5E1; cursor:default; }
+  body.vista-comision main { padding-bottom:96px; }
   /* Modal de pago */
   .modal-bg { position:fixed; inset:0; background:rgba(15,23,42,.55); display:flex;
     align-items:flex-end; justify-content:center; z-index:50; }
@@ -1770,6 +1775,7 @@ SCRIPT_ESTADO = r"""<script>
         document.querySelectorAll('.vista').forEach(function (sec) {
           sec.hidden = (sec.getAttribute('data-vista') !== v);
         });
+        document.body.classList.toggle('vista-comision', v === 'comision');
         window.scrollTo(0, 0);
       });
     });
