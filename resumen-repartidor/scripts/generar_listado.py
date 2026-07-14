@@ -269,6 +269,14 @@ def boton(href: str, etiqueta: str, color: str, target_blank: bool = True) -> st
     )
 
 
+def maps_href(direccion: str, coordenadas: str = "") -> str:
+    """URL de Google Maps para el botón 'Cómo llegar'. Si la entrega trae
+    `coordenadas` ('lat,lng'), cae en el PUNTO EXACTO (clave en sectores rurales
+    sin calle/número); si no, busca por el texto de la dirección."""
+    q = (coordenadas or "").strip() or (direccion or "")
+    return f"https://www.google.com/maps/search/?api=1&query={quote(q)}"
+
+
 def tarjeta(e: dict) -> str:
     cliente = esc(e.get("cliente", "—"))
     direccion = e.get("direccion", "")
@@ -355,8 +363,9 @@ def tarjeta(e: dict) -> str:
     if num:
         botones.append(boton(f"whatsapp://send?phone={num}", f"{WA_ICON}&nbsp;WhatsApp", "#25D366", target_blank=False))
         botones.append(boton(f"tel:{esc(telefono)}", "📞 Llamar", "#475569", target_blank=False))
-    if direccion:
-        maps = f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
+    coordenadas = e.get("coordenadas", "")
+    if direccion or coordenadas:
+        maps = maps_href(direccion, coordenadas)
         botones.append(boton(maps, "🗺️ Cómo llegar", "#1F5AA8"))
     botones_html = f'<div class="acciones">{"".join(botones)}</div>'
 
@@ -365,8 +374,8 @@ def tarjeta(e: dict) -> str:
     if num:
         accesos.append(f'<a class="acc-link acc-wa" href="whatsapp://send?phone={num}">{WA_ICON}WhatsApp</a>')
         accesos.append(f'<a class="acc-link acc-call" href="tel:{esc(telefono)}">📞 Llamar</a>')
-    if direccion:
-        maps_q = f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
+    if direccion or coordenadas:
+        maps_q = maps_href(direccion, coordenadas)
         accesos.append(f'<a class="acc-link acc-map" href="{esc(maps_q)}">🗺️ Llegar 🧭</a>')
     accesos.append('<button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button>')
     accesos_html = f'<div class="contacto-accesos" hidden>{"".join(accesos)}</div>'
@@ -1799,7 +1808,7 @@ SCRIPT_ESTADO = r"""<script>
 </script>"""
 
 
-def _tarea_card(tid, fecha, cliente, direccion, tel, etiqueta, nota, extra_html, contexto) -> str:
+def _tarea_card(tid, fecha, cliente, direccion, tel, etiqueta, nota, extra_html, contexto, coordenadas="") -> str:
     """Card interactiva de una tarea (limpieza/retiro): coordinar, accesos, realizada."""
     num = solo_digitos(tel)
     accesos = []
@@ -1807,8 +1816,8 @@ def _tarea_card(tid, fecha, cliente, direccion, tel, etiqueta, nota, extra_html,
     # (mismo verde + logo), así que ponerlo también en los accesos sería redundante.
     if num:
         accesos.append(f'<a class="acc-link acc-call" href="tel:{esc(tel)}">📞 Llamar</a>')
-    if direccion:
-        maps_q = f"https://www.google.com/maps/search/?api=1&query={quote(direccion)}"
+    if direccion or coordenadas:
+        maps_q = maps_href(direccion, coordenadas)
         accesos.append(f'<a class="acc-link acc-map" href="{esc(maps_q)}">🗺️ Llegar 🧭</a>')
     accesos_html = f'<div class="contacto-accesos" hidden>{"".join(accesos)}</div>'
     realizada_lbl = "✅ Limpieza realizada" if contexto == "limpieza" else "✅ Retiro realizado"
@@ -1875,7 +1884,7 @@ def seccion_limpiezas(entregas: list):
             extra += f'<span class="lp-valor">{esc(clp(lp.get("valor")))}</span>'
         cards.append((fecha, _tarea_card(tid, fecha, e.get("cliente", "—"), e.get("direccion", ""),
                                          e.get("telefono", ""), lp.get("etiqueta") or "Limpieza",
-                                         lp.get("nota"), extra, "limpieza")))
+                                         lp.get("nota"), extra, "limpieza", e.get("coordenadas", ""))))
         tareas.append({"id": tid, "tel": solo_digitos(e.get("telefono", "")), "fecha": fecha,
                        "tipo": "limpieza", "hecha": lp.get("estado") == "hecha"})
     return _seccion_tareas("🧽 Limpiezas a realizar", cards, len(filas)), tareas
@@ -1892,7 +1901,8 @@ def seccion_retiros(entregas: list):
         tid = f'{e.get("id", "")}::retiro'
         extra = '<span class="lp-badge" style="color:#1E40AF;background:#DBEAFE">Retiro</span>'
         cards.append((fecha, _tarea_card(tid, fecha, e.get("cliente", "—"), e.get("direccion", ""),
-                                         e.get("telefono", ""), "Retiro", r.get("nota"), extra, "retiro")))
+                                         e.get("telefono", ""), "Retiro", r.get("nota"), extra, "retiro",
+                                         e.get("coordenadas", ""))))
         tareas.append({"id": tid, "tel": solo_digitos(e.get("telefono", "")), "fecha": fecha,
                        "tipo": "retiro", "hecha": False})
     return _seccion_tareas("📦 Retiros", cards, len(datos)), tareas

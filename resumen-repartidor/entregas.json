@@ -1,5 +1,5 @@
 {
-  "_instrucciones": "Entregas CONFIRMADas para el repartidor (el dueño, que cobra al cliente). Una entrega se crea solo cuando Alejandro confirma por WhatsApp, NO por haber enviado una cotización/PDF. Campos por entrega: id (AAAA-MM-DD-cliente-kebab), cliente, telefono, direccion, fecha, hora (opcional), servicio, detalle[], pago{monto:number CLP, nota}, notas, estado (pendiente|en-camino|entregado|cobrado). 'pago' es OBLIGATORIO: es el valor que el repartidor le cobra al cliente. Campo opcional 'comision' (bool, default true): si es false la entrega NO genera comisión para Alejandro (ej. servicios que son solo limpiezas/mantención extra). La comisión es 20% del NETO (si lleva factura, neto = monto/1,19; si es boleta, neto = monto) y solo se cuenta como 'te deben' cuando el estado pasa a 'cobrado'. El estado y la fecha reagendada los cambia el repartidor desde la página y se guardan en Supabase (tabla entrega_estado), no en este archivo. Campo opcional 'limpiezas': lista de limpiezas del servicio para llevar control de las que CORRESPONDEN (incluidas en el arriendo) y las EXTRAS (se cobran aparte). Cada limpieza: {fecha (AAAA-MM-DD), etiqueta (ej. 'Limpieza 1'), tipo ('incluida'|'extra'), valor (CLP neto, solo si es extra), estado ('pendiente'|'hecha'), nota (opcional)}. La página suma automáticamente el total de las extras. Campo opcional 'retiro': {fecha (AAAA-MM-DD), nota}: día en que se retira la unidad; la página arma una sección 'Retiros' ordenada por fecha. La vista de entregas también muestra una sección 'Limpiezas a realizar' que junta todas las limpiezas pendientes de todas las entregas, y la comisión está en una vista aparte que se abre con un botón.",
+  "_instrucciones": "Entregas CONFIRMADas para el repartidor (el dueño, que cobra al cliente). Una entrega se crea solo cuando Alejandro confirma por WhatsApp, NO por haber enviado una cotización/PDF. Campos por entrega: id (AAAA-MM-DD-cliente-kebab), cliente, telefono, direccion, coordenadas (opcional, 'lat,lng': si está, el botón 'Cómo llegar' cae en el PUNTO EXACTO — úsalo en sectores rurales sin calle/número, con la dirección en texto legible), fecha, hora (opcional), servicio, detalle[], pago{monto:number CLP, nota}, notas, estado (pendiente|en-camino|entregado|cobrado). 'pago' es OBLIGATORIO: es el valor que el repartidor le cobra al cliente. Campo opcional 'comision' (bool, default true): si es false la entrega NO genera comisión para Alejandro (ej. servicios que son solo limpiezas/mantención extra). La comisión es 20% del NETO (si lleva factura, neto = monto/1,19; si es boleta, neto = monto) y solo se cuenta como 'te deben' cuando el estado pasa a 'cobrado'. El estado y la fecha reagendada los cambia el repartidor desde la página y se guardan en Supabase (tabla entrega_estado), no en este archivo. Campo opcional 'limpiezas': lista de limpiezas del servicio para llevar control de las que CORRESPONDEN (incluidas en el arriendo) y las EXTRAS (se cobran aparte). Cada limpieza: {fecha (AAAA-MM-DD), etiqueta (ej. 'Limpieza 1'), tipo ('incluida'|'extra'), valor (CLP neto, solo si es extra), estado ('pendiente'|'hecha'), nota (opcional)}. La página suma automáticamente el total de las extras. Campo opcional 'retiro': {fecha (AAAA-MM-DD), nota}: día en que se retira la unidad; la página arma una sección 'Retiros' ordenada por fecha. La vista de entregas también muestra una sección 'Limpiezas a realizar' que junta todas las limpiezas pendientes de todas las entregas, y la comisión está en una vista aparte que se abre con un botón.",
   "repartidor": {
     "nombre": "Repartidor",
     "telefono": "+56 9 2196 4789"
@@ -961,6 +961,35 @@
       "estado": "pendiente"
     },
     {
+      "id": "2026-07-09-montemaria-pirque",
+      "cliente": "Constructora Montemaría SpA (contacto: Macarena, Analista)",
+      "telefono": "+56 9 2160 5372",
+      "direccion": "Loma Tendida 1094, Pirque, Región Metropolitana (obra pequeña)",
+      "fecha": "2026-07-09",
+      "hora": "",
+      "servicio": "1 baño químico — arriendo mensual con aseo semanal",
+      "cantidad": 1,
+      "aseo": "Semanal (cada 7 a 10 días), incluido",
+      "pago": {
+        "monto": 214200,
+        "nota": "$180.000 neto + IVA = $214.200 mensual. Con factura (datos pendientes). Cobrar al entregar."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Constructora Montemaría SpA",
+        "rut": "",
+        "email": "mlopezf@montemaria.cl"
+      },
+      "detalle": [
+        "Instalar 1 baño químico en Loma Tendida 1094, Pirque.",
+        "Traslado, instalación y retiro incluidos.",
+        "Dejar insumos: papel higiénico y desodorizante.",
+        "Aseo semanal incluido (cada 7 a 10 días)."
+      ],
+      "notas": "Cliente confirmó por WhatsApp para instalar mañana (09/07). Contacto administrativo: Macarena (Analista de la constructora). Persona que recibe en la obra: +56 9 4673 9060. PENDIENTE: pedir datos completos de facturación (RUT, giro, dirección) al llegar o al coordinar.",
+      "estado": "pendiente"
+    },
+    {
       "id": "2026-07-09-constructora-ag",
       "cliente": "Constructora A&G SPA",
       "telefono": "+56 9 8248 9749",
@@ -988,6 +1017,205 @@
       ],
       "notas": "Obra lejos (Chicureo/Colina) pero se mantuvo el precio original de $160.000 neto/mes, sin cobrar flete ni limpiezas extra (se le respetó al cliente). Contacto: +56 9 8248 9749. Pago contra entrega, sin adelanto.",
       "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-13-arqcons",
+      "cliente": "Inmobiliaria y Constructora Arqcons SpA",
+      "telefono": "+56 9 4234 4765",
+      "direccion": "San José de la Sierra #360, Las Condes, Región Metropolitana",
+      "fecha": "2026-07-13",
+      "hora": "Temprano (el repartidor coordina directo con el cliente)",
+      "servicio": "1 baño químico con lavamanos — arriendo mensual (1 mes)",
+      "cantidad": 1,
+      "aseo": "Semanal (cada 7 a 10 días), incluido",
+      "pago": {
+        "monto": 190400,
+        "nota": "Cobrar al entregar. $160.000 neto + IVA (lleva factura). Arriendo por 1 mes."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Inmobiliaria y Constructora Arqcons SpA",
+        "rut": "77.312.375-6",
+        "direccion": "Avenida Apoquindo #6410, of. 605, Las Condes",
+        "email": "Kev.gajardo@gmail.com"
+      },
+      "detalle": [
+        "Instalar 1 baño químico con lavamanos en San José de la Sierra #360, Las Condes.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Obra de construcción. Cliente preguntó el rango horario: se le dijo que suele ser temprano y que el repartidor lo contactará directamente para coordinar. Contacto: Kev Gajardo +56 9 4234 4765. Pago contra entrega.",
+      "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-13-fabrica-domura",
+      "cliente": "Fábrica de Muebles Domura Ltda. (contacto: Tomás)",
+      "telefono": "+56 9 6548 7826",
+      "direccion": "Av. Combarbalá 0222, La Granja, Región Metropolitana",
+      "fecha": "2026-07-13",
+      "hora": "",
+      "servicio": "1 baño químico — arriendo mensual con aseo semanal",
+      "cantidad": 1,
+      "aseo": "Semanal (cada 7 a 10 días), incluido",
+      "pago": {
+        "monto": 190400,
+        "nota": "$160.000 neto + IVA = $190.400 mensual. Con factura. Cobrar al entregar (transferencia o efectivo)."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Fábrica de Muebles Domura Ltda.",
+        "rut": "76.854.389-5",
+        "giro": "Fabricación de mobiliario principalmente en madera",
+        "direccion": "Av. Combarbalá 0222, La Granja",
+        "email": "tomas@domura.cl"
+      },
+      "detalle": [
+        "Instalar 1 baño químico en Av. Combarbalá 0222, La Granja.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "Entrega el lunes 13 de julio. Contacto: Tomás +56 9 6548 7826. Pago contra entrega (transferencia o efectivo) — ya tiene los datos bancarios. Cotización ya enviada a tomas@domura.cl.",
+      "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-13-ferrara-paine",
+      "cliente": "Ferrara (contacto: Rodolfo Aguilar)",
+      "telefono": "+56 9 9159 3134",
+      "direccion": "Viña Cousiño Macul — Bodega El Tránsito, Paine, Región Metropolitana. Ubicación exacta: https://maps.app.goo.gl/4VFgJBYMpGQrDpom8",
+      "fecha": "2026-07-13",
+      "hora": "10:00 (punto de ingreso a terreno)",
+      "servicio": "1 baño químico — servicio por 2 días (lunes 13 y martes 14 de julio), retiro el martes al término",
+      "cantidad": 1,
+      "aseo": "Sin aseo periódico (servicio de 2 días); limpieza y disposición final al retirar. Limpieza extra: $20.000 c/u",
+      "pago": {
+        "monto": 154700,
+        "nota": "$130.000 neto + IVA = $154.700 por el servicio completo (2 días). Con factura. Cobrar al entregar, por transferencia."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Ferrara",
+        "rut": "76.082.423-2",
+        "email": "rodolfo.aguilar@ferrara.cl"
+      },
+      "detalle": [
+        "Instalar 1 baño químico el lunes 13 a las 10:00 en Viña Cousiño Macul — Bodega El Tránsito, Paine (link de Maps en la dirección).",
+        "Retirar el martes 14 al término del servicio, con limpieza y disposición final."
+      ],
+      "notas": "OJO con el RUT de la factura: es 76.082.423-2 (el del proyecto; la oficina corrigió el primero que dieron). Contacto en terreno: Rodolfo Aguilar +56 9 9159 3134. Pago contra entrega por transferencia.",
+      "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-13-lissette-hizmeri",
+      "cliente": "Lissette Hizmeri",
+      "telefono": "+56 9 9643 4347",
+      "direccion": "Condominio Casas del Polo Rayen, casa 5 M, Lo Pinto, Colina, Región Metropolitana. Ubicación: https://maps.google.com/maps/search/Condominio%20Polo%20Rayen/@-33.261871337890625,-70.72256469726562,17z?hl=es",
+      "fecha": "2026-07-13",
+      "servicio": "1 baño químico — arriendo por 1 mes (remodelación de casa)",
+      "cantidad": 1,
+      "aseo": "Aseo semanal (cada 7 a 10 días), papel y químico incluidos.",
+      "pago": {
+        "monto": 160000,
+        "nota": "$160.000 neto, sin factura (boleta) — valor final, sin IVA. Cobrar al entregar, transferencia o efectivo."
+      },
+      "detalle": [
+        "Instalar 1 baño químico hoy en Condominio Casas del Polo Rayen, casa 5 M, Lo Pinto, Colina.",
+        "Aseo semanal, papel y químico incluidos.",
+        "Cobro al entregar: transferencia o efectivo. Sin garantía."
+      ],
+      "notas": "Cliente preguntó por pago con tarjeta/Mercado Pago; no tenemos, quedó en pagar por transferencia o efectivo al recibir. Contacto: Lissette Hizmeri +56 9 9643 4347.",
+      "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-14-michelle-arquitectura-paisaje",
+      "cliente": "Arquitectura y Paisaje (contacto en terreno)",
+      "telefono": "+56 9 7769 6050",
+      "direccion": "Bernardo O'Higgins 581, Quilicura, Región Metropolitana (cerca del Mall Parque Arauco)",
+      "fecha": "2026-07-14",
+      "servicio": "1 baño químico + 1 ducha — obra de construcción",
+      "cantidad": 2,
+      "aseo": "Aseo semanal (cada 7 a 10 días) incluido.",
+      "pago": {
+        "monto": 309400,
+        "nota": "$260.000 neto + IVA = $309.400 (1 baño químico $160.000 neto + 1 ducha $100.000 neto). Con factura. Cobrar al entregar, transferencia o efectivo."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Arquitectura y Paisaje",
+        "rut": "76.154.488-8",
+        "email": "michelle@arquitecturaypaisaje.cl"
+      },
+      "detalle": [
+        "Instalar 1 baño químico y 1 ducha en Bernardo O'Higgins 581, Quilicura (obra de construcción, cerca del Mall Parque Arauco).",
+        "No requiere conexión a desagüe (succión con camión limpia fosas).",
+        "Aseo semanal incluido. Cobro al entregar."
+      ],
+      "notas": "Cliente confirmó 1 baño + 1 ducha (no 2 baños) para mañana. Contacto principal (en terreno): +56 9 7769 6050. Contacto original (Michelle, oficina/cotización): +56 9 9273 8484. Coordinar hora con el cliente.",
+      "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-14-spen-ser",
+      "cliente": "Spen-Ser (contacto: Sr. Flanega)",
+      "telefono": "+56 9 4695 7864",
+      "direccion": "Talagante, Región Metropolitana (sector rural, acceso vehicular hasta el baño)",
+      "coordenadas": "-33.691341,-70.816544",
+      "fecha": "2026-07-14",
+      "hora": "",
+      "servicio": "1 baño químico — arriendo mensual (1 mes) + flete de despacho",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": {
+        "monto": 273700,
+        "nota": "$200.000 neto (baño) + $30.000 neto (flete, pago único) = $230.000 neto + IVA = $273.700. Con factura. Cobrar al entregar. Mensualidad siguiente (2° mes en adelante, sin flete): $238.000 c/IVA."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "PENDIENTE — pedir datos al cliente (dominio spen-ser.cl)",
+        "rut": "PENDIENTE",
+        "email": "j.flanega@spen-ser.cl"
+      },
+      "detalle": [
+        "Instalar 1 baño químico en el sector indicado (ubicación por Google Maps).",
+        "Traslado y retiro incluidos (el flete cubre el acceso al lugar).",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "El cliente confirma que hay camino / acceso vehicular hasta el punto del baño. Arriendo por 1 mes, prolongable. Flete de $30.000 es pago único (solo el 1er mes). Limpieza extra: $60.000 c/u. PENDIENTE: pedir datos de facturación (razón social, RUT, giro, dirección). El chat vino bajo la marca 'Limpia Fosas y Destape', pero el emisor es Destape Rápido. Cotización enviada a j.flanega@spen-ser.cl.",
+      "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-14-cumbres-ingenieria-buin",
+      "cliente": "Cumbres Ingeniería (contacto: K. Marchant)",
+      "telefono": "+56 9 8803 2433",
+      "direccion": "Arturo Prat 445, Buin, Región Metropolitana (obra de construcción)",
+      "fecha": "2026-07-14",
+      "hora": "Hoy (coordinar hora de recepción)",
+      "servicio": "1 baño químico — arriendo mensual (obra, Buin) + traslado ida y vuelta + 1 limpieza",
+      "cantidad": 1,
+      "aseo": "Buin NO incluye limpieza gratis. 1 limpieza en esta cotización ($30.000). Adicionales $30.000 c/u (sugerido cada 15 días).",
+      "pago": {
+        "monto": 261800,
+        "nota": "$160.000 (baño) + $30.000 (traslado ida y vuelta) + $30.000 (1 limpieza) = $220.000 neto + IVA = $261.800. Con factura. ⚠️ PAGO DIFERIDO: se ENTREGA HOY (14/07) y el cliente PAGA MAÑANA (15/07) por transferencia (se le dio la facilidad). Cobrar por transferencia."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "PENDIENTE — Cumbres Ingeniería (pedir razón social y RUT)",
+        "rut": "PENDIENTE",
+        "email": "kmarchant@cumbresingenieria.cl"
+      },
+      "detalle": [
+        "Instalar 1 baño químico en Arturo Prat 445, Buin (obra).",
+        "Traslado ida y vuelta incluido.",
+        "1 limpieza incluida en la cotización; adicionales $30.000 c/u.",
+        "Dejar insumos: papel higiénico."
+      ],
+      "notas": "⚠️ PAGO DIFERIDO: entregar HOY (14/07) y el cliente paga MAÑANA (15/07) por transferencia (se le dio esa facilidad). COORDINACIÓN general: K. Marchant +56 9 8803 2433, kmarchant@cumbresingenieria.cl (dijo que toda la coordinación es con él). RECIBE EN OBRA: Juan Urrutia +56 9 8859 8202. Buin: no hay limpieza gratis (cada limpieza $30.000, sugerido cada 15 días). PENDIENTE: datos de facturación (razón social/RUT). El chat vino bajo 'Limpia Fosas y Destape', pero el emisor es Destape Rápido. Cotización enviada a kmarchant@cumbresingenieria.cl.",
+      "estado": "pendiente",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-29",
+          "etiqueta": "Limpieza 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "1 limpieza incluida en la cotización (Buin no tiene aseo gratis). Aprox. cada 15 días."
+        }
+      ]
     }
   ],
   "comprobantes": {
