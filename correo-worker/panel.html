@@ -80,7 +80,7 @@
   .mhead .meta{font-size:12.5px;opacity:.92;line-height:1.5}
   .mbody{padding:16px 18px;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word;
          max-height:44vh;overflow:auto;border-bottom:1px solid var(--line)}
-  .mbody iframe{width:100%;border:0;min-height:240px}
+  .mbody iframe{width:100%;border:0;min-height:52vh;background:#fff;border-radius:6px}
   .mclose{position:sticky;top:0;float:right;background:rgba(255,255,255,.2);border:0;color:#fff;
           width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:18px;line-height:1}
   .burbuja{max-width:82%;padding:9px 12px;border-radius:12px;margin:8px 0;white-space:pre-wrap;
@@ -413,8 +413,13 @@ async function ver(id){
   } else {
     document.getElementById("mMeta").innerHTML =
       `De: <b>${esc(c.de)}</b><br>Para: ${esc(c.para)}<br>${esc(fechaFull(c.recibido_en))}`;
-    if (c.cuerpo_texto && c.cuerpo_texto.trim()){ body.textContent = c.cuerpo_texto; }
-    else if (c.cuerpo_html){ body.innerHTML='<iframe sandbox></iframe>'; body.querySelector("iframe").srcdoc=c.cuerpo_html; }
+    // Preferimos el HTML del correo (se ve como el original: fuentes, firma, formato).
+    // El texto plano queda solo de respaldo cuando el correo no trae versión HTML.
+    if (c.cuerpo_html && c.cuerpo_html.trim()){
+      body.innerHTML='<iframe sandbox></iframe>';
+      body.querySelector("iframe").srcdoc=c.cuerpo_html;
+    }
+    else if (c.cuerpo_texto && c.cuerpo_texto.trim()){ body.textContent = c.cuerpo_texto; }
     else { body.textContent="(sin contenido)"; }
   }
   renderResp(c);

@@ -6,6 +6,60 @@
   },
   "entregas": [
     {
+      "id": "2026-07-15-rene-etchegaray-hualtatas",
+      "cliente": "René Etchegaray Ponce — obra Las Hualtatas (Condominio La Parroquia)",
+      "telefono": "+56 9 5095 2488",
+      "direccion": "Camino Las Hualtatas 5200, casa 40, Lo Barnechea (Condominio La Parroquia), Región Metropolitana",
+      "fecha": "2026-07-15",
+      "hora": "",
+      "servicio": "1 baño químico con lavamanos — arriendo mensual (contrato 2 meses)",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": {
+        "monto": 190400,
+        "nota": "$160.000 neto + IVA = $190.400. Cobrar el primer mes al entregar (efectivo o transferencia, sin adelanto). Contrato total por 2 meses."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "René Etchegaray Ponce",
+        "rut": "78.269.364-6",
+        "email": "sebaandres260198@gmail.com"
+      },
+      "detalle": [
+        "Instalar 1 baño químico con lavamanos.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "notas": "SEGUNDA obra del mismo cliente (ya tiene otro baño en Cerro Lagunillas 11805). Número principal: René Etchegaray +56 9 5095 2488. También se puede contactar a Sebastian (+56 9 5617 3783), quien coordina por WhatsApp. Confirmar acceso a la obra / condominio antes de llegar.",
+      "estado": "pendiente",
+      "limpiezas": [
+        {
+          "fecha": "2026-07-22",
+          "etiqueta": "Aseo 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-08-01",
+          "etiqueta": "Aseo 2",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        },
+        {
+          "fecha": "2026-08-11",
+          "etiqueta": "Aseo 3",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, tope 10 días)."
+        }
+      ],
+      "retiro": {
+        "fecha": "2026-09-15",
+        "nota": "Fin de los 2 meses (aprox.); faltan aseos del mes 2 por agendar."
+      }
+    },
+    {
       "id": "2026-06-30-innovators-conveyor-belt",
       "cliente": "Suyen Guíñez — Innovators Conveyor Belt",
       "telefono": "+56 9 7806 8907",
@@ -1216,11 +1270,82 @@
           "nota": "1 limpieza incluida en la cotización (Buin no tiene aseo gratis). Aprox. cada 15 días."
         }
       ]
+    },
+    {
+      "id": "2026-07-15-neurona-soluciones",
+      "cliente": "Rodrigo — Neurona Soluciones",
+      "telefono": "+56 9 2171 0536",
+      "direccion": "Teniente Bisson 738, Independencia, Región Metropolitana",
+      "fecha": "2026-07-15",
+      "hora": "Mañana en horario AM",
+      "servicio": "2 baños químicos — arriendo 1 semana (viernes a lunes) + traslado + aseo al finalizar",
+      "cantidad": 2,
+      "aseo": "Aseo incluido: limpieza al finalizar el servicio. Aseo adicional $40.000 neto c/u.",
+      "pago": {
+        "monto": 214200,
+        "nota": "$90.000 neto c/u x 2 baños = $180.000 neto + IVA 19% = $214.200. Con factura. Se cobra al momento de la entrega."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "PENDIENTE — Neurona Soluciones (pedir razón social y RUT)",
+        "rut": "PENDIENTE",
+        "email": "rodrigo@neuronasoluciones.cl"
+      },
+      "detalle": [
+        "Instalar 2 baños químicos en Teniente Bisson 738, Independencia.",
+        "Traslado (despacho, instalación y retiro) incluido.",
+        "Aseo al finalizar el servicio incluido; aseo adicional $40.000 neto c/u.",
+        "Dejar insumos: papel higiénico.",
+        "Arriendo por 1 semana (viernes a lunes)."
+      ],
+      "notas": "Despacho MAÑANA (15/07) en horario AM. Cobrar al momento de la entrega ($214.200 con factura). PENDIENTE: datos de facturación (razón social/RUT) — el cliente aún los debe confirmar. El chat vino bajo 'Limpia Fosas y Destape', pero el emisor es Destape Rápido. Cotización enviada a rodrigo@neuronasoluciones.cl.",
+      "estado": "pendiente"
+    },
+    {
+      "id": "2026-07-14-nuevas-urbanizaciones",
+      "cliente": "Nuevas Urbanizaciones SpA",
+      "telefono": "+56 9 5154 3307",
+      "direccion": "Avenida Los Libertadores 470, El Monte, Región Metropolitana",
+      "fecha": "2026-07-14",
+      "hora": "Hoy — URGENTE",
+      "servicio": "1 baño químico — arriendo mensual",
+      "cantidad": 1,
+      "aseo": "Aseo incluido: una limpieza cada 15 días. Limpiezas adicionales se coordinan y se acuerda el valor.",
+      "pago": {
+        "monto": 230000,
+        "nota": "$230.000 IVA incluido (neto $193.277 + IVA $36.723). Con factura. Cobrar contra entrega."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Nuevas Urbanizaciones SpA",
+        "rut": "78.310.627-2",
+        "direccion": "Vicuña Mackenna Poniente N° 6100, Depto 1302, La Florida, Región Metropolitana",
+        "email": ""
+      },
+      "detalle": [
+        "Instalar 1 baño químico en Avenida Los Libertadores 470, El Monte.",
+        "Traslado ida y vuelta incluido.",
+        "Limpieza incluida cada 15 días; adicionales a convenir.",
+        "Dejar insumos: papel higiénico."
+      ],
+      "limpiezas": [
+        {
+          "fecha": "2026-07-29",
+          "etiqueta": "Limpieza 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Incluida en el arriendo (cada 15 días)."
+        }
+      ],
+      "notas": "ENTREGA HOY (14/07) — el cliente la necesita URGENTE. El Monte queda a ~25 min del centro de Talagante (por eso el valor). Con factura: total $230.000 IVA incluido. Representante legal: Emilio Andrés Soto Gómez, RUT 16.564.451-4. Facturación: Nuevas Urbanizaciones SpA, RUT 78.310.627-2, Vicuña Mackenna Poniente N° 6100, Depto 1302, La Florida. Limpiezas extra se coordinan y se acuerda el valor. El chat vino bajo 'Limpia Fosas y Destape', pero el emisor es Destape Rápido.",
+      "estado": "pendiente"
     }
   ],
   "comprobantes": {
     "2026-06-24": "comprobantes/pago-2026-06-24.png",
     "2026-06-27": "comprobantes/pago-2026-06-27.png",
-    "2026-06-27T17:08:00+00:00": "comprobantes/pago-2026-06-27.png"
+    "2026-06-27T17:08:00+00:00": "comprobantes/pago-2026-06-27.png",
+    "2026-07-16T17:26:26.07+00:00": "comprobantes/pago-2026-07-16.png",
+    "2026-07-16": "comprobantes/pago-2026-07-16.png"
   }
 }

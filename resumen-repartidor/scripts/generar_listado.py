@@ -17,6 +17,7 @@ import html
 import json
 import re
 import sys
+import unicodedata
 from datetime import date
 from pathlib import Path
 from urllib.parse import quote
@@ -447,6 +448,49 @@ ESTILOS_EXTRA = """
   .sec-chevron { flex:none; font-size:12px; color:var(--azul); transition:transform .2s; transform:rotate(180deg); }
   section.colapsada-dia .sec-chevron { transform:rotate(0deg); }
   section.colapsada-dia > .card-wrap { display:none !important; }
+  /* Al colapsar un día, un aviso "abajito" para que no parezca vacío */
+  section.colapsada-dia .fecha-titulo { flex-wrap:wrap; }
+  section.colapsada-dia .fecha-titulo::after {
+    content:"👆 toca para ver las entregas de este día";
+    flex-basis:100%; margin-top:2px; font-size:11px; font-weight:600;
+    text-transform:none; letter-spacing:0; color:var(--azul); opacity:.9;
+  }
+  /* Recomendación de reparto de hoy */
+  .reco { background:#fff; border:1px solid var(--linea); border-left:4px solid var(--azul);
+    border-radius:12px; padding:12px 14px; margin:4px 0 14px; box-shadow:0 1px 2px rgba(15,23,42,.05); }
+  .reco-head { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .reco-head b { font-size:15px; color:var(--tinta); }
+  .reco-head .reco-sub { font-size:12px; color:var(--gris); }
+  .reco-grupo { margin:8px 0 0; padding:8px 10px; border-radius:10px; background:#F8FAFC; border:1px solid var(--linea); }
+  .reco-grupo.juntos { background:#ECFDF5; border-color:#A7F3D0; }
+  .reco-junta { font-size:12px; font-weight:800; color:#166534; margin-bottom:6px; }
+  .reco-sep { height:1px; background:var(--linea); margin:10px 8px; }
+  .reco-pin { text-decoration:none; font-size:16px; line-height:1; margin-left:2px; flex:none; }
+  .reco-zona { margin:8px 0 0; }
+  .reco-zona-tit { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.5px;
+    color:var(--gris); margin-bottom:3px; }
+  .reco-chain { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; font-size:14px; }
+  .reco-stop { background:#EFF6FF; border:1px solid #BFDBFE; color:#1E3A8A; font-weight:700;
+    border-radius:999px; padding:3px 10px; }
+  .reco-stop .reco-n { color:var(--azul); font-weight:800; }
+  .reco-stop .reco-cli { font-weight:600; color:#475569; font-size:12px; margin-left:2px; }
+  /* Entregada: se tacha EN SU LUGAR (no se manda abajo), para mantener el orden */
+  .reco-stop.hecho { background:#F1F5F9; border-color:#E2E8F0; color:#94A3B8;
+    text-decoration:line-through; text-decoration-color:#16A34A; }
+  .reco-stop.hecho .reco-n, .reco-stop.hecho .reco-cli { color:#94A3B8; }
+  .reco-maps { display:inline-flex; align-items:center; gap:6px; margin-top:12px; padding:10px 16px;
+    background:var(--azul); color:#fff; font-weight:800; font-size:14px; border-radius:10px;
+    text-decoration:none; }
+  .reco-maps:active { filter:brightness(.95); }
+  .reco-maps-grupo { display:inline-flex; align-items:center; gap:5px; margin-top:8px; padding:6px 12px;
+    background:#ECFDF5; color:#166534; border:1px solid #A7F3D0; font-weight:700; font-size:13px;
+    border-radius:8px; text-decoration:none; }
+  .reco-maps-grupo:active { filter:brightness(.97); }
+  .reco-min { font-size:12px; color:var(--gris); white-space:nowrap; }
+  .reco-min::before { content:"→ "; }
+  .reco-done { margin-top:10px; font-size:13px; color:#166534; }
+  .reco-done s { color:var(--gris); }
+  .reco-todo { margin-top:8px; font-size:14px; color:#166534; font-weight:700; }
   /* Botón "Ver completadas / Volver": al estar en modo, queda fijo abajo y te sigue */
   .ver-anteriores.modo-activo { position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
     width:calc(100% - 24px); max-width:536px; z-index:30; background:var(--azul); color:#fff;
@@ -695,6 +739,8 @@ SCRIPT_ESTADO = r"""<script>
   var estado = {}; // id -> {id, estado, fecha, comision_pagada, pagada_at}
   var TAREAS = {};
   (APP.tareas || []).forEach(function (t) { TAREAS[t.id] = t; });
+  var GEO = APP.geo || {};     // id -> {comuna, zona, lat, lng, aprox}
+  var ZONAS = APP.zonas || {}; // zona -> {label, emoji, orden}
   var tEstado = {}; // id -> {contactado, realizada, realizada_at}
   var modoCompletadas = false; // false = ver pendientes; true = ver solo completadas
   // Guardamos las DESELECCIONADAS (no las seleccionadas): así toda comisión por
@@ -1006,6 +1052,168 @@ SCRIPT_ESTADO = r"""<script>
       var fill = sec.querySelector('.prog-fill'); if (fill) { fill.style.width = pct + '%'; }
       var num = sec.querySelector('.prog-num'); if (num) { num.textContent = done + '/' + total; }
     });
+    renderRecomendacion(); // el plan de hoy se recalcula con cada cambio de estado
+  }
+
+  // ── Recomendación de reparto de HOY ──────────────────────────────────────
+  // Arma la ruta del día, conecta las paradas cercanas (≤ JUNTOS_KM) como "cárgalos
+  // juntos" y estima km/min "~" entre paradas. Todo con datos horneados (GEO) +
+  // estado vivo (Supabase). Se recalcula al marcar entregas (via actualizarProgreso).
+  var JUNTOS_KM = 12;     // umbral "van juntos" en km de MANEJO (ajustable: tu rango 10-15)
+  var ROAD_FACTOR = 1.4;  // línea recta -> manejo aprox (las calles no van derechas)
+  function haversineKm(a, b) {
+    if (!a || !b || a.lat == null || b.lat == null) return null;
+    var R = 6371, rad = Math.PI / 180;
+    var dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+    var la1 = a.lat * rad, la2 = b.lat * rad;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+  function roadKm(a, b) { var k = haversineKm(a, b); return k == null ? null : k * ROAD_FACTOR; }
+  function kmMin(km) { return km == null ? null : Math.max(5, Math.round(km * 2.2 / 5) * 5); } // ~urbano
+  function haversineMin(a, b) { return kmMin(roadKm(a, b)); }
+  function recorta(s, n) { s = String(s || ''); return s.length > (n || 24) ? s.slice(0, (n || 24) - 1) + '…' : s; }
+
+  // URL de Google Maps con la ruta completa. SIN origen fijo: Maps arranca desde la
+  // ubicación actual del repartidor (su celular). Usa la DIRECCIÓN REAL de cada pedido
+  // (mapsq), no el centro de la comuna, para que navegue al cliente.
+  function buildMapsUrl(orderedStops) {
+    var qs = [];
+    orderedStops.forEach(function (c) {
+      (c.mapsqsPend || []).forEach(function (q) { if (q) { qs.push(q); } });
+    });
+    if (!qs.length) return '';
+    var url = 'https://www.google.com/maps/dir/?api=1&travelmode=driving' +
+              '&destination=' + encodeURIComponent(qs[qs.length - 1]);
+    var mids = qs.slice(0, -1);
+    if (mids.length) { url += '&waypoints=' + mids.map(encodeURIComponent).join('%7C'); }
+    return url;
+  }
+
+  function renderRecomendacion() {
+    var box = document.getElementById('recomendacion-hoy');
+    if (!box) return;
+    var hoy = todayISO();
+
+    // TODAS las entregas de hoy (fecha efectiva), baños, no eliminadas, entregadas o no.
+    // Guardamos entregadas Y pendientes juntas: el ORDEN del día se calcula una sola
+    // vez sobre todas, así no se reordena cuando el repartidor va marcando en ruta.
+    var comunas = {}; // comuna -> {geo, banos, banosDone, clientes[], mapsqsPend[], done}
+    var banosTot = 0, banosDone = 0;
+    Object.keys(META).forEach(function (id) {
+      var m = META[id];
+      if (!m || m.tipo !== 'bano') return;
+      if (eliminadoDe(id)) return;
+      if (fechaDe(id) !== hoy) return;
+      var g = GEO[id] || { comuna: 'Sin comuna', zona: 'otra', lat: null, lng: null, cliente: '', mapsq: '' };
+      var b = m.banos || 1;
+      var c = comunas[g.comuna] || (comunas[g.comuna] = { geo: g, banos: 0, banosDone: 0, clientes: [], mapsqsPend: [] });
+      c.banos += b; banosTot += b;
+      if (g.cliente) { c.clientes.push(g.cliente); }
+      if (entregadoDe(id)) { c.banosDone += b; banosDone += b; }
+      else if (g.mapsq) { c.mapsqsPend.push(g.mapsq); }
+    });
+
+    var stops = Object.keys(comunas).map(function (k) { return comunas[k]; });
+    if (stops.length === 0) { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    stops.forEach(function (c) { c.done = c.banos > 0 && c.banosDone >= c.banos; });
+
+    // Orden FIJO del día: por cercanía (norte→sur, sin base fija), sobre TODAS las
+    // paradas (entregadas incluidas). Como el conjunto del día no cambia al entregar,
+    // el orden se mantiene estable y el repartidor sigue su ruta sin saltos.
+    stops = ordenarPorCercania(stops);
+    // Paradas que faltan, en el MISMO orden: para los minutos restantes y la ruta a Maps.
+    var pendientes = stops.filter(function (c) { return !c.done; });
+    var banosPend = banosTot - banosDone;
+
+    // Grupos "cárgalos juntos" sobre el orden fijo (mientras el salto sea ≤ JUNTOS_KM).
+    var grupos = [];
+    stops.forEach(function (c, i) {
+      var km = i > 0 ? roadKm(stops[i - 1].geo, c.geo) : null;
+      if (i === 0 || km == null || km > JUNTOS_KM) {
+        grupos.push({ paradas: [{ stop: c, km: null }], saltoKm: km });
+      } else {
+        grupos[grupos.length - 1].paradas.push({ stop: c, km: km });
+      }
+    });
+    // Link de Maps para UNA parada: validar/navegar esa dirección desde donde estés.
+    function pinUrl(c) {
+      var q = (c.mapsqsPend && c.mapsqsPend[0]) || '';
+      return q ? 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=' + encodeURIComponent(q) : '';
+    }
+
+    function chip(c) {
+      var emoji = (ZONAS[c.geo.zona] || {}).emoji || '📍';
+      var quien = '';
+      if (c.clientes && c.clientes.length === 1 && c.clientes[0]) {
+        quien = '<span class="reco-cli">· ' + escapeHtml(recorta(c.clientes[0])) + '</span>';
+      } else if (c.clientes && c.clientes.length > 1) {
+        quien = '<span class="reco-cli">· ' + c.clientes.length + ' clientes</span>';
+      }
+      var marca = c.done ? '✓ ' : '';
+      var pin = (!c.done && pinUrl(c))
+        ? '<a class="reco-pin" href="' + pinUrl(c) + '" target="_blank" rel="noopener" title="Ver / ir a esta dirección">📍</a>'
+        : '';
+      return '<span class="reco-stop' + (c.done ? ' hecho' : '') + '">' + marca + emoji + ' ' +
+             escapeHtml(c.geo.comuna) + ' <span class="reco-n">' + c.banos + '</span>' + quien + '</span>' + pin;
+    }
+
+    var html = '';
+    var sub = banosPend > 0
+      ? ('Faltan ' + banosPend + ' de ' + banosTot + ' baño' + (banosTot === 1 ? '' : 's'))
+      : '✅ ' + banosTot + ' baño' + (banosTot === 1 ? '' : 's') + ' entregado' + (banosTot === 1 ? '' : 's');
+    html += '<div class="reco-head"><b>🗺️ Reparto de hoy</b><span class="reco-sub">' + sub + '</span></div>';
+
+    grupos.forEach(function (g, gi) {
+      if (gi > 0) { html += '<div class="reco-sep"></div>'; } // separador simple entre paradas lejanas
+      // "Cárgalos juntos" solo si en el grupo queda MÁS DE UNA pendiente (ya entregadas no).
+      var pendEnGrupo = g.paradas.filter(function (x) { return !x.stop.done; });
+      var juntos = pendEnGrupo.length > 1;
+      var banosG = pendEnGrupo.reduce(function (s, x) { return s + (x.stop.banos - x.stop.banosDone); }, 0);
+      var chain = '';
+      g.paradas.forEach(function (x, i) {
+        if (i > 0 && x.km != null) { chain += '<span class="reco-min">~' + Math.round(x.km) + ' km</span>'; }
+        chain += chip(x.stop);
+      });
+      // Botón de Maps del GRUPO: solo las cercanas, para ver la distancia/ruta entre ellas.
+      var grupoMaps = juntos ? buildMapsUrl(pendEnGrupo.map(function (x) { return x.stop; })) : '';
+      html += '<div class="reco-grupo' + (juntos ? ' juntos' : '') + '">' +
+              (juntos ? '<div class="reco-junta">🚚 Carga estos ' + banosG + ' juntos (quedan cerca)</div>' : '') +
+              '<div class="reco-chain">' + chain + '</div>' +
+              (grupoMaps ? '<a class="reco-maps-grupo" href="' + grupoMaps + '" target="_blank" rel="noopener">🧭 Ver ruta de estos en Maps</a>' : '') +
+              '</div>';
+    });
+
+    if (banosPend > 0) {
+      var mapsUrl = buildMapsUrl(pendientes); // la ruta a Maps es solo lo que FALTA
+      if (mapsUrl) {
+        html += '<a class="reco-maps" href="' + mapsUrl + '" target="_blank" rel="noopener">🧭 Abrir ruta en Maps</a>';
+      }
+    } else {
+      html += '<div class="reco-todo">🎉 ¡Todo lo de hoy entregado!</div>';
+    }
+    box.innerHTML = html;
+  }
+
+  // Ordena las paradas por vecino más cercano. SIN base fija (Maipú no tiene que ver
+  // con el repartidor): parte de la más al norte y encadena por cercanía. Da un orden
+  // estable y geográfico; en Maps la ruta arranca igual desde donde esté el repartidor.
+  function ordenarPorCercania(lista) {
+    var arr = lista.slice();
+    if (arr.length <= 1) return arr;
+    arr.sort(function (a, b) { return (b.geo.lat || -99) - (a.geo.lat || -99); }); // norte primero
+    var orden = [arr.shift()], guard = 0;
+    while (arr.length && guard++ < 100) {
+      var last = orden[orden.length - 1], best = 0, bd = Infinity;
+      for (var i = 0; i < arr.length; i++) {
+        var d = haversineKm(last.geo, arr[i].geo);
+        if (d != null && d < bd) { bd = d; best = i; }
+      }
+      orden.push(arr.splice(best, 1)[0]);
+    }
+    return orden;
   }
 
   // Fija la altura real del header para el 'top' de los encabezados sticky.
@@ -1908,6 +2116,189 @@ def seccion_retiros(entregas: list):
     return _seccion_tareas("📦 Retiros", cards, len(datos)), tareas
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Geografía para la "Recomendación de hoy": deduce comuna + zona + un punto
+# (lat,lng) por entrega. Todo offline (sin API, sin costo). Las coordenadas por
+# comuna son CENTROS aproximados; sirven para agrupar y estimar minutos "~", no
+# para navegar (para eso ya está el botón "Cómo llegar" de cada tarjeta).
+# ─────────────────────────────────────────────────────────────────────────────
+
+# comuna/sector -> (lat, lng, zona). Los sectores (Chicureo, Lo Pinto…) traen su
+# propio punto pero comparten la zona de su comuna madre.
+COMUNAS_GEO = {
+    # Oriente
+    "lo barnechea": (-33.353, -70.518, "oriente"),
+    "las condes": (-33.409, -70.569, "oriente"),
+    "vitacura": (-33.380, -70.575, "oriente"),
+    "la reina": (-33.443, -70.537, "oriente"),
+    "nunoa": (-33.456, -70.597, "oriente"),
+    "providencia": (-33.430, -70.610, "oriente"),
+    "penalolen": (-33.485, -70.545, "oriente"),
+    "macul": (-33.485, -70.598, "oriente"),
+    # Centro
+    "santiago centro": (-33.445, -70.660, "centro"),
+    "santiago": (-33.445, -70.660, "centro"),
+    "independencia": (-33.417, -70.665, "centro"),
+    "recoleta": (-33.414, -70.640, "centro"),
+    "estacion central": (-33.452, -70.685, "centro"),
+    "san miguel": (-33.497, -70.652, "centro"),
+    "san joaquin": (-33.492, -70.628, "centro"),
+    "pedro aguirre cerda": (-33.487, -70.673, "centro"),
+    # Norte
+    "colina": (-33.203, -70.676, "norte"),
+    "chicureo": (-33.283, -70.667, "norte"),
+    "lo pinto": (-33.262, -70.723, "norte"),
+    "lampa": (-33.283, -70.883, "norte"),
+    "til til": (-33.083, -70.930, "norte"),
+    "quilicura": (-33.367, -70.729, "norte"),
+    "huechuraba": (-33.370, -70.645, "norte"),
+    "conchali": (-33.383, -70.675, "norte"),
+    "renca": (-33.404, -70.726, "norte"),
+    # Poniente
+    "pudahuel": (-33.443, -70.760, "poniente"),
+    "cerro navia": (-33.423, -70.735, "poniente"),
+    "lo prado": (-33.443, -70.720, "poniente"),
+    "maipu": (-33.510, -70.760, "poniente"),
+    "cerrillos": (-33.495, -70.715, "poniente"),
+    "curacavi": (-33.410, -71.140, "poniente"),
+    # Sur-poniente rural
+    "padre hurtado": (-33.573, -70.810, "surponiente"),
+    "penaflor": (-33.610, -70.878, "surponiente"),
+    "talagante": (-33.665, -70.928, "surponiente"),
+    "el monte": (-33.677, -71.010, "surponiente"),
+    "isla de maipo": (-33.752, -70.897, "surponiente"),
+    "melipilla": (-33.688, -71.215, "surponiente"),
+    "calera de tango": (-33.632, -70.782, "surponiente"),
+    # Sur
+    "san bernardo": (-33.592, -70.699, "sur"),
+    "buin": (-33.732, -70.741, "sur"),
+    "paine": (-33.808, -70.741, "sur"),
+    "pirque": (-33.640, -70.548, "sur"),
+    "puente alto": (-33.611, -70.575, "sur"),
+    "la florida": (-33.552, -70.583, "sur"),
+    "la pintana": (-33.583, -70.630, "sur"),
+    "la granja": (-33.540, -70.625, "sur"),
+    "el bosque": (-33.562, -70.675, "sur"),
+    "la cisterna": (-33.537, -70.663, "sur"),
+    "san ramon": (-33.535, -70.645, "sur"),
+}
+
+# Nombres bonitos (con tilde/Ñ) para las comunas cuya clave va normalizada.
+COMUNA_LABEL = {
+    "nunoa": "Ñuñoa", "penaflor": "Peñaflor", "conchali": "Conchalí",
+    "curacavi": "Curacaví", "til til": "Til Til", "penalolen": "Peñalolén",
+    "maipu": "Maipú", "estacion central": "Estación Central",
+    "pedro aguirre cerda": "Pedro Aguirre Cerda", "san ramon": "San Ramón",
+}
+
+# zona -> (etiqueta legible, emoji, orden de recorrido sugerido)
+ZONAS_INFO = {
+    "oriente":     ("Oriente", "🌄", 1),
+    "centro":      ("Centro", "🏙️", 2),
+    "norte":       ("Norte", "🧭", 3),
+    "poniente":    ("Poniente", "🌆", 4),
+    "surponiente": ("Sur-poniente", "🌾", 5),
+    "sur":         ("Sur", "🚜", 6),
+    "otra":        ("Otra zona", "📍", 9),
+}
+
+
+def _norm_txt(s: str) -> str:
+    """minúsculas y sin tildes, para comparar nombres de comuna."""
+    s = unicodedata.normalize("NFD", str(s or "").lower())
+    return "".join(c for c in s if unicodedata.category(c) != "Mn")
+
+
+# Comunas de más específicas/largas a menos, para preferir el sector (Chicureo)
+# por sobre la comuna madre (Colina) cuando ambos aparecen en la dirección.
+_COMUNAS_ORD = sorted(COMUNAS_GEO.keys(), key=len, reverse=True)
+_COORD_RE = re.compile(r"@?(-?\d{1,2}\.\d{3,}),\s*(-?\d{1,3}\.\d{3,})")
+
+
+def _match_comuna(texto: str) -> str:
+    """Comuna conocida más específica (nombre más largo) contenida en `texto`."""
+    for nombre in _COMUNAS_ORD:
+        if nombre in texto:
+            return nombre
+    return ""
+
+
+def derivar_geo(e: dict) -> dict:
+    """Deduce {comuna, zona, lat, lng, aprox} de una entrega. Sin red, sin costo."""
+    direccion = e.get("direccion", "") or ""
+    dir_norm = _norm_txt(direccion)
+
+    # 1) Comuna: en esta base va casi siempre justo antes de "Región Metropolitana".
+    #    Miramos los últimos segmentos (de derecha a izquierda) antes de la región;
+    #    así evitamos falsos positivos de nombres de calles/marcas (p.ej. "Cousiño
+    #    Macul" en una dirección de Paine). Si falla, buscamos en toda la dirección.
+    comuna_key = ""
+    cabeza = dir_norm.split("region metropolitana")[0]
+    segmentos = [s.strip() for s in cabeza.split(",") if s.strip()]
+    for seg in reversed(segmentos[-3:]):
+        comuna_key = _match_comuna(seg)
+        if comuna_key:
+            break
+    if not comuna_key:
+        comuna_key = _match_comuna(dir_norm)
+
+    if comuna_key:
+        clat, clng, zona = COMUNAS_GEO[comuna_key]
+        comuna_label = COMUNA_LABEL.get(comuna_key, comuna_key.title())
+    else:
+        clat = clng = None
+        zona = "otra"
+        comuna_label = "Sin comuna"
+
+    # 2) Punto exacto si lo hay: campo `coordenadas` o un @lat,lng en la dirección
+    #    (links de Google/Waze). Si no, cae al centro de la comuna (aprox).
+    lat = lng = None
+    aprox = True
+    coords = (e.get("coordenadas", "") or "").strip()
+    m = _COORD_RE.search(coords) or _COORD_RE.search(direccion)
+    if m:
+        lat, lng, aprox = float(m.group(1)), float(m.group(2)), False
+    elif clat is not None:
+        lat, lng = clat, clng
+
+    return {
+        "comuna": comuna_label,
+        "zona": zona,
+        "lat": lat,
+        "lng": lng,
+        "aprox": aprox,
+    }
+
+
+def maps_query(e: dict) -> str:
+    """Lo que se manda a Google Maps para NAVEGAR a esta entrega: coordenadas
+    exactas si las hay; si no, la dirección real (sin los links pegados al final).
+    Nunca el centro de la comuna: eso solo sirve para estimar cercanía en el panel."""
+    coords = (e.get("coordenadas") or "").strip()
+    if coords:
+        return coords
+    d = e.get("direccion") or ""
+    for marca in ("http", "Waze", "Ubicación", "ubicación"):  # corta links pegados
+        i = d.find(marca)
+        if i != -1:
+            d = d[:i]
+    # Quita notas entre paréntesis: "(obra de construcción)", "(Condominio ...)",
+    # "(frente al mall ...)". A Google le rompen la búsqueda.
+    d = re.sub(r"\([^)]*\)", " ", d)
+    d = d.replace("(", " ").replace(")", " ")  # paréntesis sueltos (de links cortados)
+    # Si viene "Nombre del lugar — calle 123, comuna", quédate con el lado de la
+    # dirección (el que trae número o comuna). Evita que el nombre de la obra/viña
+    # confunda a Google (p.ej. "Viña Cousiño Macul" mandándolo a Macul).
+    if "—" in d:
+        izq, der = d.split("—", 1)
+        if ("," in der) or re.search(r"\d", der):
+            d = der
+    d = re.sub(r"\s+", " ", d)
+    d = re.sub(r"\s+,", ",", d)  # " ," -> ","
+    d = d.strip().strip(".,;—- ").strip()
+    return d
+
+
 def construir_html(data: dict) -> str:
     entregas = data.get("entregas", [])
     # Ordenar por fecha y agrupar.
@@ -1961,6 +2352,14 @@ def construir_html(data: dict) -> str:
             "entregas": meta,
             "tareas": tareas,
             "comprobantes": data.get("comprobantes", {}),
+            # Geo por entrega (+ cliente + dirección real de navegación) + etiquetas de
+            # zona, para la "Recomendación de hoy". `mapsq` = a dónde navega Maps (real);
+            # lat/lng = centro de comuna, solo para estimar cercanía en el panel.
+            "geo": {e.get("id", ""): {**derivar_geo(e), "cliente": e.get("cliente", ""),
+                                      "mapsq": maps_query(e)}
+                    for e in entregas},
+            "zonas": {k: {"label": v[0], "emoji": v[1], "orden": v[2]}
+                      for k, v in ZONAS_INFO.items()},
         },
         ensure_ascii=False,
     ).replace("</", "<\\/")  # evita cerrar el <script> con datos
@@ -1970,8 +2369,11 @@ def construir_html(data: dict) -> str:
     boton_anteriores = ('<div id="modo-titulo" class="modo-titulo" hidden></div>'
                         '<button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button>')
 
+    # Recomendación de reparto de hoy (agrupa por zona; se rellena por JS en vivo).
+    reco_block = '<div id="recomendacion-hoy" class="reco" hidden></div>'
+
     if secciones:
-        vista_entregas = boton_anteriores + "".join(secciones) + limpiezas_sec + retiros_sec
+        vista_entregas = reco_block + boton_anteriores + "".join(secciones) + limpiezas_sec + retiros_sec
     else:
         vista_entregas = '<p class="vacio">No hay entregas cargadas.</p>'
 

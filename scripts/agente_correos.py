@@ -71,8 +71,8 @@ def correos(filtro, page_size=100, max_pages=20):
 def main():
     if len(sys.argv) < 2:
         sys.exit("uso: nuevos | ajustes | respondidos | correo <id> | borrador <id> (STDIN) | "
-                 "spam <id> | enviar <id> (STDIN) | adjuntar <id> <pdf> | "
-                 "sin-etiqueta | etiqueta <id> <texto>")
+                 "spam <id> | bloquear <id> [dominio|email] [motivo] | enviar <id> (STDIN) | "
+                 "adjuntar <id> <pdf> | sin-etiqueta | etiqueta <id> <texto>")
     cmd = sys.argv[1]
 
     if cmd in ("nuevos", "ajustes"):
@@ -135,6 +135,23 @@ def main():
         if not texto.strip():
             sys.exit("❌ sin texto en STDIN")
         res = api("/api/enviar", "POST", {"id": sys.argv[2], "texto": texto})
+        print(json.dumps(res, ensure_ascii=False))
+
+    elif cmd == "bloquear":
+        # Spam evidente (sí o sí): bloqueo PERMANENTE del dominio (o email) del remitente.
+        # A futuro sus correos entran ya como 'bloqueado' (auto-spam) y no se reenvían.
+        # uso: bloquear <id> [dominio|email] [motivo]   (por defecto: dominio)
+        if len(sys.argv) < 3:
+            sys.exit("uso: bloquear <id> [dominio|email] [motivo]")
+        tipo = sys.argv[3] if len(sys.argv) > 3 else "dominio"
+        motivo = " ".join(sys.argv[4:]) if len(sys.argv) > 4 else "spam evidente"
+        c = api("/api/correo?id=" + sys.argv[2])
+        de = (c.get("de") or "").strip().lower()
+        if "@" not in de:
+            sys.exit(f"❌ no pude leer el remitente del correo {sys.argv[2]}")
+        body = ({"dominio": de.split("@")[1], "motivo": motivo} if tipo == "dominio"
+                else {"de": de, "motivo": motivo})
+        res = api("/api/bloquear", "POST", body)
         print(json.dumps(res, ensure_ascii=False))
 
     elif cmd == "adjuntar":
