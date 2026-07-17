@@ -568,21 +568,29 @@ ESTILOS_EXTRA = """
      IGUAL (mismo flujo); solo el cuerpo se pliega. "Ver más" lo expande. */
   .card-wrap.cobro-pendiente:not(.cobro-abierta) > .card { display:none; }
   .card-wrap:not(.cobro-pendiente) > .cobro-mini { display:none; }
+  /* Compacta: los chips de reagendada sobran (abajo ya dice "Entregado el ...");
+     al expandir con "Ver más" vuelven a verse. */
+  .card-wrap.cobro-pendiente:not(.cobro-abierta) .reagendada-chip,
+  .card-wrap.cobro-pendiente:not(.cobro-abierta) .fecha-original-chip { display:none !important; }
   .cobro-mini { border:1px solid #93C5FD; border-top:none; background:#EFF6FF;
     border-radius:0 0 14px 14px; padding:10px 12px; }
   .card-wrap.cobro-abierta > .cobro-mini { border-radius:0; border-bottom:1px dashed #BFDBFE; }
-  .cobro-mini-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
-  .cobro-mini-info { font-size:14px; min-width:0; }
+  .cobro-mini-row { display:flex; align-items:center; gap:10px; }
+  .cobro-mini-info { flex:1 1 auto; min-width:0; font-size:14px; }
   .cobro-chip { background:#DBEAFE; color:#1D4ED8; font-weight:800; font-size:11.5px;
-    border-radius:999px; padding:2px 9px; margin-right:2px; }
+    border-radius:999px; padding:2px 9px; white-space:nowrap; }
+  .cobro-chip-top { align-self:center; }
   .cobro-monto { color:#166534; }
   .cobro-sub { margin-top:3px; font-size:12.5px; color:var(--gris); font-weight:600; }
-  .cobro-mini-btns { display:flex; gap:8px; align-items:center; }
-  .btn-cobrar { display:inline-flex; align-items:center; gap:7px; background:#25D366; color:#fff;
-    font-weight:800; border-radius:11px; padding:9px 15px; text-decoration:none; font-size:14px; }
+  /* Botones a la DERECHA, apilados y del MISMO tamaño. */
+  .cobro-mini-btns { display:flex; flex-direction:column; gap:6px; flex:0 0 126px; }
+  .btn-cobrar, .btn-cobro-mas { display:inline-flex; align-items:center; justify-content:center;
+    width:100%; box-sizing:border-box; padding:9px 10px; border-radius:11px; }
+  .btn-cobrar { gap:7px; background:#25D366; color:#fff; font-weight:800;
+    text-decoration:none; font-size:14px; }
   .btn-cobrar:active { filter:brightness(.95); }
-  .btn-cobro-mas { background:#fff; border:1px solid var(--linea); border-radius:11px;
-    padding:9px 12px; font-weight:700; color:var(--azul); font-size:13px; }
+  .btn-cobro-mas { background:#fff; border:1px solid var(--linea); font-weight:700;
+    color:var(--azul); font-size:13px; }
   /* Entrega NUEVA (este dispositivo no la había visto): destaque suave azulado.
      El chip "✨ Nuevo" flota sobre la esquina; la memoria vive en localStorage. */
   .card-wrap.card-nueva { position:relative; border-radius:14px;
@@ -1018,11 +1026,24 @@ SCRIPT_ESTADO = r"""<script>
   function aplicarCobroCompacto(card, id, entregado, cobrado, esServ) {
     var aplica = entregado && !cobrado && !esServ;
     card.classList.toggle('cobro-pendiente', aplica);
+    // Chip "💰 Falta cobrar" en la franja de arriba, pegado a la izquierda del
+    // botón Entregado (pedido de Alejandro: se ve el estado sin leer el cuerpo).
+    var chipTop = card.querySelector('.cobro-chip-top');
     if (!aplica) {
       card.classList.remove('cobro-abierta');
+      if (chipTop) { chipTop.remove(); }
       var viejo = card.querySelector('.cobro-mini');
       if (viejo) { viejo.remove(); }
       return;
+    }
+    if (!chipTop) {
+      var gtEst = card.querySelector('.gt-estados');
+      if (gtEst) {
+        chipTop = document.createElement('span');
+        chipTop.className = 'cobro-chip cobro-chip-top';
+        chipTop.textContent = '💰 Falta cobrar';
+        gtEst.insertAdjacentElement('afterbegin', chipTop);
+      }
     }
     var mini = card.querySelector('.cobro-mini');
     if (!mini) {
@@ -1043,7 +1064,7 @@ SCRIPT_ESTADO = r"""<script>
     mini.innerHTML =
       '<div class="cobro-mini-row">' +
         '<div class="cobro-mini-info">' +
-          '<span class="cobro-chip">💰 Falta cobrar</span> <b>' + escapeHtml(m.cliente || '—') + '</b> · <b class="cobro-monto">' + clp(m.monto || 0) + '</b>' +
+          '<b>' + escapeHtml(m.cliente || '—') + '</b> · <b class="cobro-monto">' + clp(m.monto || 0) + '</b>' +
           '<div class="cobro-sub">Entregado el ' + escapeHtml(cuando) + (hace ? ' · ' + hace : '') + '</div>' +
         '</div>' +
         '<div class="cobro-mini-btns">' +
