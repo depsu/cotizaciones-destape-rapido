@@ -360,6 +360,15 @@ def tarjeta(e: dict) -> str:
     if notas:
         notas_html = f'<div class="bloque"><span class="etq">Notas</span><p>{esc(notas)}</p></div>'
 
+    # Contacto de respaldo opcional (jefe, portería): a quién llamar si no contesta el cliente.
+    respaldo_html = ""
+    if e.get("telefono_respaldo") or e.get("contacto_respaldo"):
+        rtel = solo_digitos(e.get("telefono_respaldo", ""))
+        rnom = esc(e.get("contacto_respaldo", ""))
+        rlink = f'<a href="tel:+{rtel}">+{rtel}</a>' if rtel else ""
+        cuerpo = " · ".join(p for p in [rnom, rlink] if p)
+        respaldo_html = f'<div class="bloque"><span class="etq">☎️ Respaldo</span><p>{cuerpo}</p></div>'
+
     # Botones de acción.
     num = solo_digitos(telefono)
     botones = []
@@ -415,6 +424,7 @@ def tarjeta(e: dict) -> str:
           <div class="bloque"><span class="etq">Aseo</span><p>{aseo}</p></div>
           {limpiezas_bloque}
           {f'<div class="bloque"><span class="etq">Teléfono</span><p>{esc("+" + num if num else telefono)}</p></div>' if telefono else ""}
+          {respaldo_html}
           {factura_html}
           {horario_html}
           {notas_html}

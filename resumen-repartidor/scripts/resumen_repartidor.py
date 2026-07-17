@@ -84,10 +84,14 @@ def icono_banos(n: int) -> str:
     return "🚽+" if n > 4 else "🚽" * n
 
 
+DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+
+
 def fecha_legible(iso: str) -> str:
+    """'2026-07-20' -> 'Lunes 20 de julio de 2026' (el día evita errores de agenda)."""
     try:
         f = date.fromisoformat(iso)
-        return f"{f.day:02d} de {MESES[f.month - 1]} de {f.year}"
+        return f"{DIAS_SEMANA[f.weekday()]} {f.day:02d} de {MESES[f.month - 1]} de {f.year}"
     except (ValueError, IndexError):
         return iso
 
@@ -107,6 +111,11 @@ def construir_resumen(e: dict) -> str:
         # Con "+" el número queda clicable en WhatsApp (llamar / abrir chat directo).
         tel = solo_digitos(e["telefono"])
         lineas.append(f"📱 Teléfono cliente: {'+' + tel if tel else e['telefono']}")
+    if e.get("telefono_respaldo") or e.get("contacto_respaldo"):
+        # Contacto de respaldo opcional (jefe, portería): a quién llamar si no contesta el cliente.
+        rtel = solo_digitos(e.get("telefono_respaldo", ""))
+        partes = [p for p in [e.get("contacto_respaldo"), ("+" + rtel if rtel else "")] if p]
+        lineas.append(f"☎️ Respaldo: {' '.join(partes)}")
     if e.get("servicio"):
         lineas.append("")
         lineas.append(f"{icono_banos(cantidad_banos(e))} Servicio: {e['servicio']}")
