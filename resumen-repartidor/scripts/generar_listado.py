@@ -585,6 +585,9 @@ ESTILOS_EXTRA = """
   /* Chip centrado ARRIBA, montado sobre el borde. La card gana margen superior para
      que el chip no se encime con la card anterior (aire entre cards). */
   .card-wrap.cobro-pendiente { position:relative; margin-top:18px; }
+  /* Aire arriba en la franja de gestión: que el chip centrado no choque con la
+     fecha ni los botones Entregado/Cobrado. */
+  .card-wrap.cobro-pendiente > .gestion-top { padding-top:17px; }
   .cobro-chip-top { position:absolute; top:-10px; left:50%; transform:translateX(-50%);
     z-index:2; border:1.5px solid #93C5FD; box-shadow:0 1px 4px rgba(30,64,175,.18); }
   .cobro-monto { color:#166534; }
@@ -1065,11 +1068,15 @@ SCRIPT_ESTADO = r"""<script>
     var tel = m.tel || '';
     var wa = tel ? ('whatsapp://send?phone=' + tel + '&text=' + encodeURIComponent(msgCobro(id))) : '';
     var abierta = card.classList.contains('cobro-abierta');
+    // La comuna ayuda al repartidor a UBICAR la entrega de un vistazo (geo en vivo).
+    var comuna = (GEO[id] || {}).comuna || '';
+    if (comuna === 'Sin comuna') { comuna = ''; }
     mini.innerHTML =
       '<div class="cobro-mini-row">' +
         '<div class="cobro-mini-info">' +
           '<b>' + escapeHtml(m.cliente || '—') + '</b> · <b class="cobro-monto">' + clp(m.monto || 0) + '</b>' +
-          '<div class="cobro-sub">Entregado el ' + escapeHtml(cuando) + (hace ? ' · ' + hace : '') + '</div>' +
+          '<div class="cobro-sub">' + (comuna ? '📍 <b>' + escapeHtml(comuna) + '</b> · ' : '') +
+            'Entregado el ' + escapeHtml(cuando) + (hace ? ' · ' + hace : '') + '</div>' +
         '</div>' +
         '<div class="cobro-mini-btns">' +
           (wa ? '<a class="btn-cobrar" href="' + wa + '">' + WA_SVG + 'Cobrar</a>' : '') +
