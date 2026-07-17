@@ -564,6 +564,25 @@ ESTILOS_EXTRA = """
   .card-wrap.is-contactado > .card, .card-wrap.is-contactado > .gestion-top { border-color:#86EFAC; background:#F0FDF4; }
   .card-wrap.is-pendiente-reagendar > .card, .card-wrap.is-pendiente-reagendar > .gestion-top { border-color:#CBD5E1; background:#F1F5F9; }
   .card-wrap.oculto-anterior { display:none; }
+  /* Card compacta "entregado · falta cobrar": la franja de gestión de arriba queda
+     IGUAL (mismo flujo); solo el cuerpo se pliega. "Ver más" lo expande. */
+  .card-wrap.cobro-pendiente:not(.cobro-abierta) > .card { display:none; }
+  .card-wrap:not(.cobro-pendiente) > .cobro-mini { display:none; }
+  .cobro-mini { border:1px solid #93C5FD; border-top:none; background:#EFF6FF;
+    border-radius:0 0 14px 14px; padding:10px 12px; }
+  .card-wrap.cobro-abierta > .cobro-mini { border-radius:0; border-bottom:1px dashed #BFDBFE; }
+  .cobro-mini-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .cobro-mini-info { font-size:14px; min-width:0; }
+  .cobro-chip { background:#DBEAFE; color:#1D4ED8; font-weight:800; font-size:11.5px;
+    border-radius:999px; padding:2px 9px; margin-right:2px; }
+  .cobro-monto { color:#166534; }
+  .cobro-sub { margin-top:3px; font-size:12.5px; color:var(--gris); font-weight:600; }
+  .cobro-mini-btns { display:flex; gap:8px; align-items:center; }
+  .btn-cobrar { display:inline-flex; align-items:center; gap:7px; background:#25D366; color:#fff;
+    font-weight:800; border-radius:11px; padding:9px 15px; text-decoration:none; font-size:14px; }
+  .btn-cobrar:active { filter:brightness(.95); }
+  .btn-cobro-mas { background:#fff; border:1px solid var(--linea); border-radius:11px;
+    padding:9px 12px; font-weight:700; color:var(--azul); font-size:13px; }
   /* Entrega NUEVA (este dispositivo no la había visto): destaque suave azulado.
      El chip "✨ Nuevo" flota sobre la esquina; la memoria vive en localStorage. */
   .card-wrap.card-nueva { position:relative; border-radius:14px;
@@ -966,7 +985,85 @@ SCRIPT_ESTADO = r"""<script>
     // Brillo en el reagendar mientras esté vencida sin reagendar.
     var gtf = card.querySelector('.gt-fecha');
     if (gtf) { gtf.classList.toggle('glow', rr); }
+
+    // Card compacta cuando está entregada y falta cobrar (menos scroll).
+    aplicarCobroCompacto(card, id, entregado, cobrado, esServ);
   }
+
+  // ── Card COMPACTA "entregado · falta cobrar" ────────────────────────────────
+  // Solo se reduce el CUERPO de la card: la franja de gestión de arriba (fecha +
+  // Entregado/Cobrado) queda IDÉNTICA y con el mismo flujo. "Ver más" expande a la
+  // card completa; el botón verde abre WhatsApp con el mensaje de cobro ya escrito
+  // con el contexto del cliente (qué se entregó, cuándo, cuánto).
+  var DIAS_JS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  var DIAS_JS_AB = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  function dateDe(iso) {
+    var p = String(iso || '').split('-');
+    return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2], 12) : null;
+  }
+  function msgCobro(id) {
+    var m = META[id] || {};
+    var d = dateDe(fechaDe(id) || '');
+    var cuando = d ? (DIAS_JS[d.getDay()] + ' ' + d.getDate() + ' de ' + MESESL[d.getMonth()]) : '';
+    var que = (m.banos > 1) ? ('los ' + m.banos + ' baños químicos') : 'el baño químico';
+    var conFactura = (m.monto || 0) > (m.neto || 0); // con factura el monto lleva IVA
+    // Saludo: si el nombre trae "(contacto: X)", saluda a X; si no, al nombre sin paréntesis.
+    var cli = String(m.cliente || '');
+    var mc = /\(\s*contacto:?\s*([^)]+)\)/i.exec(cli);
+    var nombre = (mc ? mc[1] : cli.replace(/\s*\([^)]*\)/g, '')).trim();
+    return 'Hola ' + nombre + ', le saluda Destape Rápido 🙌. Le dejamos instalado ' + que +
+      (cuando ? ' el ' + cuando : '') + '. Quedó pendiente el pago de ' + clp(m.monto || 0) +
+      (conFactura ? ' (con factura)' : '') + '. ¿Me confirma si lo hace por transferencia o efectivo? ¡Gracias!';
+  }
+  function aplicarCobroCompacto(card, id, entregado, cobrado, esServ) {
+    var aplica = entregado && !cobrado && !esServ;
+    card.classList.toggle('cobro-pendiente', aplica);
+    if (!aplica) {
+      card.classList.remove('cobro-abierta');
+      var viejo = card.querySelector('.cobro-mini');
+      if (viejo) { viejo.remove(); }
+      return;
+    }
+    var mini = card.querySelector('.cobro-mini');
+    if (!mini) {
+      mini = document.createElement('div');
+      mini.className = 'cobro-mini';
+      var gt = card.querySelector('.gestion-top');
+      if (gt) { gt.insertAdjacentElement('afterend', mini); } else { card.prepend(mini); }
+    }
+    var m = META[id] || {};
+    var f = fechaDe(id) || card.getAttribute('data-fecha') || '';
+    var d = dateDe(f), hoyD = dateDe(todayISO());
+    var dias = (d && hoyD) ? Math.round((hoyD - d) / 86400000) : null;
+    var hace = dias == null ? '' : (dias <= 0 ? 'hoy' : (dias === 1 ? 'hace 1 día' : 'hace ' + dias + ' días'));
+    var cuando = d ? (DIAS_JS_AB[d.getDay()] + ' ' + d.getDate() + ' ' + MESES[d.getMonth()]) : f;
+    var tel = m.tel || '';
+    var wa = tel ? ('whatsapp://send?phone=' + tel + '&text=' + encodeURIComponent(msgCobro(id))) : '';
+    var abierta = card.classList.contains('cobro-abierta');
+    mini.innerHTML =
+      '<div class="cobro-mini-row">' +
+        '<div class="cobro-mini-info">' +
+          '<span class="cobro-chip">💰 Falta cobrar</span> <b>' + escapeHtml(m.cliente || '—') + '</b> · <b class="cobro-monto">' + clp(m.monto || 0) + '</b>' +
+          '<div class="cobro-sub">Entregado el ' + escapeHtml(cuando) + (hace ? ' · ' + hace : '') + '</div>' +
+        '</div>' +
+        '<div class="cobro-mini-btns">' +
+          (wa ? '<a class="btn-cobrar" href="' + wa + '">' + WA_SVG + 'Cobrar</a>' : '') +
+          '<button type="button" class="btn-cobro-mas">' + (abierta ? 'Ver menos ▴' : 'Ver más ▾') + '</button>' +
+        '</div>' +
+      '</div>';
+  }
+  // El mini se re-renderiza en cada pintado: el botón "Ver más" va por delegación
+  // (un solo listener global) para no perder el click al refrescar el innerHTML.
+  document.addEventListener('click', function (ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest('.btn-cobro-mas') : null;
+    if (!b) { return; }
+    var cw = b.closest('.card-wrap');
+    if (!cw) { return; }
+    var abre = !cw.classList.contains('cobro-abierta');
+    cw.classList.toggle('cobro-abierta', abre);
+    b.textContent = abre ? 'Ver menos ▴' : 'Ver más ▾';
+  });
+
   function pintarTodo() { document.querySelectorAll('.card-wrap[data-id]').forEach(pintarCard); }
 
   // FLIP: ejecuta fn (que reordena las cards) y anima suavemente el reposicionamiento.
