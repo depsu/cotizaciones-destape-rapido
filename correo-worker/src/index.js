@@ -437,6 +437,13 @@ export default {
         condFinal += ` AND (','||COALESCE(c.etiquetas,'')||',') LIKE '%,'||?||',%'`;
         binds.push(etiqParam);
       }
+      // Filtro opcional por persona (?de=email): correos donde ese email es remitente O
+      // destinatario. Evita que los clientes (CRM del chatbot) paginen TODO para filtrar.
+      const deParam = (url.searchParams.get("de") || "").trim().toLowerCase();
+      if (deParam) {
+        condFinal += ` AND (lower(c.de) LIKE '%'||?||'%' OR lower(c.para) LIKE '%'||?||'%')`;
+        binds.push(deParam, deParam);
+      }
 
       const totalRow = await env.DB.prepare(
         `SELECT count(*) AS n FROM correos c WHERE ${condFinal}`
@@ -447,6 +454,7 @@ export default {
       const { results } = await env.DB.prepare(
         `SELECT c.id, c.de, c.para, c.asunto, c.dominio, c.estado, c.recibido_en, c.creado_en,
                 c.respondido_en, c.ajuste_pedido, c.confianza, c.leido, c.thread_id, c.etiquetas,
+                c.adjunto_nombre,
                 substr(COALESCE(c.respuesta_enviada, c.cuerpo_texto), 1, 200) AS snippet,
                 (SELECT count(*) FROM correos x WHERE x.thread_id = c.thread_id AND x.estado<>'papelera') AS hilo_n
          FROM correos c WHERE ${condFinal}

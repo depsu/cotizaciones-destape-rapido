@@ -564,6 +564,13 @@ ESTILOS_EXTRA = """
   .card-wrap.is-contactado > .card, .card-wrap.is-contactado > .gestion-top { border-color:#86EFAC; background:#F0FDF4; }
   .card-wrap.is-pendiente-reagendar > .card, .card-wrap.is-pendiente-reagendar > .gestion-top { border-color:#CBD5E1; background:#F1F5F9; }
   .card-wrap.oculto-anterior { display:none; }
+  /* Entrega NUEVA (este dispositivo no la había visto): destaque suave azulado.
+     El chip "✨ Nuevo" flota sobre la esquina; la memoria vive en localStorage. */
+  .card-wrap.card-nueva { position:relative; border-radius:14px;
+    box-shadow:0 0 0 2px #93C5FD, 0 4px 16px rgba(59,130,246,.28); }
+  .card-wrap.card-nueva::before { content:"✨ Nuevo"; position:absolute; top:-9px; right:12px;
+    background:#3B82F6; color:#fff; font-size:11px; font-weight:800; letter-spacing:.2px;
+    padding:2px 10px; border-radius:999px; box-shadow:0 1px 4px rgba(30,64,175,.35); z-index:2; }
   /* "Falta actualizar la fecha" (tras avisar, mientras no se mueve la fecha) */
   .btn-contacto.falta-fecha, .btn-contacto.falta-fecha:disabled { background:#FEF3C7; color:#92600A; border:1px solid #FCD34D; }
   /* Brillo del reagendar cuando hay que reposicionar (la primera vez) */
@@ -1015,17 +1022,12 @@ SCRIPT_ESTADO = r"""<script>
     });
     // Orden general. UNA sección por día (getOrCreateSection reutiliza la sección de
     // esa fecha, así que cada data-fecha aparece una sola vez, con sus cards juntas).
-    // Con cards de Supabase (traen data-informado) los días van por FECHA DESCENDENTE
-    // (día más nuevo arriba) y, dentro de cada día, las cards por informado_at DESC
-    // (lo último informado primero). Sin ese dato (horneadas de respaldo) se conserva
-    // el orden histórico por fecha ascendente.
+    // Días SIEMPRE en orden CRONOLÓGICO (atrasado → hoy → futuro): es el orden en que
+    // el repartidor trabaja. Dentro de cada día, lo más recién informado primero
+    // (data-informado DESC, si viene de Supabase): lo nuevo se ve altiro.
     var usaInformado = !!cont.querySelector('.card-wrap[data-informado]');
     var secs = Array.prototype.slice.call(cont.querySelectorAll('section[data-fecha]'));
-    if (usaInformado) {
-      secs.sort(function (a, b) { return b.getAttribute('data-fecha').localeCompare(a.getAttribute('data-fecha')); });
-    } else {
-      secs.sort(function (a, b) { return a.getAttribute('data-fecha').localeCompare(b.getAttribute('data-fecha')); });
-    }
+    secs.sort(function (a, b) { return a.getAttribute('data-fecha').localeCompare(b.getAttribute('data-fecha')); });
     secs.forEach(function (s) {
       var n = s.querySelectorAll('.card-wrap[data-id]').length;
       if (!n) { s.remove(); return; }
@@ -1811,16 +1813,95 @@ SCRIPT_ESTADO = r"""<script>
       monto: monto || 0
     };
   }
-  // Reemplaza las cards horneadas por las de Supabase (ya ordenadas por el fetch).
-  function aplicarEntregas(rows) {
-    // 1) META desde el `data` crudo → comisión, progreso y ganado se recomputan solos.
-    var nuevo = {};
+  // Geo en VIVO (puerto JS de derivar_geo + maps_query del generador): deduce
+  // comuna/zona/punto desde el `data` crudo de Supabase. Sin esto, una entrega
+  // informada DESPUÉS de hornear el HTML no está en APP.geo y el "Reparto de hoy"
+  // la mostraba como "Sin comuna" (y desactualizada).
+  var CGEO = APP.comunas_geo || {};   // comuna normalizada -> {label, lat, lng, zona}
+  var CGEO_ORD = Object.keys(CGEO).sort(function (a, b) { return b.length - a.length; });
+  var COORD_RE_JS = /@?(-?\d{1,2}\.\d{3,}),\s*(-?\d{1,3}\.\d{3,})/;
+  function normTxtJS(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  }
+  function matchComunaJS(t) {
+    for (var i = 0; i < CGEO_ORD.length; i++) { if (t.indexOf(CGEO_ORD[i]) !== -1) { return CGEO_ORD[i]; } }
+    return '';
+  }
+  function mapsQueryJS(e) {
+    var coords = String(e.coordenadas || '').trim();
+    if (coords) { return coords; }
+    var d = String(e.direccion || '');
+    ['http', 'Waze', 'Ubicación', 'ubicación'].forEach(function (marca) {
+      var i = d.indexOf(marca); if (i !== -1) { d = d.slice(0, i); }
+    });
+    d = d.replace(/\([^)]*\)/g, ' ').replace(/[()]/g, ' ');
+    if (d.indexOf('—') !== -1) {
+      var partes = d.split('—'); var der = partes.slice(1).join('—');
+      if (der.indexOf(',') !== -1 || /\d/.test(der)) { d = der; }
+    }
+    return d.replace(/\s+/g, ' ').replace(/\s+,/g, ',').replace(/^[\s.,;—-]+|[\s.,;—-]+$/g, '');
+  }
+  function geoDeData(e) {
+    e = e || {};
+    var dirN = normTxtJS(e.direccion);
+    var key = '';
+    if (e.comuna) { key = matchComunaJS(normTxtJS(e.comuna)); } // campo explícito primero
+    if (!key) {
+      // Igual que en Python: segmentos finales antes de "Región Metropolitana".
+      var cabeza = dirN.split('region metropolitana')[0];
+      var segs = cabeza.split(',').map(function (s) { return s.trim(); }).filter(Boolean).slice(-3).reverse();
+      for (var i = 0; i < segs.length && !key; i++) { key = matchComunaJS(segs[i]); }
+      if (!key) { key = matchComunaJS(dirN); }
+    }
+    var c = key ? CGEO[key] : null;
+    var lat = null, lng = null, aprox = true;
+    var m = COORD_RE_JS.exec(String(e.coordenadas || '')) || COORD_RE_JS.exec(String(e.direccion || ''));
+    if (m) { lat = parseFloat(m[1]); lng = parseFloat(m[2]); aprox = false; }
+    else if (c) { lat = c.lat; lng = c.lng; }
+    return { comuna: c ? c.label : 'Sin comuna', zona: c ? c.zona : 'otra', lat: lat, lng: lng,
+             aprox: aprox, cliente: e.cliente || '', mapsq: mapsQueryJS(e) };
+  }
+
+  // "✨ Nuevo": destaca lo que ESTE dispositivo no había visto (memoria en
+  // localStorage, por persona: no choca con otros que miren el panel a la vez).
+  var VISTAS_KEY = 'entregas_vistas_v1';
+  function marcarNuevas(rows) {
+    var prev = null;
+    try { prev = JSON.parse(localStorage.getItem(VISTAS_KEY) || 'null'); } catch (e) { prev = null; }
+    var conocidas = {};
+    (Array.isArray(prev) ? prev : []).forEach(function (id) { conocidas[id] = 1; });
+    var todas = [];
     rows.forEach(function (row) {
       var e = (row && row.data) || {};
       var id = e.id || (row && row.id);
-      if (id) { nuevo[id] = metaDeData(e); }
+      if (!id) { return; }
+      todas.push(id);
+      // Primera visita (sin memoria previa): no marcar nada, solo aprender lo actual.
+      if (Array.isArray(prev) && !conocidas[id]) {
+        var cw = document.querySelector('.card-wrap[data-id="' + id + '"]');
+        if (cw) { cw.classList.add('card-nueva'); }
+      }
+    });
+    try { localStorage.setItem(VISTAS_KEY, JSON.stringify(todas)); } catch (e) { /* modo privado: sin memoria */ }
+  }
+
+  // Reemplaza las cards horneadas por las de Supabase (ya ordenadas por el fetch).
+  function aplicarEntregas(rows) {
+    // 1) META y GEO desde el `data` crudo → comisión, progreso, ganado y el
+    //    "Reparto de hoy" se recomputan solos aunque el HTML horneado esté viejo.
+    //    El geo horneado queda solo de respaldo si la deducción en vivo no da comuna.
+    var nuevo = {}, geoNuevo = {};
+    rows.forEach(function (row) {
+      var e = (row && row.data) || {};
+      var id = e.id || (row && row.id);
+      if (!id) { return; }
+      nuevo[id] = metaDeData(e);
+      var g = geoDeData(e);
+      var baked = (APP.geo || {})[id];
+      geoNuevo[id] = (g.comuna === 'Sin comuna' && baked && baked.comuna && baked.comuna !== 'Sin comuna') ? baked : g;
     });
     META = nuevo;
+    GEO = geoNuevo;
     // 2) Inyecta las tarjetas pre-renderizadas, en el orden recibido (informado DESC).
     var cont = document.querySelector('.vista[data-vista="entregas"]');
     if (!cont) { return; }
@@ -1839,6 +1920,8 @@ SCRIPT_ESTADO = r"""<script>
       var f = cw.getAttribute('data-fecha') || (row.fecha || '');
       getOrCreateSection(cont, f).appendChild(cw);
     });
+    // 3) Destaca las entregas que este dispositivo aún no había visto.
+    marcarNuevas(rows);
     // Re-engancha los listeners sobre las cards inyectadas (guardado por card.__wired
     // y wire.__globals: no duplica listeners de cards ni globales ya enganchados).
     wire();
@@ -2374,6 +2457,12 @@ def construir_html(data: dict) -> str:
                     for e in entregas},
             "zonas": {k: {"label": v[0], "emoji": v[1], "orden": v[2]}
                       for k, v in ZONAS_INFO.items()},
+            # Tabla comuna→geo para que el JS deduzca la comuna de entregas que
+            # llegan VIVAS desde Supabase (ids que no existían al hornear el HTML;
+            # sin esto caían a "Sin comuna" en el Reparto de hoy).
+            "comunas_geo": {k: {"label": COMUNA_LABEL.get(k, k.title()),
+                                "lat": v[0], "lng": v[1], "zona": v[2]}
+                            for k, v in COMUNAS_GEO.items()},
         },
         ensure_ascii=False,
     ).replace("</", "<\\/")  # evita cerrar el <script> con datos
