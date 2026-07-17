@@ -100,8 +100,13 @@ def construir_resumen(e: dict) -> str:
     lineas.append("")
     lineas.append(f"👤 Cliente: {e.get('cliente', '—')}")
     lineas.append(f"📍 Dirección: {e.get('direccion', '—')}")
+    if e.get("maps_url"):
+        # Pin exacto que mandó el cliente (plus de la dirección; clave en condominios).
+        lineas.append(f"🗺️ Ubicación exacta: {e['maps_url']}")
     if e.get("telefono"):
-        lineas.append(f"📱 Teléfono cliente: {e['telefono']}")
+        # Con "+" el número queda clicable en WhatsApp (llamar / abrir chat directo).
+        tel = solo_digitos(e["telefono"])
+        lineas.append(f"📱 Teléfono cliente: {'+' + tel if tel else e['telefono']}")
     if e.get("servicio"):
         lineas.append("")
         lineas.append(f"{icono_banos(cantidad_banos(e))} Servicio: {e['servicio']}")
@@ -111,6 +116,9 @@ def construir_resumen(e: dict) -> str:
     if pago.get("monto") is not None:
         lineas.append("")
         lineas.append(f"💵 COBRAR AL CLIENTE: {clp(pago['monto'])}")
+        # Desglose breve de cómo se llegó al monto (baño + extras + flete + IVA).
+        if pago.get("desglose"):
+            lineas.append(f"   ({pago['desglose']})")
         if pago.get("nota"):
             lineas.append(f"   ({pago['nota']})")
     factura = e.get("factura") or {}

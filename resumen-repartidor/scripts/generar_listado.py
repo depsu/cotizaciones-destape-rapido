@@ -330,10 +330,12 @@ def tarjeta(e: dict) -> str:
     monto_chip = f'<span class="monto">💵 {esc(clp(monto))}</span>' if monto is not None else ""
     cobro_html = ""
     if monto is not None:
+        # Desglose breve de cómo se llega al monto (baño + extras + IVA), si viene.
+        desglose_pago = f'<span class="cobro-nota">{esc(pago.get("desglose"))}</span>' if pago.get("desglose") else ""
         nota_pago = f'<span class="cobro-nota">{esc(pago.get("nota"))}</span>' if pago.get("nota") else ""
         cobro_html = (
             f'<div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span>'
-            f'<span class="cobro-monto">{esc(clp(monto))}</span>{nota_pago}</div>'
+            f'<span class="cobro-monto">{esc(clp(monto))}</span>{desglose_pago}{nota_pago}</div>'
         )
 
     # Aseo: lo indicado o el valor por defecto.
@@ -365,8 +367,10 @@ def tarjeta(e: dict) -> str:
         botones.append(boton(f"whatsapp://send?phone={num}", f"{WA_ICON}&nbsp;WhatsApp", "#25D366", target_blank=False))
         botones.append(boton(f"tel:{esc(telefono)}", "📞 Llamar", "#475569", target_blank=False))
     coordenadas = e.get("coordenadas", "")
-    if direccion or coordenadas:
-        maps = maps_href(direccion, coordenadas)
+    # El pin exacto que mandó el cliente (maps_url) manda sobre la búsqueda por texto.
+    maps_url = (e.get("maps_url") or "").strip()
+    if direccion or coordenadas or maps_url:
+        maps = maps_url or maps_href(direccion, coordenadas)
         botones.append(boton(maps, "🗺️ Cómo llegar", "#1F5AA8"))
     botones_html = f'<div class="acciones">{"".join(botones)}</div>'
 
@@ -375,8 +379,8 @@ def tarjeta(e: dict) -> str:
     if num:
         accesos.append(f'<a class="acc-link acc-wa" href="whatsapp://send?phone={num}">{WA_ICON}WhatsApp</a>')
         accesos.append(f'<a class="acc-link acc-call" href="tel:{esc(telefono)}">📞 Llamar</a>')
-    if direccion or coordenadas:
-        maps_q = maps_href(direccion, coordenadas)
+    if direccion or coordenadas or maps_url:
+        maps_q = maps_url or maps_href(direccion, coordenadas)
         accesos.append(f'<a class="acc-link acc-map" href="{esc(maps_q)}">🗺️ Llegar 🧭</a>')
     accesos.append('<button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button>')
     accesos_html = f'<div class="contacto-accesos" hidden>{"".join(accesos)}</div>'
@@ -410,7 +414,7 @@ def tarjeta(e: dict) -> str:
           {f'<div class="bloque"><span class="etq">Servicio</span><p>{banos_icono} {servicio}</p></div>' if servicio else ""}
           <div class="bloque"><span class="etq">Aseo</span><p>{aseo}</p></div>
           {limpiezas_bloque}
-          {f'<div class="bloque"><span class="etq">Teléfono</span><p>{esc(telefono)}</p></div>' if telefono else ""}
+          {f'<div class="bloque"><span class="etq">Teléfono</span><p>{esc("+" + num if num else telefono)}</p></div>' if telefono else ""}
           {factura_html}
           {horario_html}
           {notas_html}
