@@ -173,8 +173,11 @@
   .card-wrap > .card { margin-bottom:0; border-top:none; border-radius:0 0 14px 14px; }
   .gt-fecha { display:flex; align-items:center; gap:5px; font-size:13px; color:var(--gris); font-weight:600; }
   .gt-rg-txt { display:none; }
-  .fecha-input { font-family:inherit; font-size:14px; padding:6px 8px; border:1px solid var(--linea);
-    border-radius:8px; background:#fff; color:var(--tinta); min-height:36px; }
+  /* Sin ícono 📅 y con el input más angosto: así "Entregado" y "Cobrado" caben en la
+     MISMA línea en el celular (antes se bajaban). El date input sigue siendo tocable. */
+  .gt-ico { display:none; }
+  .fecha-input { font-family:inherit; font-size:13px; padding:6px 5px; border:1px solid var(--linea);
+    border-radius:8px; background:#fff; color:var(--tinta); min-height:36px; width:114px; box-sizing:border-box; }
   .gt-estados { display:flex; gap:6px; margin-left:auto; }
   .est-btn { padding:8px 12px; border:1px solid var(--linea); background:#fff; color:var(--gris);
     font-size:13px; font-weight:700; border-radius:9px; cursor:pointer; font-family:inherit; min-height:38px; }
