@@ -235,7 +235,11 @@
   .cobro-mini-info { flex:1 1 auto; min-width:0; font-size:14px; }
   .cobro-chip { background:#DBEAFE; color:#1D4ED8; font-weight:800; font-size:11.5px;
     border-radius:999px; padding:2px 9px; white-space:nowrap; }
-  .cobro-chip-top { align-self:center; }
+  /* Chip centrado ARRIBA, montado sobre el borde. La card gana margen superior para
+     que el chip no se encime con la card anterior (aire entre cards). */
+  .card-wrap.cobro-pendiente { position:relative; margin-top:18px; }
+  .cobro-chip-top { position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+    z-index:2; border:1.5px solid #93C5FD; box-shadow:0 1px 4px rgba(30,64,175,.18); }
   .cobro-monto { color:#166534; }
   .cobro-sub { margin-top:3px; font-size:12.5px; color:var(--gris); font-weight:600; }
   /* Botones a la DERECHA, apilados y del MISMO tamaño. */
@@ -249,7 +253,7 @@
     color:var(--azul); font-size:13px; }
   /* Entrega NUEVA (este dispositivo no la había visto): destaque suave azulado.
      El chip "✨ Nuevo" flota sobre la esquina; la memoria vive en localStorage. */
-  .card-wrap.card-nueva { position:relative; border-radius:14px;
+  .card-wrap.card-nueva { position:relative; margin-top:18px; border-radius:14px;
     box-shadow:0 0 0 2px #93C5FD, 0 4px 16px rgba(59,130,246,.28); }
   .card-wrap.card-nueva::before { content:"✨ Nuevo"; position:absolute; top:-9px; right:12px;
     background:#3B82F6; color:#fff; font-size:11px; font-weight:800; letter-spacing:.2px;
@@ -1987,8 +1991,8 @@
   function aplicarCobroCompacto(card, id, entregado, cobrado, esServ) {
     var aplica = entregado && !cobrado && !esServ;
     card.classList.toggle('cobro-pendiente', aplica);
-    // Chip "💰 Falta cobrar" en la franja de arriba, pegado a la izquierda del
-    // botón Entregado (pedido de Alejandro: se ve el estado sin leer el cuerpo).
+    // Chip "💰 Falta cobrar" centrado ARRIBA, montado sobre el borde de la card
+    // (pedido de Alejandro): se ve el estado de un vistazo sin leer el cuerpo.
     var chipTop = card.querySelector('.cobro-chip-top');
     if (!aplica) {
       card.classList.remove('cobro-abierta');
@@ -1998,13 +2002,10 @@
       return;
     }
     if (!chipTop) {
-      var gtEst = card.querySelector('.gt-estados');
-      if (gtEst) {
-        chipTop = document.createElement('span');
-        chipTop.className = 'cobro-chip cobro-chip-top';
-        chipTop.textContent = '💰 Falta cobrar';
-        gtEst.insertAdjacentElement('afterbegin', chipTop);
-      }
+      chipTop = document.createElement('span');
+      chipTop.className = 'cobro-chip cobro-chip-top';
+      chipTop.textContent = '💰 Falta cobrar';
+      card.prepend(chipTop);
     }
     var mini = card.querySelector('.cobro-mini');
     if (!mini) {
