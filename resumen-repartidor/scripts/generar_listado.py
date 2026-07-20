@@ -472,6 +472,9 @@ ESTILOS_EXTRA = """
   /* Recomendación de reparto de hoy */
   .reco { background:#fff; border:1px solid var(--linea); border-left:4px solid var(--azul);
     border-radius:12px; padding:12px 14px; margin:4px 0 14px; box-shadow:0 1px 2px rgba(15,23,42,.05); }
+  /* En "Ver completadas" el reparto de hoy NO va: ahí se mira el historial, y una ruta
+     con paradas pendientes en medio confunde (parece que quedan entregas por hacer). */
+  body.modo-completadas .reco { display:none !important; }
   .reco-head { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
   .reco-head b { font-size:15px; color:var(--tinta); }
   .reco-head .reco-sub { font-size:12px; color:var(--gris); }
@@ -1151,12 +1154,15 @@ SCRIPT_ESTADO = r"""<script>
     });
     // Orden general. UNA sección por día (getOrCreateSection reutiliza la sección de
     // esa fecha, así que cada data-fecha aparece una sola vez, con sus cards juntas).
-    // Días SIEMPRE en orden CRONOLÓGICO (atrasado → hoy → futuro): es el orden en que
-    // el repartidor trabaja. Dentro de cada día, lo más recién informado primero
-    // (data-informado DESC, si viene de Supabase): lo nuevo se ve altiro.
+    // Días en orden CRONOLÓGICO (atrasado → hoy → futuro): es el orden en que el
+    // repartidor trabaja. EXCEPCIÓN: en "Ver completadas" es un historial, no una
+    // ruta — ahí manda lo más RECIENTE arriba, para no scrollear meses hasta lo de hoy.
+    // Dentro de cada día, lo más recién informado primero (data-informado DESC, si
+    // viene de Supabase): lo nuevo se ve altiro.
     var usaInformado = !!cont.querySelector('.card-wrap[data-informado]');
     var secs = Array.prototype.slice.call(cont.querySelectorAll('section[data-fecha]'));
-    secs.sort(function (a, b) { return a.getAttribute('data-fecha').localeCompare(b.getAttribute('data-fecha')); });
+    var dir = modoCompletadas ? -1 : 1;
+    secs.sort(function (a, b) { return dir * a.getAttribute('data-fecha').localeCompare(b.getAttribute('data-fecha')); });
     secs.forEach(function (s) {
       var n = s.querySelectorAll('.card-wrap[data-id]').length;
       if (!n) { s.remove(); return; }
@@ -2191,6 +2197,7 @@ SCRIPT_ESTADO = r"""<script>
         modoCompletadas = !modoCompletadas;
         aplicarAnteriores();
         aplicarTareas();
+        reubicarCards(); // el historial se ordena al revés (lo más reciente arriba)
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     }
