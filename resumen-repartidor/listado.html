@@ -221,6 +221,19 @@
   header .ganado .proy { font-weight:600; opacity:.75; font-size:12px; }
   .pago-adelantado-txt { margin-top:8px; font-size:13px; font-weight:800; color:#B45309;
     background:#FEF3C7; border:1px solid #FCD34D; border-radius:9px; padding:8px 10px; text-align:center; }
+  /* Pago por adelantado: en la card CERRADA el chip del monto se reemplaza por
+     "YA PAGÓ" (el JS oculta .monto y muestra .monto-pagado). Dejar la cifra a la
+     vista invita a cobrar de nuevo, que es justo lo que hay que evitar. */
+  .monto-pagado { font-weight:800; color:#166534; white-space:nowrap;
+    background:#DCFCE7; border:1px solid #BBF7D0; border-radius:8px; padding:2px 8px; }
+  /* El botón vive dentro del detalle ("Ver toda la información"), no en la card
+     cerrada: marcar un pago no debe estar a un toque de distancia por accidente. */
+  .btn-pago-adelantado { flex:1 1 100%; margin-top:10px; padding:11px; border-radius:9px;
+    border:1px dashed #86EFAC; background:#fff; color:#166534; font-family:inherit;
+    font-size:13.5px; font-weight:700; cursor:pointer; min-height:44px; }
+  .btn-pago-adelantado:active { filter:brightness(.97); }
+  .btn-pago-adelantado.activo { background:#166534; border:1px solid #166534; color:#fff; }
+  .cobro-monto.pagado { text-decoration:line-through; opacity:.55; }
   .card-wrap.is-reagendado > .card, .card-wrap.is-reagendado > .gestion-top { border-color:#F87171; background:#FEF2F2; }
   .card-wrap.is-reagendado > .gestion-top { border-bottom:2px solid #FECACA; }
   .card-wrap.is-contactado > .card, .card-wrap.is-contactado > .gestion-top { border-color:#86EFAC; background:#F0FDF4; }
@@ -443,7 +456,7 @@
 <body>
   <header>
     <h1>🚚 Entregas — Destape Rápido</h1>
-    <div class="sub"><span id="pend-count">30</span> pendiente(s) · Actualizado 20/07/2026</div>
+    <div class="sub"><span id="pend-count">30</span> pendiente(s) · Actualizado 30/07/2026</div>
     <div class="sub ganado" id="ganado-total"></div>
   </header>
   <main>
@@ -459,7 +472,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Chapultepec 6047</b>, Vitacura, Región Metropolitana</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -469,8 +482,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56982291198"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 8229 1198">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Chapultepec%206047%2C%20Vitacura%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (descuento de la semana). Se emite factura. Cobrar al entregar.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (descuento de la semana). Se emite factura. Cobrar al entregar.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (obra)</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">vie 3 jul</span><span class="lp-etq">Aseo 1<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">lun 13 jul</span><span class="lp-etq">Aseo 2<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">jue 23 jul</span><span class="lp-etq">Aseo 3<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56982291198</p></div>
@@ -496,7 +510,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · 1 semana</span>
             <span class="dir">📍 <b>Condominio Polo de Manquehue 2</b>, Chicureo, Colina, Región Metropolitana</span>
-            <span class="monto">💵 $119.000</span>
+            <span class="monto">💵 $119.000</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -506,8 +520,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56953872435"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5387 2435">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Condominio%20Polo%20de%20Manquehue%202%2C%20Chicureo%2C%20Colina%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$119.000</span><span class="cobro-nota">$100.000 neto + IVA (incluye traslado; limpieza al finalizar el servicio). Se emite factura. Cobrar al entregar.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$119.000</span><span class="cobro-nota">$100.000 neto + IVA (incluye traslado; limpieza al finalizar el servicio). Se emite factura. Cobrar al entregar.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 1 semana</p></div>
+          <div class="bloque"><span class="etq">⏳ Tiempo de uso</span><p>retiro el Martes 30 de junio</p></div>
           <div class="bloque"><span class="etq">Aseo</span><p>Sin aseo periódico (arriendo corto). Limpieza al finalizar el servicio, al retirar. Aseo extra opcional: $40.000 c/u.</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56953872435</p></div>
@@ -533,7 +548,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Pasaje Juan Moya 368</b>, Ñuñoa, Región Metropolitana</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -543,8 +558,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56950831752"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5083 1752">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Pasaje%20Juan%20Moya%20368%2C%20%C3%91u%C3%B1oa%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400 al mes. Factura a Grupo B SpA. Ya entregado y cobrado.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400 al mes. Factura a Grupo B SpA. Ya entregado y cobrado.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (2 meses)</p></div>
+          <div class="bloque"><span class="etq">⏳ Tiempo de uso</span><p>retiro el Sábado 22 de agosto</p></div>
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">vie 3 jul</span><span class="lp-etq">Aseo 1<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">lun 13 jul</span><span class="lp-etq">Aseo 2<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">jue 23 jul</span><span class="lp-etq">Aseo 3<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56950831752</p></div>
@@ -570,7 +586,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · 2 semanas</span>
             <span class="dir">📍 <b>Curicó 517</b>, Santiago Centro, Región Metropolitana</span>
-            <span class="monto">💵 $154.700</span>
+            <span class="monto">💵 $154.700</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -580,8 +596,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56933800237"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3380 0237">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$154.700</span><span class="cobro-nota">PAGADO el baño ($130.000 neto + IVA = $154.700). Pendiente aparte: aseo extra / plan de mantención (por definir y cobrar).</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$154.700</span><span class="cobro-nota">PAGADO el baño ($130.000 neto + IVA = $154.700). Pendiente aparte: aseo extra / plan de mantención (por definir y cobrar).</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
+          <div class="bloque"><span class="etq">⏳ Tiempo de uso</span><p>retiro el Martes 7 de julio</p></div>
           <div class="bloque"><span class="etq">Aseo</span><p>Incluye aseo gratis semanal (1 por semana = 2 en las 2 semanas). El cliente quiere reforzar a 2 limpiezas/semana + recarga de agua → ese refuerzo es el aseo extra pendiente de cobrar.</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56933800237</p></div>
@@ -607,7 +624,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>El Rincón 12382</b>, casa 5, Lo Barnechea, Región Metropolitana</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -617,8 +634,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56988051486"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 8805 1486">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=El%20Rinc%C3%B3n%2012382%2C%20casa%205%2C%20Lo%20Barnechea%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (oferta de la semana; incluye traslado ida y vuelta y aseo semanal). Se emite factura. Cobrar al entregar.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA (oferta de la semana; incluye traslado ida y vuelta y aseo semanal). Se emite factura. Cobrar al entregar.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (obra)</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">vie 3 jul</span><span class="lp-etq">Aseo 1<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">lun 13 jul</span><span class="lp-etq">Aseo 2<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">jue 23 jul</span><span class="lp-etq">Aseo 3<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56988051486</p></div>
@@ -644,7 +662,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · 2 semanas</span>
             <span class="dir">📍 <b>Loreley 190</b>, La Reina, Región Metropolitana</span>
-            <span class="monto">💵 $130.000</span>
+            <span class="monto">💵 $130.000</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -654,8 +672,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56942107260"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 4210 7260">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Loreley%20190%2C%20La%20Reina%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 neto por las 2 semanas. Sin factura. Cobrar al entregar.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 neto por las 2 semanas. Sin factura. Cobrar al entregar.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
+          <div class="bloque"><span class="etq">⏳ Tiempo de uso</span><p>retiro el Miércoles 8 de julio</p></div>
           <div class="bloque"><span class="etq">Aseo</span><p>Incluye 1 limpieza.</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">sáb 4 jul</span><span class="lp-etq">Aseo incluido<span class="lp-nota">1 aseo durante el período (incluido en el arriendo).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56942107260</p></div>
@@ -681,7 +700,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Planta de Tratamiento de Aguas Servidas Aguas Andinas</b>, Camino El Trebal 2095, Padre Hurtado, Región Metropolitana</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -691,8 +710,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56994504902"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9450 4902">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Planta%20de%20Tratamiento%20de%20Aguas%20Servidas%20Aguas%20Andinas%2C%20Camino%20El%20Trebal%202095%2C%20Padre%20Hurtado%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA. Se emite factura a HERCHA.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA. Se emite factura a HERCHA.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">dom 5 jul</span><span class="lp-etq">Aseo 1<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mié 15 jul</span><span class="lp-etq">Aseo 2<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">sáb 25 jul</span><span class="lp-etq">Aseo 3<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56994504902</p></div>
@@ -718,7 +738,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · 2 semanas</span>
             <span class="dir">📍 <b>Soria 768</b>, Las Condes, Región Metropolitana</span>
-            <span class="monto">💵 $130.000</span>
+            <span class="monto">💵 $130.000</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -728,8 +748,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56959114408"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5911 4408">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Soria%20768%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 total. SIN factura (boleta), sin IVA. Paga al entregar: transferencia o efectivo.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$130.000</span><span class="cobro-nota">$130.000 total. SIN factura (boleta), sin IVA. Paga al entregar: transferencia o efectivo.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 semanas</p></div>
+          <div class="bloque"><span class="etq">⏳ Tiempo de uso</span><p>retiro el Jueves 9 de julio</p></div>
           <div class="bloque"><span class="etq">Aseo</span><p>Incluye 1 aseo durante el período. Aseo extra opcional: $40.000 c/u.</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">dom 5 jul</span><span class="lp-etq">Aseo incluido<span class="lp-nota">1 aseo durante el período (incluido en el arriendo).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56959114408</p></div>
@@ -755,7 +776,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Av. Chicureo 2300</b>, Chicureo, Región Metropolitana (Local Astop Aramco)</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -765,8 +786,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56999189274"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9918 9274">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Chicureo%202300%2C%20Chicureo%2C%20Regi%C3%B3n%20Metropolitana%20%28Local%20Astop%20Aramco%29">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400. Se emite factura a Stock Diseño Ltda. Cobrar al entregar.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400. Se emite factura a Stock Diseño Ltda. Cobrar al entregar.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">dom 5 jul</span><span class="lp-etq">Aseo 1<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mié 15 jul</span><span class="lp-etq">Aseo 2<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">sáb 25 jul</span><span class="lp-etq">Aseo 3<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56999189274</p></div>
@@ -792,7 +814,7 @@
           <div class="resumen-sub">
             <span class="banos">🧽 Limpieza extra</span>
             <span class="dir">📍 <b>Curicó 517</b>, Santiago Centro, Región Metropolitana</span>
-            <span class="monto">💵 $95.200</span>
+            <span class="monto">💵 $95.200</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -802,8 +824,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56933800237"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3380 0237">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$95.200</span><span class="cobro-nota">Servicio adicional: 2 servicios de mantención (limpieza + recarga de agua, todo incluido) a $40.000 c/u = $80.000 neto + IVA = $95.200. Se factura a MAIR. (El arriendo del baño ya fue pagado por separado).</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$95.200</span><span class="cobro-nota">Servicio adicional: 2 servicios de mantención (limpieza + recarga de agua, todo incluido) a $40.000 c/u = $80.000 neto + IVA = $95.200. Se factura a MAIR. (El arriendo del baño ya fue pagado por separado).</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 Plan de mantención reforzada (2 limpiezas extra + recarga de agua) y retiro del baño ya instalado</p></div>
+          <div class="bloque"><span class="etq">⏳ Tiempo de uso</span><p>retiro el Martes 7 de julio</p></div>
           <div class="bloque"><span class="etq">Aseo</span><p>Plan de mantención reforzada (ver detalle en Limpiezas). Retiro: martes 7 jul (sin limpieza).</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">vie 26 jun</span><span class="lp-etq">Limpieza 1<span class="lp-nota">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mar 30 jun</span><span class="lp-etq">Limpieza 2<span class="lp-nota">Incluye recarga de agua del lavamanos.</span></span><span class="lp-badge" style="color:#B45309;background:#FEF3C7">Extra</span><span class="lp-valor">$40.000</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">vie 3 jul</span><span class="lp-etq">Limpieza 3<span class="lp-nota">Aseo incluido en el arriendo.</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul><div class="lp-total">2 limpieza(s) extra · <b>$80.000 neto</b></div></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56933800237</p></div>
@@ -829,7 +852,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Campanario 1749</b>, Conchalí, Región Metropolitana</span>
-            <span class="monto">💵 $170.000</span>
+            <span class="monto">💵 $170.000</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -839,8 +862,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56933003076"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3300 3076">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Campanario%201749%2C%20Conchal%C3%AD%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$170.000</span><span class="cobro-nota">$170.000 todo incluido (oferta mensual). SIN factura, se emite BOLETA — no lleva IVA adicional. Cobrar al entregar.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$170.000</span><span class="cobro-nota">$170.000 todo incluido (oferta mensual). SIN factura, se emite BOLETA — no lleva IVA adicional. Cobrar al entregar.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">lun 6 jul</span><span class="lp-etq">Aseo 1<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">jue 16 jul</span><span class="lp-etq">Aseo 2<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">dom 26 jul</span><span class="lp-etq">Aseo 3<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56933003076</p></div>
@@ -866,7 +890,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>San Isidro 1948</b>, Santiago, Región Metropolitana</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -876,8 +900,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56994542997"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9454 2997">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=San%20Isidro%201948%2C%20Santiago%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400 al mes, todo incluido. Se emite FACTURA. Arriendo 2 meses (prolongable a 3). Cobrar el primer mes ($190.400) al entregar.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400 al mes, todo incluido. Se emite FACTURA. Arriendo 2 meses (prolongable a 3). Cobrar el primer mes ($190.400) al entregar.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">lun 6 jul</span><span class="lp-etq">Aseo 1<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">jue 16 jul</span><span class="lp-etq">Aseo 2<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">dom 26 jul</span><span class="lp-etq">Aseo 3<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56994542997</p></div>
@@ -903,7 +928,7 @@
           <div class="resumen-sub">
             <span class="banos">♻️ Recambio</span>
             <span class="dir">📍 <b>Curicó 517</b>, Santiago Centro, Región Metropolitana</span>
-            <span class="monto">💵 $47.600</span>
+            <span class="monto">💵 $47.600</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -913,8 +938,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56933800237"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3380 0237">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Curic%C3%B3%20517%2C%20Santiago%20Centro%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$47.600</span><span class="cobro-nota">$40.000 neto + IVA = $47.600. Recambio por filtración de líquidos. Se factura a MAIR.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$47.600</span><span class="cobro-nota">$40.000 neto + IVA = $47.600. Recambio por filtración de líquidos. Se factura a MAIR.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 Recambio de baño químico (la unidad tenía filtración de líquidos)</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56933800237</p></div>
@@ -940,7 +966,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Camino El Alba</b>, Las Condes, Región Metropolitana (obra)</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -950,8 +976,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56978068907"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 7806 8907">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Camino%20El%20Alba%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana%20%28obra%29">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">Mensual. Cobrar al entregar. $160.000 neto + IVA (lleva factura).</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">Mensual. Cobrar al entregar. $160.000 neto + IVA (lleva factura).</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (hasta 30 días)</p></div>
+          <div class="bloque"><span class="etq">⏳ Tiempo de uso</span><p>retiro el Jueves 30 de julio</p></div>
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">vie 10 jul</span><span class="lp-etq">Aseo 1<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">lun 20 jul</span><span class="lp-etq">Aseo 2<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56978068907</p></div>
@@ -977,7 +1004,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Buin</b>, Región Metropolitana</span>
-            <span class="monto">💵 $238.000</span>
+            <span class="monto">💵 $238.000</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -987,8 +1014,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56930291827"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 3029 1827">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Buin%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$238.000</span><span class="cobro-nota">$200.000 neto + IVA = $238.000 mensual. Con factura. Cobrar al entregar.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$238.000</span><span class="cobro-nota">$200.000 neto + IVA = $238.000 mensual. Con factura. Cobrar al entregar.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual con limpieza semanal</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56930291827</p></div>
@@ -1014,7 +1042,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Fundo Chena — Av. Lonquén N°16450</b>, San Bernardo, Región Metropolitana</span>
-            <span class="monto">💵 $178.500</span>
+            <span class="monto">💵 $178.500</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1024,8 +1052,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56987556268"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 8755 6268">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Fundo%20Chena%20%E2%80%94%20Av.%20Lonqu%C3%A9n%20N%C2%B016450%2C%20San%20Bernardo%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$178.500</span><span class="cobro-nota">$150.000 neto + IVA = $178.500 mensual por baño. Con factura. Contrato Consel: 2 baños en 2 direcciones (total $357.000 c/IVA). Cobrar al entregar.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$178.500</span><span class="cobro-nota">$150.000 neto + IVA = $178.500 mensual por baño. Con factura. Contrato Consel: 2 baños en 2 direcciones (total $357.000 c/IVA). Cobrar al entregar.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual con limpieza semanal (contrato 12 meses)</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56987556268</p></div>
@@ -1051,7 +1080,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Casas Santo Domingo — Santo Domingo N°2423</b>, Santiago, Región Metropolitana</span>
-            <span class="monto">💵 $178.500</span>
+            <span class="monto">💵 $178.500</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1061,8 +1090,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56987556268"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 8755 6268">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Casas%20Santo%20Domingo%20%E2%80%94%20Santo%20Domingo%20N%C2%B02423%2C%20Santiago%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$178.500</span><span class="cobro-nota">$150.000 neto + IVA = $178.500 mensual por baño. Con factura. Contrato Consel: 2 baños en 2 direcciones (total $357.000 c/IVA). Cobrar al entregar.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$178.500</span><span class="cobro-nota">$150.000 neto + IVA = $178.500 mensual por baño. Con factura. Contrato Consel: 2 baños en 2 direcciones (total $357.000 c/IVA). Cobrar al entregar.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual con limpieza semanal (contrato 12 meses)</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56987556268</p></div>
@@ -1088,7 +1118,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Av. Central 999</b>, Peñaflor, Región Metropolitana</span>
-            <span class="monto">💵 $309.400</span>
+            <span class="monto">💵 $309.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1098,8 +1128,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56942064515"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 4206 4515">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Central%20999%2C%20Pe%C3%B1aflor%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$309.400</span><span class="cobro-nota">$260.000 neto + IVA = $309.400 mensual (baño $160.000 + ducha $100.000 neto). Con factura. Cobrar al entregar: efectivo o transferencia, SIN adelanto.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$309.400</span><span class="cobro-nota">$260.000 neto + IVA = $309.400 mensual (baño $160.000 + ducha $100.000 neto). Con factura. Cobrar al entregar: efectivo o transferencia, SIN adelanto.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico + 1 ducha — arriendo mensual con limpieza semanal</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56942064515</p></div>
@@ -1125,7 +1156,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Av. Santa Filomena 13101</b>, Colina, Región Metropolitana</span>
-            <span class="monto">💵 $160.000</span>
+            <span class="monto">💵 $160.000</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1135,8 +1166,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56961253200"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 6125 3200">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Santa%20Filomena%2013101%2C%20Colina%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$160.000</span><span class="cobro-nota">$160.000 total mensual. SIN factura (boleta), sin IVA — valor final. Cobrar al entregar: efectivo o transferencia, sin adelanto.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$160.000</span><span class="cobro-nota">$160.000 total mensual. SIN factura (boleta), sin IVA — valor final. Cobrar al entregar: efectivo o transferencia, sin adelanto.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual con limpieza semanal</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56961253200</p></div>
@@ -1162,7 +1194,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Cerro Lagunillas 11805</b>, Lo Barnechea, Región Metropolitana</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1172,8 +1204,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56950952488"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5095 2488">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Cerro%20Lagunillas%2011805%2C%20Lo%20Barnechea%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400. Cobrar el primer mes al entregar (efectivo o transferencia, sin adelanto). Contrato total por 2 meses.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400. Cobrar el primer mes al entregar (efectivo o transferencia, sin adelanto). Contrato total por 2 meses.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico con lavamanos — arriendo mensual (contrato 2 meses)</p></div>
+          <div class="bloque"><span class="etq">⏳ Tiempo de uso</span><p>retiro el Martes 8 de septiembre</p></div>
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mié 15 jul</span><span class="lp-etq">Aseo 1<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">sáb 25 jul</span><span class="lp-etq">Aseo 2<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mar 4 ago</span><span class="lp-etq">Aseo 3<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56950952488</p></div>
@@ -1199,7 +1232,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño</span>
             <span class="dir">📍 <b>Duble Almeyda 3164</b>, Ñuñoa, Región Metropolitana (frente al Registro Civil)</span>
-            <span class="monto">💵 $100.000</span>
+            <span class="monto">💵 $100.000</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1209,8 +1242,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56993476621"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9347 6621">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Duble%20Almeyda%203164%2C%20%C3%91u%C3%B1oa%2C%20Regi%C3%B3n%20Metropolitana%20%28frente%20al%20Registro%20Civil%29">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$100.000</span><span class="cobro-nota">$100.000 total por los 2 días. SIN factura (boleta), sin IVA — valor final. Cobrar al entregar: efectivo o transferencia.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$100.000</span><span class="cobro-nota">$100.000 total por los 2 días. SIN factura (boleta), sin IVA — valor final. Cobrar al entregar: efectivo o transferencia.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 2 días</p></div>
+          <div class="bloque"><span class="etq">⏳ Tiempo de uso</span><p>retiro el Viernes 10 de julio</p></div>
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56993476621</p></div>
@@ -1236,7 +1270,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Los Montes 1022</b>, Colina, Región Metropolitana</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1246,8 +1280,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56941390043"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 4139 0043">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Los%20Montes%201022%2C%20Colina%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400. Cobrar el primer mes al entregar (efectivo o transferencia, sin adelanto). Contrato total por 2 meses.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400. Cobrar el primer mes al entregar (efectivo o transferencia, sin adelanto). Contrato total por 2 meses.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico con lavamanos — arriendo mensual (contrato 2 meses)</p></div>
+          <div class="bloque"><span class="etq">⏳ Tiempo de uso</span><p>retiro el Martes 8 de septiembre</p></div>
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mié 15 jul</span><span class="lp-etq">Aseo 1<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">sáb 25 jul</span><span class="lp-etq">Aseo 2<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mar 4 ago</span><span class="lp-etq">Aseo 3<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56941390043</p></div>
@@ -1273,7 +1308,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Loma Tendida 1094</b>, Pirque, Región Metropolitana (obra pequeña)</span>
-            <span class="monto">💵 $214.200</span>
+            <span class="monto">💵 $214.200</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1283,8 +1318,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56921605372"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 2160 5372">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Loma%20Tendida%201094%2C%20Pirque%2C%20Regi%C3%B3n%20Metropolitana%20%28obra%20peque%C3%B1a%29">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$214.200</span><span class="cobro-nota">$180.000 neto + IVA = $214.200 mensual. Con factura (datos pendientes). Cobrar al entregar.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$214.200</span><span class="cobro-nota">$180.000 neto + IVA = $214.200 mensual. Con factura (datos pendientes). Cobrar al entregar.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual con aseo semanal</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Semanal (cada 7 a 10 días), incluido</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56921605372</p></div>
@@ -1310,7 +1346,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>7 Condominio San Pedro</b>, Fundo Los Hornos, Chicureo, Colina, Región Metropolitana (frente al Easy de Chicureo) — Waze: https://waze.com/ul/h66jdxmh13</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1320,8 +1356,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56982489749"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 8248 9749">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=7%20Condominio%20San%20Pedro%2C%20Fundo%20Los%20Hornos%2C%20Chicureo%2C%20Colina%2C%20Regi%C3%B3n%20Metropolitana%20%28frente%20al%20Easy%20de%20Chicureo%29%20%E2%80%94%20Waze%3A%20https%3A//waze.com/ul/h66jdxmh13">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">Mensual, renovable. Cobrar al entregar. $160.000 neto + IVA (lleva factura). Sin cobro de flete ni limpiezas extra — se respetó el valor original.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">Mensual, renovable. Cobrar al entregar. $160.000 neto + IVA (lleva factura). Sin cobro de flete ni limpiezas extra — se respetó el valor original.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual renovable</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Semanal (cada 7 a 10 días), incluido</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56982489749</p></div>
@@ -1347,7 +1384,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Parque Laguna Caren</b>, km 18 — Club de Canoas Santiago, Pudahuel, Región Metropolitana (https://maps.google.com/maps/search/Club%20de%20Canoas%20Santiago/@-33.432308197021484,-70.84268951416016,17z?hl=es)</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1357,8 +1394,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56992771291"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9277 1291">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Parque%20Laguna%20Caren%2C%20km%2018%20%E2%80%94%20Club%20de%20Canoas%20Santiago%2C%20Pudahuel%2C%20Regi%C3%B3n%20Metropolitana%20%28https%3A//maps.google.com/maps/search/Club%2520de%2520Canoas%2520Santiago/%40-33.432308197021484%2C-70.84268951416016%2C17z%3Fhl%3Des%29">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">Mensual, renovable. Cobrar al entregar. $160.000 neto + IVA (lleva factura).</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">Mensual, renovable. Cobrar al entregar. $160.000 neto + IVA (lleva factura).</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual renovable</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56992771291</p></div>
@@ -1384,7 +1422,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Av. Combarbalá 0222</b>, La Granja, Región Metropolitana</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1394,8 +1432,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56965487826"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 6548 7826">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Av.%20Combarbal%C3%A1%200222%2C%20La%20Granja%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400 mensual. Con factura. Cobrar al entregar (transferencia o efectivo).</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400 mensual. Con factura. Cobrar al entregar (transferencia o efectivo).</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual con aseo semanal</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Semanal (cada 7 a 10 días), incluido</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56965487826</p></div>
@@ -1421,7 +1460,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Condominio Casas del Polo Rayen</b>, casa 5 M, Lo Pinto, Colina, Región Metropolitana. Ubicación: https://maps.google.com/maps/search/Condominio%20Polo%20Rayen/@-33.261871337890625,-70.72256469726562,17z?hl=es</span>
-            <span class="monto">💵 $160.000</span>
+            <span class="monto">💵 $160.000</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1431,8 +1470,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56996434347"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9643 4347">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Condominio%20Casas%20del%20Polo%20Rayen%2C%20casa%205%20M%2C%20Lo%20Pinto%2C%20Colina%2C%20Regi%C3%B3n%20Metropolitana.%20Ubicaci%C3%B3n%3A%20https%3A//maps.google.com/maps/search/Condominio%2520Polo%2520Rayen/%40-33.261871337890625%2C-70.72256469726562%2C17z%3Fhl%3Des">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$160.000</span><span class="cobro-nota">$160.000 neto, sin factura (boleta) — valor final, sin IVA. Cobrar al entregar, transferencia o efectivo.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$160.000</span><span class="cobro-nota">$160.000 neto, sin factura (boleta) — valor final, sin IVA. Cobrar al entregar, transferencia o efectivo.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo por 1 mes (remodelación de casa)</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días), papel y químico incluidos.</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56996434347</p></div>
@@ -1458,7 +1498,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño</span>
             <span class="dir">📍 <b>Viña Cousiño Macul — Bodega El Tránsito</b>, Paine, Región Metropolitana. Ubicación exacta: https://maps.app.goo.gl/4VFgJBYMpGQrDpom8</span>
-            <span class="monto">💵 $154.700</span>
+            <span class="monto">💵 $154.700</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1468,8 +1508,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56991593134"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 9159 3134">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Vi%C3%B1a%20Cousi%C3%B1o%20Macul%20%E2%80%94%20Bodega%20El%20Tr%C3%A1nsito%2C%20Paine%2C%20Regi%C3%B3n%20Metropolitana.%20Ubicaci%C3%B3n%20exacta%3A%20https%3A//maps.app.goo.gl/4VFgJBYMpGQrDpom8">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$154.700</span><span class="cobro-nota">$130.000 neto + IVA = $154.700 por el servicio completo (2 días). Con factura. Cobrar al entregar, por transferencia.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$154.700</span><span class="cobro-nota">$130.000 neto + IVA = $154.700 por el servicio completo (2 días). Con factura. Cobrar al entregar, por transferencia.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — servicio por 2 días (lunes 13 y martes 14 de julio), retiro el martes al término</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Sin aseo periódico (servicio de 2 días); limpieza y disposición final al retirar. Limpieza extra: $20.000 c/u</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56991593134</p></div>
@@ -1495,7 +1536,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>San José de la Sierra #360</b>, Las Condes, Región Metropolitana</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1505,8 +1546,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56942344765"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 4234 4765">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=San%20Jos%C3%A9%20de%20la%20Sierra%20%23360%2C%20Las%20Condes%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">Cobrar al entregar. $160.000 neto + IVA (lleva factura). Arriendo por 1 mes.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">Cobrar al entregar. $160.000 neto + IVA (lleva factura). Arriendo por 1 mes.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico con lavamanos — arriendo mensual (1 mes)</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Semanal (cada 7 a 10 días), incluido</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56942344765</p></div>
@@ -1532,7 +1574,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽🚽 2 Baños</span>
             <span class="dir">📍 <b>Bernardo O&#x27;Higgins 581</b>, Quilicura, Región Metropolitana (cerca del Mall Parque Arauco)</span>
-            <span class="monto">💵 $309.400</span>
+            <span class="monto">💵 $309.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1542,8 +1584,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56977696050"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 7769 6050">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Bernardo%20O%27Higgins%20581%2C%20Quilicura%2C%20Regi%C3%B3n%20Metropolitana%20%28cerca%20del%20Mall%20Parque%20Arauco%29">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$309.400</span><span class="cobro-nota">$260.000 neto + IVA = $309.400 (1 baño químico $160.000 neto + 1 ducha $100.000 neto). Con factura. Cobrar al entregar, transferencia o efectivo.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$309.400</span><span class="cobro-nota">$260.000 neto + IVA = $309.400 (1 baño químico $160.000 neto + 1 ducha $100.000 neto). Con factura. Cobrar al entregar, transferencia o efectivo.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽🚽 1 baño químico + 1 ducha — obra de construcción</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días) incluido.</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56977696050</p></div>
@@ -1569,7 +1612,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Talagante</b>, Región Metropolitana (sector rural, acceso vehicular hasta el baño)</span>
-            <span class="monto">💵 $273.700</span>
+            <span class="monto">💵 $273.700</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1579,8 +1622,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56946957864"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 4695 7864">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=-33.691341%2C-70.816544">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$273.700</span><span class="cobro-nota">$200.000 neto (baño) + $30.000 neto (flete, pago único) = $230.000 neto + IVA = $273.700. Con factura. Cobrar al entregar. Mensualidad siguiente (2° mes en adelante, sin flete): $238.000 c/IVA.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$273.700</span><span class="cobro-nota">$200.000 neto (baño) + $30.000 neto (flete, pago único) = $230.000 neto + IVA = $273.700. Con factura. Cobrar al entregar. Mensualidad siguiente (2° mes en adelante, sin flete): $238.000 c/IVA.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (1 mes) + flete de despacho</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56946957864</p></div>
@@ -1606,7 +1650,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Arturo Prat 445</b>, Buin, Región Metropolitana (obra de construcción)</span>
-            <span class="monto">💵 $261.800</span>
+            <span class="monto">💵 $261.800</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1616,8 +1660,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56988032433"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 8803 2433">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Arturo%20Prat%20445%2C%20Buin%2C%20Regi%C3%B3n%20Metropolitana%20%28obra%20de%20construcci%C3%B3n%29">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$261.800</span><span class="cobro-nota">$160.000 (baño) + $30.000 (traslado ida y vuelta) + $30.000 (1 limpieza) = $220.000 neto + IVA = $261.800. Con factura. ⚠️ PAGO DIFERIDO: se ENTREGA HOY (14/07) y el cliente PAGA MAÑANA (15/07) por transferencia (se le dio la facilidad). Cobrar por transferencia.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$261.800</span><span class="cobro-nota">$160.000 (baño) + $30.000 (traslado ida y vuelta) + $30.000 (1 limpieza) = $220.000 neto + IVA = $261.800. Con factura. ⚠️ PAGO DIFERIDO: se ENTREGA HOY (14/07) y el cliente PAGA MAÑANA (15/07) por transferencia (se le dio la facilidad). Cobrar por transferencia.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual (obra, Buin) + traslado ida y vuelta + 1 limpieza</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Buin NO incluye limpieza gratis. 1 limpieza en esta cotización ($30.000). Adicionales $30.000 c/u (sugerido cada 15 días).</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mié 29 jul</span><span class="lp-etq">Limpieza 1<span class="lp-nota">1 limpieza incluida en la cotización (Buin no tiene aseo gratis). Aprox. cada 15 días.</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56988032433</p></div>
@@ -1643,7 +1688,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Avenida Los Libertadores 470</b>, El Monte, Región Metropolitana</span>
-            <span class="monto">💵 $230.000</span>
+            <span class="monto">💵 $230.000</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1653,8 +1698,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56951543307"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5154 3307">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Avenida%20Los%20Libertadores%20470%2C%20El%20Monte%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$230.000</span><span class="cobro-nota">$230.000 IVA incluido (neto $193.277 + IVA $36.723). Con factura. Cobrar contra entrega.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$230.000</span><span class="cobro-nota">$230.000 IVA incluido (neto $193.277 + IVA $36.723). Con factura. Cobrar contra entrega.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico — arriendo mensual</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo incluido: una limpieza cada 15 días. Limpiezas adicionales se coordinan y se acuerda el valor.</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mié 29 jul</span><span class="lp-etq">Limpieza 1<span class="lp-nota">Incluida en el arriendo (cada 15 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56951543307</p></div>
@@ -1680,7 +1726,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽 1 Baño · mensual</span>
             <span class="dir">📍 <b>Camino Las Hualtatas 5200</b>, casa 40, Lo Barnechea (Condominio La Parroquia), Región Metropolitana</span>
-            <span class="monto">💵 $190.400</span>
+            <span class="monto">💵 $190.400</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1690,8 +1736,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56950952488"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 5095 2488">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Camino%20Las%20Hualtatas%205200%2C%20casa%2040%2C%20Lo%20Barnechea%20%28Condominio%20La%20Parroquia%29%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400. Cobrar el primer mes al entregar (efectivo o transferencia, sin adelanto). Contrato total por 2 meses.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$190.400</span><span class="cobro-nota">$160.000 neto + IVA = $190.400. Cobrar el primer mes al entregar (efectivo o transferencia, sin adelanto). Contrato total por 2 meses.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽 1 baño químico con lavamanos — arriendo mensual (contrato 2 meses)</p></div>
+          <div class="bloque"><span class="etq">⏳ Tiempo de uso</span><p>retiro el Martes 15 de septiembre</p></div>
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo semanal (cada 7 a 10 días)</p></div>
           <div class="bloque"><span class="etq">🧽 Limpiezas</span><ul class="lp-lista"><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mié 22 jul</span><span class="lp-etq">Aseo 1<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">sáb 1 ago</span><span class="lp-etq">Aseo 2<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li><li class="lp-item"><span class="lp-check" style="color:#94A3B8">○</span><span class="lp-fecha">mar 11 ago</span><span class="lp-etq">Aseo 3<span class="lp-nota">Aseo incluido en el arriendo (semanal, tope 10 días).</span></span><span class="lp-badge" style="color:#166534;background:#DCFCE7">Incluida</span></li></ul></div>
           <div class="bloque"><span class="etq">Teléfono</span><p>+56950952488</p></div>
@@ -1717,7 +1764,7 @@
           <div class="resumen-sub">
             <span class="banos">🚽🚽 2 Baños · 1 semana</span>
             <span class="dir">📍 <b>Teniente Bisson 738</b>, Independencia, Región Metropolitana</span>
-            <span class="monto">💵 $214.200</span>
+            <span class="monto">💵 $214.200</span><span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>
           </div>
           <div class="estado-hint" hidden></div>
           <div class="pago-adelantado-txt" hidden>⚠️ Cliente pagó adelantado, falta entregar</div>
@@ -1727,8 +1774,9 @@
           <div class="contacto-accesos" hidden><a class="acc-link acc-wa" href="whatsapp://send?phone=56921710536"><svg class="ico-wa" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>WhatsApp</a><a class="acc-link acc-call" href="tel:+56 9 2171 0536">📞 Llamar</a><a class="acc-link acc-map" href="https://www.google.com/maps/search/?api=1&amp;query=Teniente%20Bisson%20738%2C%20Independencia%2C%20Regi%C3%B3n%20Metropolitana">🗺️ Llegar 🧭</a><button type="button" class="btn-ver-info">Ver toda la información del cliente ▾</button></div>
         </summary>
         <div class="detalle">
-          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$214.200</span><span class="cobro-nota">$90.000 neto c/u x 2 baños = $180.000 neto + IVA 19% = $214.200. Con factura. Se cobra al momento de la entrega.</span></div>
+          <div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span><span class="cobro-monto">$214.200</span><span class="cobro-nota">$90.000 neto c/u x 2 baños = $180.000 neto + IVA 19% = $214.200. Con factura. Se cobra al momento de la entrega.</span><button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button></div>
           <div class="bloque"><span class="etq">Servicio</span><p>🚽🚽 2 baños químicos — arriendo 1 semana (viernes a lunes) + traslado + aseo al finalizar</p></div>
+          
           <div class="bloque"><span class="etq">Aseo</span><p>Aseo incluido: limpieza al finalizar el servicio. Aseo adicional $40.000 neto c/u.</p></div>
           
           <div class="bloque"><span class="etq">Teléfono</span><p>+56921710536</p></div>
@@ -1903,6 +1951,23 @@
     // Aviso "pagó adelantado, falta entregar".
     var pa = card.querySelector('.pago-adelantado-txt');
     if (pa) { pa.hidden = !pagoAdelantado; }
+
+    // Pago adelantado en la card CERRADA: el chip del monto se reemplaza por "YA PAGÓ"
+    // (si queda la cifra a la vista, el repartidor la cobra igual). En el detalle el
+    // monto queda tachado —ahí sí sirve saber cuánto era— y el botón queda activo.
+    var mchip = card.querySelector('.monto');
+    var mpag = card.querySelector('.monto-pagado');
+    if (mchip) { mchip.hidden = pagoAdelantado; }
+    if (mpag) { mpag.hidden = !pagoAdelantado; }
+    var cmonto = card.querySelector('.cobro-monto');
+    if (cmonto) { cmonto.classList.toggle('pagado', pagoAdelantado); }
+    var bpa = card.querySelector('.btn-pago-adelantado');
+    if (bpa) {
+      bpa.classList.toggle('activo', pagoAdelantado);
+      bpa.textContent = pagoAdelantado
+        ? '✅ Pagó por adelantado — no cobrar'
+        : '💳 El cliente pagó por adelantado';
+    }
 
     // Texto sutil que explica el color/estado de la card.
     var hint = card.querySelector('.estado-hint');
@@ -3136,6 +3201,20 @@
           else { window.location.href = href; }
         });
       });
+      // "El cliente pagó por adelantado": delega en el botón "Cobrado" de la barra de
+      // arriba en vez de escribir el estado por su cuenta. Así hay UN solo camino
+      // (misma confirmación al desmarcar, misma celebración si ya estaba entregado) y
+      // no se pueden desincronizar los dos botones. Funciona también en entregas
+      // futuras, donde la barra está oculta: ese es justo el caso del que transfiere
+      // antes de la entrega.
+      var bpa = card.querySelector('.btn-pago-adelantado');
+      if (bpa) {
+        bpa.addEventListener('click', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          var cb = card.querySelector('.est-btn.est-cobrado');
+          if (cb) { cb.click(); }
+        });
+      }
       // "Ver toda la información": abre/cierra el detalle (botón dentro de summary
       // no togglea solo). Texto inverso al estar abierto.
       var vi = card.querySelector('.btn-ver-info');

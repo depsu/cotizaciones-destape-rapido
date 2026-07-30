@@ -160,7 +160,14 @@ def plazo_de(e: dict) -> str:
 
     'mensual'/cualquier cantidad de meses => 'mensual'; 'N semana(s)' => 'N semana(s)'.
     Devuelve '' si no aplica (p. ej. mantención).
+
+    Si la entrega trae `periodo` (lo manda el bot desde la conversación: "2 días",
+    "3 semanas"), ESE manda: es el plazo real acordado con el cliente. El regex sobre el
+    texto del servicio queda como respaldo para las entregas cargadas a mano.
     """
+    periodo = str(e.get("periodo") or "").strip()
+    if periodo:
+        return periodo
     s = (e.get("servicio") or "").lower()
     if "mensual" in s or "mes" in s:
         return "mensual"
@@ -327,15 +334,25 @@ def tarjeta(e: dict) -> str:
     # Pago: lo que el repartidor (dueño) le cobra al cliente.
     pago = e.get("pago") or {}
     monto = pago.get("monto")
-    monto_chip = f'<span class="monto">💵 {esc(clp(monto))}</span>' if monto is not None else ""
+    # En la card CERRADA el monto se reemplaza por "YA PAGÓ" cuando el cliente pagó
+    # adelantado: si queda una cifra a la vista, el repartidor igual la cobra.
+    monto_chip = (
+        f'<span class="monto">💵 {esc(clp(monto))}</span>'
+        f'<span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>'
+    ) if monto is not None else ""
     cobro_html = ""
     if monto is not None:
         # Desglose breve de cómo se llega al monto (baño + extras + IVA), si viene.
         desglose_pago = f'<span class="cobro-nota">{esc(pago.get("desglose"))}</span>' if pago.get("desglose") else ""
         nota_pago = f'<span class="cobro-nota">{esc(pago.get("nota"))}</span>' if pago.get("nota") else ""
+        # Botón de pago adelantado: va DENTRO del detalle (hay que abrir "Ver toda la
+        # información") para que no se apriete sin querer. Delega en el botón "Cobrado"
+        # de la barra de arriba, así el estado sigue un solo camino.
         cobro_html = (
             f'<div class="cobro"><span class="cobro-etq">💵 Cobrar al cliente</span>'
-            f'<span class="cobro-monto">{esc(clp(monto))}</span>{desglose_pago}{nota_pago}</div>'
+            f'<span class="cobro-monto">{esc(clp(monto))}</span>{desglose_pago}{nota_pago}'
+            f'<button type="button" class="btn-pago-adelantado">💳 El cliente pagó por adelantado</button>'
+            f'</div>'
         )
 
     # Aseo: lo indicado o el valor por defecto.
@@ -355,6 +372,24 @@ def tarjeta(e: dict) -> str:
                 filas.append(f"<li><b>{etq}:</b> {esc(factura[clave])}</li>")
         cuerpo = f"<ul>{''.join(filas)}</ul>" if filas else "<p>Requiere factura.</p>"
         factura_html = f'<div class="bloque"><span class="etq">🧾 Factura</span>{cuerpo}</div>'
+
+    # CUÁNTO TIEMPO queda el baño puesto y cuándo hay que ir a buscarlo. Antes esto solo
+    # se adivinaba leyendo las Notas ("1 noche (1 al 2 de agosto)"); ahora tiene su propio
+    # bloque, porque el repartidor necesita saber si vuelve mañana o en un mes.
+    periodo_html = ""
+    periodo_txt = str(e.get("periodo") or "").strip()
+    retiro = e.get("retiro") or {}
+    retiro_fecha = str(retiro.get("fecha") or "").strip()
+    if periodo_txt or retiro_fecha:
+        partes = []
+        if periodo_txt:
+            partes.append(esc(periodo_txt))
+        if retiro_fecha:
+            partes.append(f"retiro el {esc(encabezado_fecha(retiro_fecha))}")
+        periodo_html = (
+            f'<div class="bloque"><span class="etq">⏳ Tiempo de uso</span>'
+            f'<p>{" · ".join(partes)}</p></div>'
+        )
 
     notas_html = ""
     if notas:
@@ -421,6 +456,7 @@ def tarjeta(e: dict) -> str:
         <div class="detalle">
           {cobro_html}
           {f'<div class="bloque"><span class="etq">Servicio</span><p>{banos_icono} {servicio}</p></div>' if servicio else ""}
+          {periodo_html}
           <div class="bloque"><span class="etq">Aseo</span><p>{aseo}</p></div>
           {limpiezas_bloque}
           {f'<div class="bloque"><span class="etq">Teléfono</span><p>{esc("+" + num if num else telefono)}</p></div>' if telefono else ""}
@@ -565,6 +601,19 @@ ESTILOS_EXTRA = """
   header .ganado .proy { font-weight:600; opacity:.75; font-size:12px; }
   .pago-adelantado-txt { margin-top:8px; font-size:13px; font-weight:800; color:#B45309;
     background:#FEF3C7; border:1px solid #FCD34D; border-radius:9px; padding:8px 10px; text-align:center; }
+  /* Pago por adelantado: en la card CERRADA el chip del monto se reemplaza por
+     "YA PAGÓ" (el JS oculta .monto y muestra .monto-pagado). Dejar la cifra a la
+     vista invita a cobrar de nuevo, que es justo lo que hay que evitar. */
+  .monto-pagado { font-weight:800; color:#166534; white-space:nowrap;
+    background:#DCFCE7; border:1px solid #BBF7D0; border-radius:8px; padding:2px 8px; }
+  /* El botón vive dentro del detalle ("Ver toda la información"), no en la card
+     cerrada: marcar un pago no debe estar a un toque de distancia por accidente. */
+  .btn-pago-adelantado { flex:1 1 100%; margin-top:10px; padding:11px; border-radius:9px;
+    border:1px dashed #86EFAC; background:#fff; color:#166534; font-family:inherit;
+    font-size:13.5px; font-weight:700; cursor:pointer; min-height:44px; }
+  .btn-pago-adelantado:active { filter:brightness(.97); }
+  .btn-pago-adelantado.activo { background:#166534; border:1px solid #166534; color:#fff; }
+  .cobro-monto.pagado { text-decoration:line-through; opacity:.55; }
   .card-wrap.is-reagendado > .card, .card-wrap.is-reagendado > .gestion-top { border-color:#F87171; background:#FEF2F2; }
   .card-wrap.is-reagendado > .gestion-top { border-bottom:2px solid #FECACA; }
   .card-wrap.is-contactado > .card, .card-wrap.is-contactado > .gestion-top { border-color:#86EFAC; background:#F0FDF4; }
@@ -942,6 +991,23 @@ SCRIPT_ESTADO = r"""<script>
     // Aviso "pagó adelantado, falta entregar".
     var pa = card.querySelector('.pago-adelantado-txt');
     if (pa) { pa.hidden = !pagoAdelantado; }
+
+    // Pago adelantado en la card CERRADA: el chip del monto se reemplaza por "YA PAGÓ"
+    // (si queda la cifra a la vista, el repartidor la cobra igual). En el detalle el
+    // monto queda tachado —ahí sí sirve saber cuánto era— y el botón queda activo.
+    var mchip = card.querySelector('.monto');
+    var mpag = card.querySelector('.monto-pagado');
+    if (mchip) { mchip.hidden = pagoAdelantado; }
+    if (mpag) { mpag.hidden = !pagoAdelantado; }
+    var cmonto = card.querySelector('.cobro-monto');
+    if (cmonto) { cmonto.classList.toggle('pagado', pagoAdelantado); }
+    var bpa = card.querySelector('.btn-pago-adelantado');
+    if (bpa) {
+      bpa.classList.toggle('activo', pagoAdelantado);
+      bpa.textContent = pagoAdelantado
+        ? '✅ Pagó por adelantado — no cobrar'
+        : '💳 El cliente pagó por adelantado';
+    }
 
     // Texto sutil que explica el color/estado de la card.
     var hint = card.querySelector('.estado-hint');
@@ -2175,6 +2241,20 @@ SCRIPT_ESTADO = r"""<script>
           else { window.location.href = href; }
         });
       });
+      // "El cliente pagó por adelantado": delega en el botón "Cobrado" de la barra de
+      // arriba en vez de escribir el estado por su cuenta. Así hay UN solo camino
+      // (misma confirmación al desmarcar, misma celebración si ya estaba entregado) y
+      // no se pueden desincronizar los dos botones. Funciona también en entregas
+      // futuras, donde la barra está oculta: ese es justo el caso del que transfiere
+      // antes de la entrega.
+      var bpa = card.querySelector('.btn-pago-adelantado');
+      if (bpa) {
+        bpa.addEventListener('click', function (ev) {
+          ev.preventDefault(); ev.stopPropagation();
+          var cb = card.querySelector('.est-btn.est-cobrado');
+          if (cb) { cb.click(); }
+        });
+      }
       // "Ver toda la información": abre/cierra el detalle (botón dentro de summary
       // no togglea solo). Texto inverso al estar abierto.
       var vi = card.querySelector('.btn-ver-info');

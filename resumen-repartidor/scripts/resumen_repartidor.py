@@ -119,6 +119,13 @@ def construir_resumen(e: dict) -> str:
     if e.get("servicio"):
         lineas.append("")
         lineas.append(f"{icono_banos(cantidad_banos(e))} Servicio: {e['servicio']}")
+    # Cuánto tiempo queda puesto el baño y cuándo hay que ir a retirarlo. Va JUNTO al
+    # servicio porque cambia cómo se planifica el día (no es lo mismo 2 días que un mes).
+    periodo = str(e.get("periodo") or "").strip()
+    retiro_f = str((e.get("retiro") or {}).get("fecha") or "").strip()
+    if periodo or retiro_f:
+        partes = [p for p in (periodo, f"retiro el {fecha_legible(retiro_f)}" if retiro_f else "") if p]
+        lineas.append(f"⏳ Tiempo de uso: {' · '.join(partes)}")
     # Aseo: usa lo indicado o el valor por defecto.
     lineas.append(f"🧽 Aseo: {e.get('aseo') or ASEO_DEFAULT}")
     pago = e.get("pago") or {}
