@@ -14,10 +14,22 @@ database_id = "9fee15c3-fbed-4949-87af-72389faac64c"
 [triggers]
 crons = ["*/20 * * * *"]
 
-# Variables públicas (los secretos van con `wrangler secret put`)
+# Variables públicas (los secretos van con `wrangler secret put`).
+# Identidad del cliente para el worker convergido con el maestro (2026-08-25).
 [vars]
-FORWARD_TO = "paginasfastdev@gmail.com"
-VAPID_PUBLIC = "BCC8yMzHYuBxfWp2A5SjERjUu1PxsGgdAU8Klz5BllDcpF-uJR20nyAxZTHYf4UFQXwz9baM8M8P0mFrAEh5-bM"
+FORWARD_TO    = "paginasfastdev@gmail.com"
+VAPID_PUBLIC  = "BCC8yMzHYuBxfWp2A5SjERjUu1PxsGgdAU8Klz5BllDcpF-uJR20nyAxZTHYf4UFQXwz9baM8M8P0mFrAEh5-bM"
+CONTACT_EMAIL = "contacto@destaperapido.cl"
+CUENTAS       = ""                            # subcuentas: activar con "contacto@...|Contacto,ventas@...|Ventas"
+FROM_NAME     = "Destape Rápido"
+FROM_EMAIL    = "contacto@destaperapido.cl"
+BRAND_NAME    = "Cotizaciones — Destape Rápido"
+BRAND_SHORT   = "Cotizaciones"
+BRAND_COLOR   = "#0F6E6E"
+BRAND_RGB     = "15,110,110"
+MODO_AGENCIA  = "1"                           # destaperapido es empresa PROPIA: lleva el switcher 🔀
+AUTODRAFT     = "0"                           # IA server-side apagada (activarla = plata → OK aparte)
+WAKE_URL      = ""
 
 # Importables como texto dentro del bundle: el panel y las librerías vendoreadas.
 # (Wrangler admite UNA sola regla por tipo: van todos los globs juntos.)

@@ -5,7 +5,7 @@
 --
 -- Una fila 'enviado' representa una cotización que salió desde el script
 -- enviar_cotizacion.py (no hubo correo entrante previo):
---   de            = contacto@destaperapido.cl  (nosotros)
+--   de            = una cuenta nuestra (CONTACT_EMAIL o subcuenta)
 --   para          = email del cliente
 --   cuerpo_texto  = cuerpo del correo enviado
 --   adjunto_*     = PDF de la cotización

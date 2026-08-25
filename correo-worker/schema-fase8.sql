@@ -73,7 +73,10 @@ INSERT INTO aprendizaje (senal, remitente, dominio, motivo)
 
 -- ---- 1.8 Índices (RECIÉN ahora, tras el colapso) ----
 -- UNIQUE parcial: excluye NULL y '' (permite múltiples 'enviado' sin resend_id y correos sin Message-ID)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_correos_mid_uniq ON correos(message_id)
+-- Compuesto (message_id, para) desde la fase 16: un correo dirigido a DOS cuentas nuestras
+-- (subcuentas) llega dos veces y AMBAS entregas son legítimas. Bases creadas con la versión
+-- vieja de este archivo: migrar con el bloque comentado de schema-fase16.sql.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_correos_mid_uniq ON correos(message_id, para)
   WHERE message_id IS NOT NULL AND message_id <> '';
 CREATE INDEX IF NOT EXISTS idx_correos_dedup_hash  ON correos(dedup_hash);
 CREATE INDEX IF NOT EXISTS idx_correos_orden       ON correos(recibido_en DESC, id DESC);

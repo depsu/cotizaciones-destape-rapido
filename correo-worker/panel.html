@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Bandeja · Agente de Cotizaciones</title>
+<title>Bandeja · {{BRAND_NAME}}</title>
 <link rel="manifest" href="/manifest.webmanifest" />
 <link rel="apple-touch-icon" href="/icon-180.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Cotizaciones" />
-<meta name="theme-color" content="#0F6E6E" />
+<meta name="apple-mobile-web-app-title" content="{{BRAND_SHORT}}" />
+<meta name="theme-color" content="{{BRAND_COLOR}}" />
 <style>
   :root{
-    --brand:#0F6E6E; --brand-soft:#EAF4F2; --accent:#E0A82E;
+    --brand:{{BRAND_COLOR}}; --brand-rgb:{{BRAND_RGB}}; --brand-soft:color-mix(in srgb, var(--brand) 8%, #fff); --accent:#E0A82E;
     --dark:#1E2A2A; --gray:#5F6B6B; --line:#e3e8e8; --bg:#f5f7f7;
     /* Segunda capa de neutros: el menú y las barras van un tono más frío que el contenido. */
     --panel:#eef2f2; --superficie:#fff; --linea-suave:#edf1f1;
@@ -47,7 +47,7 @@
 
   .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px;
         cursor:pointer;transition:.12s;position:relative}
-  .card:hover{border-color:var(--brand);box-shadow:0 3px 12px rgba(15,110,110,.08)}
+  .card:hover{border-color:var(--brand);box-shadow:0 3px 12px rgba(var(--brand-rgb),.08)}
   .card-noleido{border-left:3px solid var(--brand)}
   .row1{display:flex;align-items:center;gap:8px;margin-bottom:3px}
   .de{font-size:14px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dark)}
@@ -225,6 +225,20 @@
   .hlist.animar .hrow{animation:entraFila .22s ease backwards}
   .mini-abre{animation:subeCompose .16s ease}
   /* Respeto por quien pide menos movimiento en su teléfono (accesibilidad). */
+  /* Switcher de buzones (modo agencia) */
+  #menuBuzones{display:none;position:fixed;top:56px;right:12px;z-index:80;background:#fff;
+    border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.16);
+    min-width:250px;max-width:min(320px,calc(100vw - 24px));padding:6px}
+  #menuBuzones .buzon-row{display:flex;align-items:center;gap:6px;padding:2px 4px;border-radius:8px}
+  #menuBuzones .buzon-row a{flex:1;display:flex;flex-direction:column;text-decoration:none;color:inherit;
+    padding:8px 6px;min-height:44px;justify-content:center}
+  #menuBuzones .buzon-row a small{color:var(--gray);font-size:11px}
+  #menuBuzones .buzon-row.actual{background:var(--brand-soft)}
+  #menuBuzones .buzon-row.actual span{color:var(--brand);padding:0 8px}
+  #menuBuzones .buzon-row button{border:0;background:none;cursor:pointer;color:var(--gray);
+    min-width:40px;min-height:40px;font-size:14px}
+  #menuBuzones .buzon-add{width:100%;border:0;background:none;color:var(--brand);padding:12px;
+    cursor:pointer;font-weight:600;min-height:44px}
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
       transition-duration:.01ms !important;scroll-behavior:auto !important}
@@ -330,7 +344,7 @@
   /* Zona de "suelta el archivo aquí": aparece solo mientras arrastras algo. */
   .soltando{position:relative}
   .soltando::after{content:"📎  Suelta el archivo para adjuntarlo";position:absolute;inset:6px;
-        border:2px dashed var(--brand);border-radius:12px;background:rgba(15,110,110,.07);
+        border:2px dashed var(--brand);border-radius:12px;background:rgba(var(--brand-rgb),.07);
         display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;
         color:var(--brand);pointer-events:none;z-index:2}
   .adjs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
@@ -509,7 +523,7 @@
         outline:none;word-break:break-word}
   .firma-editor{border:1px solid var(--line);border-radius:9px;padding:10px 12px;min-height:90px;
         font-size:13.5px;line-height:1.6;outline:none;background:#fff}
-  .firma-editor:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px rgba(15,110,110,.1)}
+  .firma-editor:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px rgba(var(--brand-rgb),.1)}
   #editor blockquote{border-left:2px solid var(--line);margin:6px 0;padding-left:10px;color:var(--gray)}
   .cacciones{display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}
   .cestado{font-size:12px;color:var(--gray);flex:1;text-align:right}
@@ -554,7 +568,7 @@
 
 <div id="login">
   <h2>🔒 Bandeja</h2>
-  <p>Agente de Cotizaciones — ingresa la contraseña del panel.</p>
+  <p>{{BRAND_NAME}} — ingresa la contraseña del panel.</p>
   <input id="pass" type="password" placeholder="Contraseña" autocomplete="current-password" />
   <button onclick="entrar()">Entrar</button>
   <div class="err" id="loginErr"></div>
@@ -563,7 +577,7 @@
 <div id="app" style="display:none">
   <header>
     <button class="burger" onclick="toggleMenu()" title="Carpetas" aria-label="Abrir carpetas">☰</button>
-    <h1>📥&nbsp;Bandeja de cotizaciones</h1>
+    <h1>📥&nbsp;Bandeja de correos</h1>
     <!-- El buscador vive en la cabecera y ocupa el ancho, como en Gmail -->
     <div class="buscador">
       <input id="qBusca" placeholder="Buscar en todo el correo…" autocomplete="off"
@@ -573,10 +587,13 @@
       <button class="bavanz" onclick="toggleAvanzada()" title="Búsqueda avanzada"
               aria-label="Búsqueda avanzada">⚙</button>
     </div>
+    <button id="btnBuzones" style="display:none" onclick="toggleBuzones()" title="Cambiar de buzón"
+            aria-label="Cambiar de buzón">🔀</button>
     <button onclick="activarNotis()" title="Activar notificaciones">🔔</button>
     <button onclick="cargar(true)" title="Actualizar" aria-label="Actualizar bandeja">↻</button>
     <button class="solo-ancho" onclick="salir()">Salir</button>
   </header>
+  <div id="menuBuzones"></div>
   <!-- Buscador avanzado: los mismos campos del panel de Gmail -->
   <div class="avanzada" id="avanzada">
     <div class="af"><label>De</label><input id="afDe" list="dlContactos" placeholder="nombre o correo"></div>
@@ -603,6 +620,8 @@
     <nav class="side" id="side" aria-label="Carpetas">
       <button class="btn-redactar" onclick="abrirCompose()" title="Redactar (tecla c)">
         <span class="ic">✏️</span>Redactar</button>
+      <div class="side-tit" id="tituloCuentas" style="display:none">Cuentas</div>
+      <div id="listaCuentas"></div>
       <button id="tab-recibidos" class="side-b activo" onclick="setFiltro('recibidos')">
         <span class="ic">📥</span><span class="lbl">Recibidos</span><span class="cnt"></span></button>
       <button id="tab-destacados" class="side-b" onclick="setFiltro('destacados')">
@@ -678,6 +697,9 @@
               aria-label="Guardar y cerrar">×</button>
     </div>
     <div class="cuerpoCompose">
+    <div class="campo" id="filaDe" style="display:none"><label>De</label>
+      <select id="cDe" style="flex:1;border:0;outline:0;font-size:14px;background:none;color:inherit"></select>
+    </div>
     <div class="campo"><label>Para</label>
       <input id="cPara" list="dlContactos" placeholder="cliente@correo.cl" autocomplete="off" />
       <datalist id="dlContactos"></datalist>
@@ -729,7 +751,17 @@
 <script src="/vendor/squire.js"></script>
 <script>
 const KEY = "panel_pass_agente";
-const NOSOTROS = "contacto@destaperapido.cl";
+// Subcuentas (fase 16): el Worker inyecta la lista al servir el HTML.
+const CUENTAS_RAW = "{{CUENTAS_JSON}}";
+const CUENTAS = Array.isArray(CUENTAS_RAW) ? CUENTAS_RAW : [];   // [{email, etiqueta}]
+const NOSOTROS = (CUENTAS[0] && CUENTAS[0].email) || "{{CONTACT_EMAIL}}";
+const esCuentaNuestra = (dir) => !!dir && CUENTAS.some((c) => c.email === String(dir).trim().toLowerCase());
+let cuentaActiva = "";
+try { cuentaActiva = localStorage.getItem("cuenta_activa") || ""; } catch (e) {}
+if (cuentaActiva && !esCuentaNuestra(cuentaActiva)) cuentaActiva = "";
+function ctaQuery(pre){ return cuentaActiva ? `${pre||"&"}cuenta=${encodeURIComponent(cuentaActiva)}` : ""; }
+// Switcher de buzones (modo agencia): SOLO si el Worker lleva MODO_AGENCIA="1".
+const MODO_AGENCIA = "{{MODO_AGENCIA}}" === "1";
 let pass = localStorage.getItem(KEY) || "";
 let actual = null;                 // correo accionable abierto (para responder/ajustar)
 let actualTid = null;              // hilo abierto (fase 10); null = mensaje suelto (spam/papelera)
@@ -944,7 +976,7 @@ function montarIframe(iframe, htmlLimpio){
       word-break:break-word;overflow-x:auto;overflow-y:hidden}
       img{max-width:100%;height:auto}img:not([src]){display:inline-block;min-width:20px;min-height:20px;
       background:#eef2f2;border:1px dashed #cdd8d7;border-radius:4px}
-      table{max-width:100%}a{color:#0F6E6E}</style></head><body><div id="_medir">${htmlLimpio}</div></body></html>`;
+      table{max-width:100%}a{color:{{BRAND_COLOR}}}</style></head><body><div id="_medir">${htmlLimpio}</div></body></html>`;
   iframe.setAttribute("sandbox","allow-popups allow-popups-to-escape-sandbox allow-same-origin");
   iframe.setAttribute("referrerpolicy","no-referrer");
   iframe.srcdoc = doc;
@@ -1013,11 +1045,90 @@ function entrar(){
 }
 function salir(){ localStorage.removeItem(KEY); pass=""; location.reload(); }
 
+// ---------- Subcuentas (fase 16): selector en el menú lateral ----------
+function renderCuentas(){
+  if(CUENTAS.length < 2) return;
+  const tit=document.getElementById("tituloCuentas"), cont=document.getElementById("listaCuentas");
+  if(!tit || !cont) return;
+  tit.style.display="";
+  const btn=(val,lbl,ic)=>`<button class="side-b cta-b${(cuentaActiva||"")===val?" activo":""}" data-cta="${esc(val)}"
+      onclick="setCuenta(this.dataset.cta)"><span class="ic">${ic}</span><span class="lbl">${esc(lbl)}</span><span class="cnt"></span></button>`;
+  cont.innerHTML = btn("","Todas","👥") + CUENTAS.map(c=>btn(c.email,c.etiqueta,"👤")).join("");
+}
+function setCuenta(v){
+  cuentaActiva = v || "";
+  try{ localStorage.setItem("cuenta_activa", cuentaActiva); }catch(e){}
+  renderCuentas();
+  if(busca) buscar(); else cargar(true);
+  refrescarContadores();
+}
+
+// ---------- Switcher de buzones (modo agencia): saltar entre paneles de varios dominios ----------
+// La lista [{nombre,url}] vive en el localStorage DE CADA origen y viaja en el #hash al saltar,
+// para que el buzón de destino la aprenda. SIN contraseñas: cada origen guarda solo la suya
+// (si el destino no tiene sesión, muestra su login normal).
+function buzones(){ try{ const l=JSON.parse(localStorage.getItem("buzones_agente")||"[]"); return Array.isArray(l)?l:[]; }catch(e){ return []; } }
+function guardarBuzones(l){ try{ localStorage.setItem("buzones_agente", JSON.stringify(l.slice(0,20))); }catch(e){} }
+function normalizarBuzon(b){
+  if(!b || typeof b.url!=="string") return null;
+  let u; try{ u=new URL(b.url.trim()); }catch(e){ return null; }
+  if(u.protocol!=="https:" && u.hostname!=="localhost" && u.hostname!=="127.0.0.1") return null;
+  return { nombre:String(b.nombre||u.hostname).slice(0,40), url:u.origin };
+}
+function upsertBuzon(lista, b){
+  b = normalizarBuzon(b); if(!b) return lista;
+  const i = lista.findIndex(x=>x.url===b.url);
+  if(i>=0) lista[i] = { nombre:b.nombre||lista[i].nombre, url:b.url }; else lista.push(b);
+  return lista;
+}
+function iniciarBuzones(){
+  if(!MODO_AGENCIA) return;
+  let lista = buzones();
+  lista = upsertBuzon(lista, { nombre:"{{BRAND_SHORT}}", url:location.origin });  // el actual se registra solo
+  if(location.hash.startsWith("#buzones=")){
+    try{
+      const extra = JSON.parse(decodeURIComponent(location.hash.slice(9)));
+      if(Array.isArray(extra)) for(const b of extra.slice(0,20)) lista = upsertBuzon(lista, b);
+    }catch(e){}
+    try{ history.replaceState(null, "", location.pathname); }catch(e){}
+  }
+  guardarBuzones(lista);
+  const btn = document.getElementById("btnBuzones");
+  if(btn) btn.style.display = "";
+}
+function pintarMenuBuzones(){
+  const menu = document.getElementById("menuBuzones");
+  const lista = buzones();
+  const carga = encodeURIComponent(JSON.stringify(lista));
+  menu.innerHTML = lista.map((b,i)=>`
+    <div class="buzon-row${b.url===location.origin?" actual":""}">
+      <a href="${esc(b.url)}/#buzones=${carga}">${esc(b.nombre)}<small>${esc(b.url.replace(/^https?:\/\//,""))}</small></a>
+      ${b.url===location.origin?"<span>●</span>":`<button onclick="quitarBuzon(${i})" title="Quitar de la lista" aria-label="Quitar">✕</button>`}
+    </div>`).join("")
+    + `<button class="buzon-add" onclick="agregarBuzon()">＋ Agregar buzón</button>`;
+}
+function toggleBuzones(){
+  const menu = document.getElementById("menuBuzones");
+  if(menu.style.display==="block"){ menu.style.display="none"; return; }
+  pintarMenuBuzones();
+  menu.style.display="block";
+}
+function quitarBuzon(i){ const l=buzones(); l.splice(i,1); guardarBuzones(l); pintarMenuBuzones(); }
+function agregarBuzon(){
+  miniPrompt("Agregar buzón", "URL del panel (https://…)", "https://correo-cliente.workers.dev", (u)=>{
+    const nom = (u||"").replace(/^https?:\/\//,"").split("/")[0].split(".")[0] || "buzon";
+    guardarBuzones(upsertBuzon(buzones(), { nombre:nom, url:u }));
+    pintarMenuBuzones();
+  });
+}
+
 async function iniciar(){
   try{
     await cargar(true);
     document.getElementById("login").style.display="none";
     document.getElementById("app").style.display="block";
+    renderCuentas();
+    iniciarBuzones();
     refrescarContadores();
     cargarEtiquetas();
     cargarAjustes();
@@ -1217,6 +1328,7 @@ async function buscarAvanzada(){
   if(desde) url += `&desde=${desde}`;
   if(hasta) url += `&hasta=${hasta}`;
   if(etq) url += `&etiqueta=${encodeURIComponent(etq.toLowerCase())}`;
+  url += ctaQuery();
   try{
     const d = await api(url);
     items = d.hilos||[]; hasMore=false; lastTotal=items.length;
@@ -1237,7 +1349,7 @@ function toggleChip(btn){
 }
 async function buscar(){
   try{
-    const d = await api(`/api/buscar?q=${encodeURIComponent(busca)}${chipsQuery()}`);
+    const d = await api(`/api/buscar?q=${encodeURIComponent(busca)}${chipsQuery()}${ctaQuery()}`);
     items = d.hilos||[]; hasMore=false; lastTotal=items.length;
     if(d.error_busqueda) toast("⚠️ Búsqueda no disponible (falta migrar)");
     render();
@@ -1258,12 +1370,12 @@ async function cargar(reset){
   if(busca){ await buscar(); return; }
   const etqQ = etiquetaActiva ? `&etiqueta=${encodeURIComponent(etiquetaActiva.toLowerCase())}` : "";
   if(esVistaHilos(filtro) && !vistaPorMensaje){
-    const d = await api(`/api/hilos?filtro=${filtro}&page=${page}&pageSize=${pageSize}${etqQ}`);
+    const d = await api(`/api/hilos?filtro=${filtro}&page=${page}&pageSize=${pageSize}${etqQ}${ctaQuery()}`);
     items = reset ? (d.hilos||[]) : items.concat(d.hilos||[]);
     hasMore = !!d.hasMore;
     lastTotal = d.total || items.length;
   } else {
-    const d = await api(`/api/correos?filtro=${filtro}&page=${page}&pageSize=${pageSize}${etqQ}`);
+    const d = await api(`/api/correos?filtro=${filtro}&page=${page}&pageSize=${pageSize}${etqQ}${ctaQuery()}`);
     items = reset ? (d.correos||[]) : items.concat(d.correos||[]);
     hasMore = !!d.hasMore;
     lastTotal = d.total || items.length;
@@ -1281,12 +1393,12 @@ function vacioMsg(){
   if(etiquetaActiva) return `Nada con la etiqueta “${esc(etiquetaActiva)}”.`;
   return filtro==="destacados" ? "Sin conversaciones destacadas. Toca la ☆ de una fila para guardarla aquí."
        : filtro==="pospuestos" ? "Nada pospuesto. Usa ⏰ para esconder una conversación y que vuelva sola."
-       : filtro==="enviados"   ? "Aún no hay correos ni cotizaciones enviadas."
+       : filtro==="enviados"   ? "Aún no hay correos enviados."
        : filtro==="archivados" ? "Sin correos archivados."
        : filtro==="borradores" ? "No hay borradores. Los que escriba la IA o tú aparecerán aquí."
        : filtro==="spam"       ? "No hay spam."
        : filtro==="papelera"   ? "La papelera está vacía."
-       : "Sin correos por responder. Cuando llegue uno a contacto@destaperapido.cl aparecerá aquí.";
+       : "Sin correos por responder. Cuando llegue uno a {{CONTACT_EMAIL}} aparecerá aquí.";
 }
 
 function chipsHtml(c){
@@ -1475,7 +1587,7 @@ function render(){
 async function refrescarContadores(){
   try{
     if(!navigator.onLine){ marcarSinConexion(true); return; }
-    const c = await api("/api/contadores");
+    const c = await api("/api/contadores" + ctaQuery("?"));
     // El número va a la derecha de cada carpeta del menú, como Gmail.
     const setB = (id, n, negrita) => {
       const el=document.getElementById("tab-"+id); if(!el) return;
@@ -1492,7 +1604,18 @@ async function refrescarContadores(){
     setB("archivados", c.archivados||0, false);
     setB("spam", c.spam||0, false);
     setB("papelera", c.papelera||0, false);
-    if(navigator.setAppBadge){ try{ (c.pendientes>0)?navigator.setAppBadge(c.pendientes):navigator.clearAppBadge(); }catch(e){} }
+    let pendGlobal = c.pendientes||0;
+    if(c.por_cuenta){
+      // El badge de la app es SIEMPRE global (suma de las cuentas), aunque la vista esté acotada.
+      pendGlobal = Object.values(c.por_cuenta).reduce((a,x)=>a+(x.pendientes||0),0);
+      document.querySelectorAll("#listaCuentas .cta-b").forEach(b=>{
+        const v=b.dataset.cta||""; const cnt=b.querySelector(".cnt"); if(!cnt) return;
+        const n = v ? ((c.por_cuenta[v]||{}).no_leidos||0)
+                    : Object.values(c.por_cuenta).reduce((a,x)=>a+(x.no_leidos||0),0);
+        cnt.textContent = n>0 ? (n>999?"999+":String(n)) : "";
+      });
+    }
+    if(navigator.setAppBadge){ try{ (pendGlobal>0)?navigator.setAppBadge(pendGlobal):navigator.clearAppBadge(); }catch(e){} }
   }catch(e){}
 }
 
@@ -1782,7 +1905,7 @@ let hiloUnico = false; // hilo de 1 solo mensaje entrante -> permite "Spam" dire
 function entradasHilo(msgs){
   const arr=[];
   for(const m of msgs){
-    const esNuestro = (m.de||"").toLowerCase()===NOSOTROS || m.estado==="enviado";
+    const esNuestro = esCuentaNuestra(m.de) || m.estado==="enviado";
     arr.push({
       id:String(m.id), dir:esNuestro?"out":"in",
       nombre: esNuestro?"Yo":(((m.de_nombre||"").trim()) || m.de || "(desconocido)"),
@@ -1882,7 +2005,7 @@ function pdfCotizacionHtml(e){
   if(!e.adj) return "";
   return e.urlCot
     ? `<div class="hm-adj">📎 <a href="${esc(e.urlCot)}" target="_blank" rel="noopener"
-         onclick="event.stopPropagation()"><b>${esc(e.adj)}</b></a> · cotización en PDF</div>`
+         onclick="event.stopPropagation()"><b>${esc(e.adj)}</b></a> · adjunto en PDF</div>`
     : `<div class="hm-adj">📎 <b>${esc(e.adj)}</b></div>`;
 }
 
@@ -2023,7 +2146,7 @@ async function verHiloInterno(tid){
   actualTid = tid;
   // Correo "accionable" (para responder/ajustar): el último pendiente; si no, el último entrante.
   const accionables = msgs.filter(m=>["nuevo","borrador","ajuste"].includes(m.estado));
-  const entrantes = msgs.filter(m=>(m.de||"").toLowerCase()!==NOSOTROS && m.estado!=="enviado");
+  const entrantes = msgs.filter(m=>!esCuentaNuestra(m.de) && m.estado!=="enviado");
   actual = accionables[accionables.length-1] || entrantes[entrantes.length-1] || msgs[msgs.length-1];
   hiloUnico = msgs.length===1 && entrantes.length===1;
   imagenesOk = d.imagenes_confiables || [];
@@ -2234,7 +2357,7 @@ function montarSeguimiento(){
 function renderResp(c){
   const r = document.getElementById("mResp");
   if (c.estado === "enviado"){
-    r.innerHTML = `<h3>✅&nbsp;Cotización enviada</h3>${adjuntoHtml(c)}
+    r.innerHTML = `<h3>✅&nbsp;Correo enviado</h3>${adjuntoHtml(c)}
       <div class="estado-msg">Enviada ${esc(fmtFecha(c.respondido_en||c.recibido_en))} · a ${esc(c.para)}</div>
       <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />${actualTid?cajaSeguimiento():""}`;
     if(actualTid) montarSeguimiento();
@@ -2764,14 +2887,30 @@ function reenviar(){
     "\n\n---------- Mensaje reenviado ----------\n\n" + cuerpo + adjAviso);
 }
 
+function prepararCampoDe(deGuardado){
+  if(CUENTAS.length < 2) return;
+  const fila=document.getElementById("filaDe"), sel=document.getElementById("cDe");
+  if(!fila||!sel) return;
+  fila.style.display="flex";
+  sel.innerHTML = CUENTAS.map(c=>`<option value="${esc(c.email)}">${esc(c.etiqueta)} — ${esc(c.email)}</option>`).join("");
+  const pre = (deGuardado && esCuentaNuestra(deGuardado)) ? String(deGuardado).toLowerCase()
+            : (cuentaActiva || CUENTAS[0].email);
+  sel.value = pre;
+}
+function valorDe(){
+  const fila=document.getElementById("filaDe"), sel=document.getElementById("cDe");
+  return (fila && sel && fila.style.display!=="none") ? sel.value : "";
+}
 async function abrirCompose(id, paraPre, asuntoPre, cuerpoPre){
   document.getElementById("overlay2").style.display="block";
   document.getElementById("overlay2").classList.remove("min");
   iniciarSquire();
   composeId = id || null; composeSucio=false;
   cargarContactos("");
+  prepararCampoDe();
   if(id){
     const c = await api("/api/correo?id="+id);
+    prepararCampoDe(c.de);
     document.getElementById("cPara").value = c.para||"";
     document.getElementById("cAsunto").value = c.asunto||"";
     if(squire) squire.setHTML((c.respuesta_borrador||"").replace(/\n/g,"<br>"));
@@ -2853,7 +2992,7 @@ async function guardarCompose(){
   if(!para && !asunto && !texto.replace(FIRMA.trim(),"").trim()) return;  // solo la firma: nada que guardar
   try{
     const d=await api("/api/redactar-guardar",{method:"POST",headers:{"content-type":"application/json"},
-      body:JSON.stringify({id:composeId,para,asunto,texto})});
+      body:JSON.stringify({id:composeId,para,asunto,texto,de:valorDe()})});
     if(d.id) composeId=d.id;
     composeSucio=false; estadoCompose("Guardado ✓");
     limpiarLocal();          // ya está a salvo en el servidor
@@ -2891,7 +3030,7 @@ async function composeEnviar(confirmadoSinAdjunto){
   document.querySelectorAll("#compose .btn").forEach(b=>b.disabled=true);
   try{
     const d=await api("/api/redactar-enviar",{method:"POST",headers:{"content-type":"application/json"},
-      body:JSON.stringify({id:composeId,para,asunto,texto,html,cc,cco,adjuntos:adjCompose})});
+      body:JSON.stringify({id:composeId,para,asunto,texto,html,cc,cco,adjuntos:adjCompose,de:valorDe()})});
     if(d.ok){
       composeSucio=false; composeId=null; adjCompose=[]; pintarAdjElegidos("compose"); limpiarLocal();
       document.getElementById("overlay2").style.display="none";

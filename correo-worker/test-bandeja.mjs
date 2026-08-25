@@ -37,15 +37,15 @@ vm.runInContext(script, ctx);
 
 console.log("\n== partirCitas (recorte de citas ES/EN) ==");
 {
-  const gmailES = "Hola, confirmo la fecha.\nSaludos\n\nEl lun, 11 ago 2026 a las 10:03, Destape Rápido (<contacto@destaperapido.cl>) escribió:\n> Estimada Rita\n> Adjunto cotización";
+  const gmailES = "Hola, confirmo la fecha.\nSaludos\n\nEl lun, 11 ago 2026 a las 10:03, Negocio Ejemplo (<contacto@negocio.cl>) escribió:\n> Estimada Rita\n> Adjunto cotización";
   const r1 = ctx.partirCitas(gmailES);
   check("Gmail ES: separa 'El ... escribió:'", r1.visible === "Hola, confirmo la fecha.\nSaludos" && r1.cita.startsWith("El lun"), r1);
 
-  const outlookES = "Perfecto, gracias.\n\nDe: Destape Rápido <contacto@destaperapido.cl>\nEnviado: lunes 11 de agosto\nPara: Rita Pérez\nAsunto: Re: Cotización\n\ntexto viejo";
+  const outlookES = "Perfecto, gracias.\n\nDe: Negocio Ejemplo <contacto@negocio.cl>\nEnviado: lunes 11 de agosto\nPara: Rita Pérez\nAsunto: Re: Cotización\n\ntexto viejo";
   const r2 = ctx.partirCitas(outlookES);
   check("Outlook ES: bloque 'De:/Enviado:/Para:'", r2.visible === "Perfecto, gracias." && r2.cita.startsWith("De:"), r2);
 
-  const desde = "Adjunto comprobante.\nSaludos Rita\n\nDesde: Destape Rápido <contacto@destaperapido.cl>\nEnviado: 7 ago\nPara: rperez@cierreparcela.cl\n\nhola";
+  const desde = "Adjunto comprobante.\nSaludos Rita\n\nDesde: Negocio Ejemplo <contacto@negocio.cl>\nEnviado: 7 ago\nPara: rperez@cierreparcela.cl\n\nhola";
   const r3 = ctx.partirCitas(desde);
   check("'Desde:' con cabeceras también corta", r3.visible.includes("Saludos Rita") && r3.cita.startsWith("Desde:"), r3);
 
@@ -61,7 +61,7 @@ console.log("\n== partirCitas (recorte de citas ES/EN) ==");
   const r6 = ctx.partirCitas(soloCita);
   check("mensaje que ES pura cita queda visible (idx 0)", r6.visible === soloCita && r6.cita === "", r6);
 
-  const enWrote = "Sure, confirmed.\n\nOn Mon, Aug 11, 2026 at 10:03 AM Destape Rápido wrote:\n> quote";
+  const enWrote = "Sure, confirmed.\n\nOn Mon, Aug 11, 2026 at 10:03 AM Negocio Ejemplo wrote:\n> quote";
   const r7 = ctx.partirCitas(enWrote);
   check("inglés 'On ... wrote:'", r7.visible === "Sure, confirmed." && r7.cita.startsWith("On Mon"), r7);
 
@@ -125,13 +125,21 @@ function extraerFn(nombre) {
 const wctx = { console, Date, RegExp };
 vm.createContext(wctx);
 vm.runInContext(extraerFn("normAsunto"), wctx);
+vm.runInContext(extraerFn("cuentas"), wctx);
+vm.runInContext(extraerFn("esNuestra"), wctx);
 vm.runInContext(extraerFn("contraparte"), wctx);
-vm.runInContext("const NOSOTROS='contacto@destaperapido.cl';", wctx);
 vm.runInContext(extraerFn("derivarThreadId"), wctx);
+// env de prueba: una cuenta por CONTACT_EMAIL (respaldo) y dos por CUENTAS (subcuentas).
+const ENV1 = { CONTACT_EMAIL: "contacto@negocio.cl" };
+const ENV2 = { CUENTAS: "contacto@negocio.cl, ventas@negocio.cl|Ventas" };
 
 check("normAsunto quita Re:/Fwd:", wctx.normAsunto("RE: Re: Fwd: Cotización  Baño") === "cotización baño");
-check("contraparte nuestro→para", wctx.contraparte("contacto@destaperapido.cl", "rita@x.cl") === "rita@x.cl");
-check("contraparte cliente→de", wctx.contraparte("Rita@X.cl", "contacto@destaperapido.cl") === "rita@x.cl");
+check("cuentas: CSV con etiqueta", JSON.stringify(wctx.cuentas(ENV2)) === JSON.stringify(["contacto@negocio.cl","ventas@negocio.cl"]));
+check("esNuestra con respaldo CONTACT_EMAIL", wctx.esNuestra(ENV1, "Contacto@Negocio.cl") === true);
+check("esNuestra: ajena es falsa", wctx.esNuestra(ENV2, "rita@x.cl") === false);
+check("contraparte nuestro→para", wctx.contraparte(ENV1, "contacto@negocio.cl", "rita@x.cl") === "rita@x.cl");
+check("contraparte cliente→de", wctx.contraparte(ENV1, "Rita@X.cl", "contacto@negocio.cl") === "rita@x.cl");
+check("contraparte subcuenta→para", wctx.contraparte(ENV2, "Ventas@Negocio.cl", "rita@x.cl") === "rita@x.cl");
 
 // DB falsa: se programa por consulta.
 function fakeDB(porHeader, recientes) {
@@ -151,28 +159,33 @@ function fakeDB(porHeader, recientes) {
 
 {
   // 1) adopta por header
-  const env = { DB: fakeDB({ thread_id: "hilo-por-header" }, []) };
-  const t = await wctx.derivarThreadId(env, "rita@x.cl", "contacto@destaperapido.cl", "Re: Cotización", "<mid1>", "", "u1");
+  const env = { CONTACT_EMAIL: "contacto@negocio.cl", DB: fakeDB({ thread_id: "hilo-por-header" }, []) };
+  const t = await wctx.derivarThreadId(env, "rita@x.cl", "contacto@negocio.cl", "Re: Cotización", "<mid1>", "", "u1");
   check("adopta hilo por In-Reply-To/References", t === "hilo-por-header", t);
 }
 {
   // 2) sin header: adopta por asunto+contraparte reciente (responde a cotización proactiva 'enviado')
-  const env = { DB: fakeDB(null, [{ asunto: "Cotización Destape Rápido — baño químico", thread_id: "hilo-enviado-77" }]) };
-  const t = await wctx.derivarThreadId(env, "rita@x.cl", "contacto@destaperapido.cl",
-    "Re: Cotización Destape Rápido — baño químico", "", "", "u2");
+  const env = { CONTACT_EMAIL: "contacto@negocio.cl", DB: fakeDB(null, [{ asunto: "Cotización Negocio Ejemplo — baño químico", thread_id: "hilo-enviado-77" }]) };
+  const t = await wctx.derivarThreadId(env, "rita@x.cl", "contacto@negocio.cl",
+    "Re: Cotización Negocio Ejemplo — baño químico", "", "", "u2");
   check("adopta hilo por asunto+contraparte (7 días)", t === "hilo-enviado-77", t);
 }
 {
   // 3) sin nada: hilo nuevo único con sufijo
-  const env = { DB: fakeDB(null, [{ asunto: "Otro tema totalmente distinto", thread_id: "hilo-x" }]) };
-  const t = await wctx.derivarThreadId(env, "rita@x.cl", "contacto@destaperapido.cl", "Consulta nueva", "", "", "uniq99");
-  check("hilo nuevo único (con sufijo uniq)", t === "s:consulta nueva|rita@x.cl|uniq99", t);
+  const env = { CONTACT_EMAIL: "contacto@negocio.cl", DB: fakeDB(null, [{ asunto: "Otro tema totalmente distinto", thread_id: "hilo-x" }]) };
+  const t = await wctx.derivarThreadId(env, "rita@x.cl", "contacto@negocio.cl", "Consulta nueva", "", "", "uniq99");
+  check("hilo nuevo único (con cuenta + sufijo uniq)", t === "s:consulta nueva|rita@x.cl|contacto@negocio.cl|uniq99", t);
+  // Subcuentas (fase 16): el mismo cliente y asunto hacia DOS cuentas nuestras = DOS hilos.
+  const envSub = { CUENTAS: "contacto@negocio.cl,ventas@negocio.cl", DB: fakeDB(null, []) };
+  const tA = await wctx.derivarThreadId(envSub, "rita@x.cl", "contacto@negocio.cl", "Consulta nueva", "", "", "u1");
+  const tB = await wctx.derivarThreadId(envSub, "rita@x.cl", "ventas@negocio.cl", "Consulta nueva", "", "", "u1");
+  check("subcuentas: hilos separados por cuenta", tA !== tB && tA.includes("contacto@") && tB.includes("ventas@"), [tA, tB]);
 }
 {
   // 4) dos conversaciones iguales separadas en el tiempo NO se pegan (ventana vacía)
-  const env = { DB: fakeDB(null, []) };
-  const t1 = await wctx.derivarThreadId(env, "rita@x.cl", "contacto@destaperapido.cl", "Cotización", "", "", "a1");
-  const t2 = await wctx.derivarThreadId(env, "rita@x.cl", "contacto@destaperapido.cl", "Cotización", "", "", "b2");
+  const env = { CONTACT_EMAIL: "contacto@negocio.cl", DB: fakeDB(null, []) };
+  const t1 = await wctx.derivarThreadId(env, "rita@x.cl", "contacto@negocio.cl", "Cotización", "", "", "a1");
+  const t2 = await wctx.derivarThreadId(env, "rita@x.cl", "contacto@negocio.cl", "Cotización", "", "", "b2");
   check("mismo asunto meses después → hilos distintos", t1 !== t2, [t1, t2]);
 }
 
