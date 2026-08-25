@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Bandeja · {{BRAND_NAME}}</title>
 <link rel="manifest" href="/manifest.webmanifest" />
 <link rel="apple-touch-icon" href="/icon-180.png" />
@@ -28,12 +28,13 @@
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
        background:var(--bg);color:var(--dark)}
-  header{background:var(--brand);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:12px;
+  header{background:var(--brand);color:#fff;padding:calc(14px + env(safe-area-inset-top,0px)) 18px 14px;display:flex;align-items:center;gap:12px;
          position:sticky;top:0;z-index:var(--z-cabecera)}
   header h1{font-size:17px;margin:0;font-weight:600;flex:1}
-  header button{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;padding:7px 12px;
+  header button{background:rgba(0,0,0,.16);color:#fff;border:0;border-radius:8px;padding:7px 12px;
+                min-height:44px;min-width:44px;
                 font-size:13px;cursor:pointer}
-  header button:hover{background:rgba(255,255,255,.28)}
+  header button:hover{background:rgba(0,0,0,.30)}
   .wrap{max-width:880px;margin:0 auto;padding:14px}
 
   #login{max-width:360px;margin:14vh auto;background:#fff;border:1px solid var(--line);border-radius:14px;
@@ -43,7 +44,7 @@
   #login input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;font-size:15px}
   #login button{margin-top:12px;width:100%;background:var(--brand);color:#fff;border:0;border-radius:9px;
                 padding:11px;font-size:15px;font-weight:600;cursor:pointer}
-  .err{color:#b5462e;font-size:13px;margin-top:10px;min-height:16px}
+  .err{color:#9c3a25;font-size:13px;margin-top:10px;min-height:16px}
 
   .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-bottom:8px;
         cursor:pointer;transition:.12s;position:relative}
@@ -57,7 +58,7 @@
   .snippet{font-size:12.5px;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .badge{font-size:10.5px;background:var(--brand-soft);color:var(--brand);padding:2px 7px;border-radius:20px;font-weight:600}
   .est{font-size:10.5px;padding:2px 7px;border-radius:20px;font-weight:700}
-  .est-ajuste{background:#fde0e0;color:#b5462e}
+  .est-ajuste{background:#fde0e0;color:#9c3a25}
   .qa{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
   .qa-b{background:#f2f5f5;border:1px solid var(--line);border-radius:8px;padding:4px 10px;font-size:12px;
         cursor:pointer;color:var(--dark)}
@@ -122,9 +123,14 @@
      que se note que el contenido pasa POR DEBAJO y no queda cortado a medias. */
   .vbar{position:sticky;top:0;z-index:var(--z-barra);background:var(--bg);
         border-bottom:1px solid var(--line);display:flex;align-items:center;gap:4px;
-        padding:8px 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+        padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;
         transition:box-shadow var(--rapido) var(--curva)}
   .vbar.despegada{box-shadow:0 4px 12px rgba(15,42,42,.10)}
+  /* Barras con scroll horizontal: iOS no muestra scrollbar → sin pista, los botones de la
+     derecha "no existen". El difuminado aparece solo cuando de verdad hay más contenido. */
+  .vbar.desborda,.tabs.desborda,.mbar.desborda{
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 34px),rgba(0,0,0,.15));
+    mask-image:linear-gradient(90deg,#000 calc(100% - 34px),rgba(0,0,0,.15))}
   /* Al despegarse aparece el asunto en la barra: así sabes qué estás leyendo aunque
      hayas bajado. Gmail deja el asunto arriba y lo pierdes de vista. */
   .vbar-asunto{display:none;flex:1;min-width:0;font-size:13.5px;font-weight:600;
@@ -168,7 +174,7 @@
   .btn-claude{background:#5b3fbf;color:#fff}
   .btn-guardar{background:#eef2f2;color:var(--dark)}
   .btn-enviar{background:var(--brand);color:#fff}
-  .btn-spam{background:#fff;border:1px solid var(--line);color:#b5462e}
+  .btn-spam{background:#fff;border:1px solid var(--line);color:#9c3a25}
   .btn[disabled]{opacity:.55;cursor:default}
   .estado-msg{font-size:12.5px;color:var(--gray);margin-top:8px;min-height:16px}
   .enviada{background:#d6f0e2;border:1px solid #aedcc4;border-radius:9px;padding:12px;white-space:pre-wrap;
@@ -191,7 +197,7 @@
   .mbar-b{min-height:40px;padding:0 12px;font-size:13.5px;border-radius:9px;border:1px solid var(--line);
         background:#f2f5f5;color:var(--dark);flex:0 0 auto;cursor:pointer;white-space:nowrap}
   .mbar-b.primary{border-color:var(--brand);color:var(--brand)}
-  .mbar-b.danger{color:#b5462e}
+  .mbar-b.danger{color:#9c3a25}
   .mbar-b[disabled]{opacity:.5;cursor:default}
   /* ===== Movimiento (fase 18) =====
      Gmail es casi estático: aparecer/desaparecer sin transición. Aquí se suaviza lo que
@@ -278,13 +284,13 @@
   @media (max-width:820px){ .hadj{display:none} }
   .hclip{flex:none;font-size:12px;color:var(--gray)}
   .hchip{flex:none;font-size:10px;font-weight:800;border-radius:8px;padding:1.5px 7px;white-space:nowrap}
-  .hchip-rev{background:#fde0e0;color:#b5462e}
+  .hchip-rev{background:#fde0e0;color:#9c3a25}
   .hchip-bor{background:#efe9fb;color:#5b3fbf}
-  .hchip-aju{background:#fff6ed;color:#b07222}
+  .hchip-aju{background:#fff6ed;color:#8a591b}
   .hchip-ok{background:var(--brand-soft);color:var(--brand)}
   .hfecha{flex:none;font-size:12px;color:var(--ink,#1E2A2A);white-space:nowrap;min-width:48px;text-align:right}
   .pag{border:0;background:none;color:var(--gray);cursor:pointer;font-size:15px;padding:2px 8px;
-       border-radius:6px;line-height:1}
+       border-radius:6px;line-height:1;min-width:44px;min-height:44px}
   .pag:hover:not([disabled]){background:#e7edec;color:var(--dark)}
   .pag[disabled]{opacity:.3;cursor:default}
   .hacts{display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);gap:4px;
@@ -296,6 +302,12 @@
     .hrow:hover .hfecha,.hrow:hover .hchip,.hrow:hover .hclip{visibility:hidden}
   }
   .hacts button{border:0;background:none;font-size:14px;cursor:pointer;padding:3px 6px;border-radius:6px}
+  /* Táctil: sin hover, las acciones aparecen en la fila con foco (cursor j/k) y en la
+     que estás leyendo. Lo demás va por swipe, ✓ selección o dentro del hilo. */
+  @media (hover:none){
+    .hrow.activo .hacts,.hrow.leyendo .hacts{display:flex;background:var(--bg);box-shadow:-8px 0 8px var(--bg)}
+    .hacts button{padding:10px 9px}
+  }
   .hacts button:hover{background:var(--brand-soft)}
 
   /* ===== Fase 10: vista de hilo (mensajes colapsados + citas ocultas) ===== */
@@ -327,6 +339,15 @@
   .hm:hover .hm-mas,.hm.abierto .hm-mas{opacity:1}
   .hm-mas:hover{background:var(--surface2,#e7edec)}
   @media (hover:none){ .hm-mas{opacity:1} }
+  /* Teléfono: la cabecera del mensaje se apila en dos líneas (quién + fecha / extracto).
+     Antes quien/mail/extracto/fecha competían con 4 elipsis en ~340px. */
+  @media (max-width:820px){
+    .hm-head{flex-wrap:wrap;row-gap:2px}
+    .hm-quien{max-width:calc(100% - 120px)}
+    .hm-mail{display:none}
+    .hm-snip{flex-basis:100%;order:9;padding-left:22px}
+    .hm.abierto .hm-snip{display:none}
+  }
   /* El mostrar/ocultar y su animación están en el bloque de movimiento, más abajo. */
   .hm-body{font-size:13.5px;line-height:1.6}
   .hm-txt{white-space:pre-wrap;word-break:break-word}
@@ -378,12 +399,23 @@
     .hcheck,.hstar,.hdot{margin-top:3px}
     /* Objetivos táctiles de 44px: con el dedo, y muchas veces con una sola mano. */
     .hcheck{width:22px;height:22px;padding:11px;margin:-11px -11px -11px 0;box-sizing:content-box}
-    .hstar{padding:11px;margin:-11px}
+    /* Blancos táctiles pendientes de la auditoría: nada útil bajo ~44px. */
+    .tab{padding:11px 15px}
+    .pag{padding:10px 12px;min-width:44px;min-height:44px}
+    .vback{padding:10px 12px}
+    #compose .cclose{width:38px;height:38px}
+    .selbar button{padding:11px 12px}
+    .fchip{padding:10px 12px}
+    .chip-add{padding:9px 12px}
+    .blq button{padding:10px 12px}
+    .img-aviso button{padding:9px 10px}
+    .bavanz,.blimpiar{min-width:44px;min-height:44px}
+    header button{min-height:44px;min-width:44px}
     .btn,.qa-b,.mbar-b,.side-b{min-height:44px}
     .ctoolbar button{min-width:44px;height:44px}
     .hm-head{min-height:44px}
     .hm-mas{padding:11px}
-    header button{min-height:40px;min-width:40px}
+    header button{min-height:44px;min-width:44px}
   }
   .hm-av{width:34px;height:34px;font-size:14px;margin-right:2px}
   /* En el teléfono el avatar SÍ se muestra (con la fila de dos líneas hay espacio y
@@ -411,7 +443,7 @@
         cursor:pointer;padding:0 18px;margin:4px 0 14px 8px;box-shadow:0 1px 3px rgba(0,0,0,.16)}
   .btn-redactar:hover{box-shadow:0 2px 8px rgba(0,0,0,.24)}
   .btn-redactar .ic{font-size:17px}
-  .side-b{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;
+  .side-b{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;min-height:44px;
           background:none;border-radius:0 999px 999px 0;padding:8px 14px;font-size:13.5px;
           color:var(--dark);cursor:pointer;margin-bottom:2px}
   .side-b:hover{background:#e9efee}
@@ -426,9 +458,9 @@
   .velo{display:none;position:fixed;inset:0;background:rgba(20,30,30,.4);z-index:calc(var(--z-cajon) - 1)}
   @media (max-width:820px){
     .burger{display:block}
-    .side{position:fixed;left:0;top:0;bottom:0;width:250px;background:#fff;z-index:var(--z-cajon);
+    .side{position:fixed;left:0;top:0;bottom:0;width:min(250px, 78vw);background:#fff;z-index:var(--z-cajon);
           transform:translateX(-102%);transition:transform .22s ease;overflow-y:auto;
-          box-shadow:2px 0 16px rgba(0,0,0,.14);padding-top:16px}
+          box-shadow:2px 0 16px rgba(0,0,0,.14);padding-top:calc(16px + env(safe-area-inset-top,0px))}
     .side.abierto{transform:none}
     .velo.on{display:block}
     .principal{padding:10px}
@@ -437,7 +469,8 @@
             font-weight:700;padding:10px 14px 6px}
 
   .hstar{flex:none;background:none;border:0;cursor:pointer;font-size:14px;line-height:1;
-         padding:0 2px;color:#c8d2d1;filter:grayscale(1);opacity:.55}
+         padding:15px;margin:-15px -13px;box-sizing:content-box;
+         color:#c8d2d1;filter:grayscale(1);opacity:.55}
   .hstar.on{filter:none;opacity:1}
   .hstar:hover{opacity:1}
 
@@ -449,7 +482,7 @@
   .buscador:focus-within{background:#fff}
   .buscador input{flex:1;padding:8px 4px;border:0;font-size:14px;background:transparent;
         outline:none;color:#fff;min-width:0}
-  .buscador input::placeholder{color:rgba(255,255,255,.75)}
+  .buscador input::placeholder{color:rgba(255,255,255,.9)}
   .buscador:focus-within input{color:var(--dark)}
   .buscador:focus-within input::placeholder{color:var(--gray)}
   .buscador .blimpiar{border:0;background:none;font-size:15px;cursor:pointer;
@@ -463,15 +496,15 @@
     .solo-ancho{display:none}          /* "Salir" pasa al menú: en la cabecera no cabe */
     .solo-angosto{display:flex}
   }
-  .bavanz{border:0;background:none;font-size:15px;cursor:pointer;color:rgba(255,255,255,.85);
-        padding:4px 7px;border-radius:8px}
+  .bavanz{border:0;background:none;font-size:15px;cursor:pointer;color:rgba(255,255,255,.9);
+        padding:4px 7px;border-radius:8px;min-width:44px;min-height:44px}
   .bavanz:hover{background:rgba(255,255,255,.18)}
   .buscador:focus-within .bavanz:hover{background:#e7edec}
   /* Buscador avanzado: los campos del panel de Gmail */
   .avanzada{display:none;max-width:720px;margin:8px auto 0;background:#fff;border:1px solid var(--line);
         border-radius:12px;padding:12px 16px;box-shadow:0 4px 16px rgba(0,0,0,.07)}
   .avanzada.on{display:block}
-  .af{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+  .af{display:flex;align-items:center;gap:8px;margin-bottom:9px;flex-wrap:wrap}
   .af label{font-size:12.5px;color:var(--gray);min-width:72px}
   .af input{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13.5px;
         font-family:inherit;min-width:0}
@@ -505,12 +538,16 @@
   #compose .cuerpoCompose{display:flex;flex-direction:column;min-height:0;overflow-y:auto}
   #overlay2.min #compose .cuerpoCompose{display:none}
   #overlay2.min{max-height:none}
-  /* En el teléfono ocupa la pantalla completa, como la app de Gmail. */
-  @media (max-width:640px){
+  /* En el teléfono ocupa la pantalla completa, como la app de Gmail.
+     820 (no 640): el MISMO umbral del layout de teléfono — antes había una zona muerta
+     641-820 con burger + ventana flotante mezclados. 100dvh y no 100vh: la barra del
+     navegador ya no tapa Enviar; el teclado lo maneja visualViewport (abajo en el JS). */
+  @media (max-width:820px){
     #overlay2{right:0;left:0;top:0;width:100%;max-height:none}
-    #compose{border-radius:0;max-height:100vh;height:100vh}
+    #compose{border-radius:0;max-height:none;height:100vh;height:100dvh;
+      padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
     #overlay2.min{top:auto;bottom:0}
-    #overlay2.min #compose{height:auto}
+    #overlay2.min #compose{height:auto;padding-top:0}
   }
   #compose .campo{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:9px 16px}
   #compose .campo label{font-size:12.5px;color:var(--gray);min-width:52px}
@@ -532,7 +569,7 @@
   #overlay3{position:fixed;inset:0;background:rgba(20,30,30,.5);display:none;align-items:center;
         justify-content:center;padding:20px;z-index:var(--z-modal)}
   #mini{background:#fff;border-radius:13px;max-width:400px;width:100%;padding:18px}
-  #mini h4{margin:0 0 8px;font-size:15px}
+  #mini h2{margin:0 0 8px;font-size:15px}
   #mini p{margin:0 0 12px;font-size:13px;color:var(--gray)}
   #mini input,#mini textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;
         font-size:14px;font-family:inherit;margin-bottom:12px}
@@ -660,6 +697,7 @@
       <div class="selbar" id="selbar">
         <span class="scnt" id="selCnt"></span>
         <button onclick="selAccion('archivar')">✅ Listo</button>
+        <button onclick="selAccion('leido')">📖 Leído</button>
         <button onclick="selAccion('posponer')">⏰ Posponer</button>
         <button onclick="selAccion('eliminar')">🗑️ Eliminar</button>
         <button onclick="selLimpiar()">Cancelar</button>
@@ -735,7 +773,7 @@
 <!-- Mini-modal propio (fase 12): reemplaza prompt()/confirm() del navegador -->
 <div id="overlay3">
   <div id="mini">
-    <h4 id="miniTit"></h4>
+    <h2 id="miniTit"></h2>
     <p id="miniTxt"></p>
     <input id="miniInput" style="display:none" />
     <div class="mbtns">
@@ -1520,7 +1558,7 @@ function hiloHtml(h){
   return `
     <div class="hrow ${noLeida?'noleida':'leida'}${seleccion.has(h.tid)?' sel':''}"
          data-tid="${esc(h.tid)}" onclick="verHilo(${tid})"
-         tabindex="0" role="button"
+         tabindex="0"
          aria-label="Conversación con ${esc(participantesTxt(h))}: ${esc(quitarRe(h.ult_asunto))}${noLeida?', no leída':''}"
          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();verHilo(${tid});}">
       <span class="hcheck" role="checkbox" aria-checked="${seleccion.has(h.tid)}"
@@ -1814,6 +1852,16 @@ async function selAccion(tipo){
       });
     return;
   }
+  if(tipo==="leido"){
+    selLimpiar();
+    try{
+      await Promise.all(tids.map(t=>api("/api/marcar-leido-hilo",{method:"POST",
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({thread_id:t, leido:1})})));
+      refrescarContadores(); cargar(true); toast(`${tids.length} marcadas leídas 📖`);
+    }catch(e){ toast("⚠️ "+e.message); }
+    return;
+  }
   const url = tipo==="archivar" ? "/api/archivar-hilo" : "/api/eliminar-hilo";
   const undo = tipo==="archivar" ? "/api/restaurar-hilo" : "/api/restaurar-hilo-papelera";
   selLimpiar();
@@ -2068,7 +2116,7 @@ function hiloMsgHtml(e, abierto){
   const base = e.texto ? partirCitas(e.texto).visible : "";
   const snip = (base || (e.html?"(mensaje con formato)":"")).replace(/\s+/g," ").slice(0,90);
   return `<div class="hm ${abierto?'abierto':''}" id="hm-${esc(e.id)}">
-    <div class="hm-head" role="button" tabindex="0"
+    <div class="hm-head" tabindex="0"
          aria-expanded="${abierto}" aria-controls="hmb-${esc(e.id)}"
          aria-label="${abierto?'Cerrar':'Abrir'} el mensaje de ${esc(e.nombre)}"
          onclick="toggleHm('${esc(e.id)}',${e.idx})"
@@ -3357,7 +3405,7 @@ function mostrarAtajos(){
 (function tirarParaActualizar(){
   let y0=null, activo=false;
   const barra=document.createElement("div");
-  barra.style.cssText="position:fixed;top:0;left:0;right:0;text-align:center;font-size:13px;"+
+  barra.style.cssText="position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;text-align:center;font-size:13px;"+
     "color:#fff;background:var(--brand);padding:6px;transform:translateY(-100%);transition:transform .2s;z-index:15";
   barra.textContent="↓ Suelta para actualizar";
   document.addEventListener("DOMContentLoaded",()=>document.body.appendChild(barra));
@@ -3416,6 +3464,36 @@ setInterval(()=>{
 
 if(pass){ document.getElementById("login").style.display="none"; iniciar(); }
 document.getElementById("pass").addEventListener("keydown",e=>{ if(e.key==="Enter") entrar(); });
+// ---------- Teclado móvil (fase móvil): el botón Enviar JAMÁS bajo el teclado ----------
+// iOS no encoge 100vh/100dvh al abrir el teclado: seguimos el alto VISIBLE real.
+if (window.visualViewport){
+  const seguirTeclado = () => {
+    const ov = document.getElementById("overlay2");
+    const comp = document.getElementById("compose");
+    if(!ov || !comp) return;
+    const abierto = ov.style.display === "block" && !ov.classList.contains("min");
+    if (abierto && window.innerWidth <= 820) {
+      comp.style.height = Math.round(window.visualViewport.height) + "px";
+    } else {
+      comp.style.height = "";
+    }
+  };
+  window.visualViewport.addEventListener("resize", seguirTeclado);
+  window.visualViewport.addEventListener("scroll", seguirTeclado);
+}
+
+// ---------- Pista de desborde en barras con scroll horizontal ----------
+function marcarDesbordes(){
+  document.querySelectorAll(".vbar,.tabs,.mbar").forEach(el=>{
+    const hayMas = el.scrollWidth > el.clientWidth + 4
+      && el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+    el.classList.toggle("desborda", hayMas);
+  });
+}
+window.addEventListener("resize", marcarDesbordes);
+document.addEventListener("scroll", marcarDesbordes, true);   // captura: sirve para las barras internas
+setInterval(marcarDesbordes, 1200);                            // red de seguridad al re-pintar listas
+
 </script>
 </body>
 </html>

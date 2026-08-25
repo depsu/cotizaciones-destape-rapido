@@ -1460,7 +1460,17 @@ export default {
     // GET /api/contadores[?cuenta=]  -> conteos para badges (barato; lo llama el tick de 15s).
     // Con ?cuenta= los números se acotan a esa subcuenta; `por_cuenta` (si hay >1 cuenta)
     // trae el desglose para pintar el badge de cada cuenta en el selector.
+    // De paso despierta lo pospuesto vencido (fase 14): red de seguridad para workers SIN cron
+    // (la cuenta free de Cloudflare tope 5 crons); con cron es un no-op inofensivo.
     if (path === "/api/contadores" && request.method === "GET") {
+      try {
+        await env.DB.prepare(
+          `UPDATE correos SET pospuesto_hasta=NULL, leido=0, notificado=0
+           WHERE pospuesto_hasta IS NOT NULL AND pospuesto_hasta <= datetime('now')`
+        ).run();
+      } catch (e) {
+        /* columna aún no migrada: no romper los contadores */
+      }
       const ctaCont = (url.searchParams.get("cuenta") || "").trim().toLowerCase();
       const condCta = ctaCont && esNuestra(env, ctaCont)
         ? ` WHERE (lower(COALESCE(para,''))=? OR lower(de)=?)` : "";
