@@ -8,6 +8,10 @@ import PANEL_HTML from "../panel.html";
 import { buildWebPush } from "./webpush.js";
 import ICON_512 from "../icon-512.png";
 import ICON_180 from "../icon-180.png";
+// Vendoreadas (fase 11): licencias en vendor/VENDORED.md — solo permisivas, nunca GPL/AGPL.
+// Extensión .txt a propósito: se sirven como texto, no se ejecutan en el Worker.
+import PURIFY_JS from "../vendor/purify.min.js.txt";
+import SQUIRE_JS from "../vendor/squire.js.txt";
 
 const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), {
@@ -57,7 +61,9 @@ self.addEventListener('notificationclick', (event) => {
 // Manda un push acumulado si hay correos nuevos sin avisar.
 async function notificar(env) {
   // "Necesita tu atención" = sin procesar (nuevo) o que la IA marcó de baja confianza.
-  const cond = `(estado='nuevo' OR (estado='borrador' AND confianza='baja'))`;
+  // Lo pospuesto NO avisa: para eso lo pospusiste (fase 14).
+  const cond = `(estado='nuevo' OR (estado='borrador' AND confianza='baja'))
+                AND COALESCE(pospuesto_hasta,'') <= datetime('now')`;
   const { results: pend } = await env.DB.prepare(
     `SELECT id FROM correos WHERE (notificado IS NULL OR notificado=0) AND ${cond}`
   ).all();
@@ -154,9 +160,14 @@ function aplicarEtiqueta(csv, etq, accion) {
   return arr;
 }
 
-// Deriva el thread_id: adopta el hilo existente si algún header In-Reply-To/References ya lo tiene;
-// si no, cae al fallback determinista por asunto normalizado + contraparte.
-async function derivarThreadId(env, de, para, asunto, irt, refsRaw) {
+// Deriva el thread_id al estilo Gmail (fase 10):
+//   1) adopta el hilo si algún header In-Reply-To/References apunta a un Message-ID conocido;
+//   2) si no, adopta el hilo de un correo con el MISMO asunto normalizado y la MISMA
+//      contraparte de los últimos 7 días (la ventana que usa Gmail);
+//   3) si no, crea un hilo NUEVO único (sufijo uniq): dos conversaciones "Cotización"
+//      del mismo cliente con meses de distancia ya NO se pegan en un solo hilo.
+// Los thread_id legacy ('s:<asunto>|<contraparte>') siguen siendo válidos: el id es opaco.
+async function derivarThreadId(env, de, para, asunto, irt, refsRaw, uniq) {
   try {
     const ids = [irt, ...(refsRaw || "").split(/\s+/)]
       .map((s) => s.trim().replace(/^<|>$/g, ""))
@@ -174,7 +185,205 @@ async function derivarThreadId(env, de, para, asunto, irt, refsRaw) {
   } catch (e) {
     /* fail-safe: cae al fallback por asunto */
   }
-  return "s:" + normAsunto(asunto) + "|" + contraparte(de, para);
+  const norm = normAsunto(asunto);
+  const cp = contraparte(de, para);
+  try {
+    // Ventana por creado_en (fecha de inserción nuestra): recibido_en viene del header
+    // Date del remitente y puede ser cualquier cosa.
+    const { results } = await env.DB.prepare(
+      `SELECT asunto, thread_id FROM correos
+        WHERE thread_id IS NOT NULL
+          AND datetime(creado_en) >= datetime('now','-7 days')
+          AND (lower(de)=? OR lower(para)=?)
+        ORDER BY id DESC LIMIT 80`
+    )
+      .bind(cp, cp)
+      .all();
+    for (const r of results || []) {
+      if (normAsunto(r.asunto) === norm) return r.thread_id;
+    }
+  } catch (e) {
+    /* fail-safe: crea hilo nuevo */
+  }
+  return "s:" + norm + "|" + cp + "|" + (uniq || Date.now().toString(36));
+}
+
+// ============================================================
+// Helpers fase 11 (contactos, búsqueda FTS5, rollup de hilos)
+// ============================================================
+
+// Muchos clientes mandan el correo SOLO en HTML (sin parte de texto). Sin esto, el
+// cuerpo quedaba vacío: el panel no mostraba extracto y —lo grave— la IA redactaba a
+// ciegas porque lee `cuerpo_texto`. Se genera una versión en texto legible.
+// Entidades HTML frecuentes en correos en español (el Worker no tiene DOM para decodificar).
+const ENTIDADES = {
+  nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', apos: "'",
+  aacute: "\u00e1", eacute: "\u00e9", iacute: "\u00ed", oacute: "\u00f3", uacute: "\u00fa",
+  ntilde: "\u00f1", uuml: "\u00fc",
+  Aacute: "\u00c1", Eacute: "\u00c9", Iacute: "\u00cd", Oacute: "\u00d3", Uacute: "\u00da",
+  Ntilde: "\u00d1", Uuml: "\u00dc",
+  iexcl: "\u00a1", iquest: "\u00bf", laquo: "\u00ab", raquo: "\u00bb", hellip: "\u2026",
+  mdash: "\u2014", ndash: "\u2013", rsquo: "\u2019", lsquo: "\u2018", ldquo: "\u201c",
+  rdquo: "\u201d", euro: "\u20ac", deg: "\u00b0", ordm: "\u00ba", ordf: "\u00aa",
+  middot: "\u00b7", bull: "\u2022", trade: "\u2122", copy: "\u00a9", reg: "\u00ae",
+};
+function decodificarEntidades(s) {
+  return s
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n))
+    .replace(/&([a-zA-Z]+);/g, (m, n) =>
+      ENTIDADES[n] !== undefined ? ENTIDADES[n]
+        : ENTIDADES[n.toLowerCase()] !== undefined ? ENTIDADES[n.toLowerCase()] : m);
+}
+function htmlATextoWorker(html) {
+  if (!html) return "";
+  const sinEtiquetas = html
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<(script|style|head)[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<\/(p|div|li|tr|h[1-6]|blockquote)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, " ");
+  return decodificarEntidades(sinEtiquetas)
+    .replace(/[ \t\u00a0]+/g, " ")
+    .replace(/\n\s*\n\s*\n+/g, "\n\n")
+    .split("\n").map((l) => l.trim()).join("\n")
+    .trim();
+}
+
+// ---- Adjuntos entrantes (fase 13) ----
+// Topes: sin R2, lo que se guarda va en D1, así que hay que ser estricto.
+const ADJ_MAX_UNO = 600 * 1024;      // 600 KB por archivo (≈800 KB ya en base64)
+const ADJ_MAX_TOTAL = 1200 * 1024;   // 1,2 MB por correo
+const ADJ_MAX_CANT = 10;
+
+function bytesAB64(buf) {
+  const bytes = new Uint8Array(buf);
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(s);
+}
+
+// Guarda los adjuntos de un correo entrante. Si uno pesa demasiado, guarda solo el
+// registro (nombre/peso) para que el panel lo muestre y explique dónde encontrarlo.
+async function guardarAdjuntos(env, correoId, adjuntos) {
+  if (!correoId || !adjuntos || !adjuntos.length) return;
+  let total = 0, n = 0;
+  for (const a of adjuntos) {
+    if (n >= ADJ_MAX_CANT) break;
+    n++;
+    const contenido = a.content;
+    // Si viene ya en base64 (envíos desde el panel), el peso real es ~3/4 del largo.
+    const tam = !contenido ? 0
+      : typeof contenido === "string" ? Math.floor(contenido.length * 0.75)
+      : (contenido.byteLength || contenido.length || 0);
+    let b64 = null;
+    if (tam > 0 && tam <= ADJ_MAX_UNO && total + tam <= ADJ_MAX_TOTAL) {
+      try {
+        b64 = typeof contenido === "string" ? contenido : bytesAB64(contenido);
+        total += tam;
+      } catch (e) {
+        b64 = null;
+      }
+    }
+    const esInline = a.disposition === "inline" || !!a.contentId;
+    try {
+      await env.DB.prepare(
+        `INSERT INTO adjuntos (correo_id, nombre, mime, tamano, cid, inline, datos_b64)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+        .bind(
+          correoId,
+          (a.filename || "archivo").slice(0, 200),
+          (a.mimeType || "application/octet-stream").slice(0, 100),
+          tam,
+          (a.contentId || "").replace(/^<|>$/g, "").slice(0, 200) || null,
+          esInline ? 1 : 0,
+          b64
+        )
+        .run();
+    } catch (e) {
+      console.error("adjunto no guardado:", e);
+    }
+  }
+}
+
+// Firma HMAC compartida por /img-proxy y /adjunto (un <img> no puede mandar headers).
+async function firmaHmac(env, dato) {
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(env.PANEL_PASS || ""),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
+  );
+  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(dato));
+  return [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+}
+
+// Alimenta la libreta de contactos (autocompletado). Fail-safe: nunca rompe el flujo.
+async function upsertContacto(env, email, nombre) {
+  const e = (email || "").trim().toLowerCase();
+  if (!e || !e.includes("@") || e === NOSOTROS) return;
+  try {
+    await env.DB.prepare(
+      `INSERT INTO contactos (email, nombre, veces, ultima_vez)
+       VALUES (?, ?, 1, datetime('now'))
+       ON CONFLICT(email) DO UPDATE SET
+         nombre = COALESCE(NULLIF(excluded.nombre,''), contactos.nombre),
+         veces = contactos.veces + 1, ultima_vez = excluded.ultima_vez`
+    )
+      .bind(e, (nombre || "").trim() || null)
+      .run();
+  } catch (err) {
+    /* la tabla puede no existir aún (pre-migración fase 11) */
+  }
+}
+
+// Convierte lo que escribe el dueño en una consulta FTS5 segura:
+// cada término entre comillas (sin operadores accidentales) y prefijo en el último.
+function ftsQuery(q) {
+  const terms = (q || "").trim().split(/\s+/).filter(Boolean).slice(0, 6)
+    .map((t) => t.replace(/["*^]/g, "")).filter(Boolean);
+  if (!terms.length) return "";
+  return terms.map((t, i) => `"${t}"` + (i === terms.length - 1 ? "*" : "")).join(" ");
+}
+
+// SELECT agrupado por conversación (compartido por /api/hilos y /api/buscar).
+// Recibe el WHERE base y devuelve el SQL con los agregados de la fila de lista.
+function rollupHilosSQL(baseWhere, having) {
+  const KEY = `COALESCE(c.thread_id, 'id:'||c.id)`;
+  const KEYX = `COALESCE(x.thread_id, 'id:'||x.id)`;
+  const FECHA = `datetime(COALESCE(c.respondido_en, c.recibido_en, c.creado_en))`;
+  const FECHAX = `datetime(COALESCE(x.respondido_en, x.recibido_en, x.creado_en))`;
+  const ULT = (col) =>
+    `(SELECT ${col} FROM correos x
+       WHERE ${KEYX} = ${KEY} AND x.estado NOT IN ('spam','bloqueado','papelera','borrador_salida')
+       ORDER BY ${FECHAX} DESC, x.id DESC LIMIT 1)`;
+  return `SELECT ${KEY} AS tid,
+            COUNT(*) AS n,
+            SUM(CASE WHEN c.leido=0 THEN 1 ELSE 0 END) AS no_leidos,
+            MAX(${FECHA}) AS ultima,
+            SUM(CASE WHEN c.estado='enviado' OR c.respuesta_enviada IS NOT NULL THEN 1 ELSE 0 END) AS salientes,
+            SUM(CASE WHEN c.adjunto_nombre IS NOT NULL THEN 1 ELSE 0 END) AS adjuntos,
+            SUM(CASE WHEN c.estado IN ('nuevo','borrador','ajuste') AND c.confianza='baja' THEN 1 ELSE 0 END) AS revisar,
+            SUM(CASE WHEN c.estado='borrador' THEN 1 ELSE 0 END) AS borradores,
+            SUM(CASE WHEN c.estado='ajuste' THEN 1 ELSE 0 END) AS ajustes,
+            SUM(CASE WHEN c.estado IN ('respondido','enviado') OR c.respuesta_enviada IS NOT NULL THEN 1 ELSE 0 END) AS respondidos,
+            MAX(COALESCE(c.destacado,0)) AS destacado,
+            MAX(COALESCE(c.pospuesto_hasta,'')) AS pospuesto_hasta,
+            SUM(CASE WHEN EXISTS(SELECT 1 FROM adjuntos a WHERE a.correo_id=c.id AND a.inline=0) THEN 1 ELSE 0 END) AS adj_cliente,
+            (SELECT GROUP_CONCAT(a.nombre, '|') FROM adjuntos a
+              JOIN correos y ON y.id = a.correo_id
+              WHERE COALESCE(y.thread_id,'id:'||y.id) = COALESCE(c.thread_id,'id:'||c.id)
+                AND a.inline=0 LIMIT 3) AS adj_nombres,
+            GROUP_CONCAT(CASE WHEN lower(c.de)='${NOSOTROS}' THEN 'yo'
+                              ELSE REPLACE(COALESCE(NULLIF(c.de_nombre,''), c.de), '|', '/') END, '|') AS participantes,
+            GROUP_CONCAT(NULLIF(c.etiquetas,''), ',') AS etiquetas,
+            ${ULT(`substr(COALESCE(NULLIF(x.respuesta_enviada,''), NULLIF(x.cuerpo_texto,''), ''), 1, 140)`)} AS ult_snippet,
+            ${ULT(`x.asunto`)} AS ult_asunto,
+            ${ULT(`CASE WHEN lower(x.de)='${NOSOTROS}' THEN 'yo'
+                        ELSE COALESCE(NULLIF(x.de_nombre,''), x.de) END`)} AS ult_de
+     FROM correos c WHERE ${baseWhere}
+     GROUP BY ${KEY} HAVING ${having}`;
 }
 
 export default {
@@ -182,9 +391,12 @@ export default {
   // Pipeline (fase 8): bloqueo -> auto-spam -> dedup -> hilo -> INSERT OR IGNORE -> forward condicional.
   async email(message, env, ctx) {
     let saltarForward = false; // solo se vuelve true para remitentes bloqueados (R5)
+    let avisarYa = false;      // true si el correo entrante merece push inmediato
     try {
       const parsed = await PostalMime.parse(message.raw);
       const de = (parsed.from && parsed.from.address) || message.from || "";
+      // Nombre visible del remitente ("Rita Pérez"); si viene vacío el panel usa la dirección.
+      const deNombre = ((parsed.from && parsed.from.name) || "").trim().slice(0, 200) || null;
       const para =
         message.to || (parsed.to && parsed.to[0] && parsed.to[0].address) || "";
       const dominio = para.includes("@") ? para.split("@")[1] : "";
@@ -194,6 +406,8 @@ export default {
       // Headers de hilo (antes ignorados).
       const irt = (parsed.inReplyTo || "").trim();
       const refsRaw = (parsed.references || "").trim();
+      // Cuerpo en texto: el del correo, o uno derivado del HTML si no viene.
+      const cuerpoTexto = (parsed.text || "").trim() || htmlATextoWorker(parsed.html || "");
 
       // 1) BLOQUEO PERMANENTE (R5) — fail-open: si la query lanza, NO se bloquea.
       let bloqueado = false;
@@ -230,7 +444,8 @@ export default {
           // Sin señal explícita: heurística por historial de correos (spam previo sin nada legítimo).
           const prevC = await env.DB.prepare(
             `SELECT SUM(CASE WHEN estado='spam' THEN 1 ELSE 0 END) AS spams,
-                    SUM(CASE WHEN estado IN ('respondido','borrador','ajuste') THEN 1 ELSE 0 END) AS legit
+                    SUM(CASE WHEN estado IN ('respondido','borrador','ajuste','archivado')
+                              OR respuesta_enviada IS NOT NULL THEN 1 ELSE 0 END) AS legit
                FROM correos WHERE lower(de)=?`
           )
             .bind(deNorm)
@@ -258,7 +473,7 @@ export default {
       // los REINTENTOS de Email Routing reparsean el mismo raw -> misma fecha -> siguen colapsando.
       const dedupHash = await sha256Hex(
         deNorm + "\x1e" + (parsed.subject || "") + "\x1e" +
-          (parsed.date || "") + "\x1e" + (parsed.text || "").slice(0, 2000)
+          (parsed.date || "") + "\x1e" + cuerpoTexto.slice(0, 2000)
       );
       let dup = false;
       if (rawMid) {
@@ -275,23 +490,27 @@ export default {
         dup = !!r;
       }
 
-      // 4) THREAD ID (merge por header, fallback asunto+contraparte).
-      const thread_id = await derivarThreadId(env, de, para, parsed.subject, irt, refsRaw);
+      // 4) THREAD ID (merge por header; fallback asunto+contraparte con ventana de 7 días).
+      const thread_id = await derivarThreadId(
+        env, de, para, parsed.subject, irt, refsRaw,
+        (rawMid || dedupHash).slice(0, 16).replace(/[^\w.@-]/g, "")
+      );
 
       // 5) INSERT OR IGNORE (backstop de carrera contra idx_correos_mid_uniq). Solo si !dup.
       if (!dup) {
-        await env.DB.prepare(
+        const ins = await env.DB.prepare(
           `INSERT OR IGNORE INTO correos
-             (message_id, de, para, asunto, cuerpo_texto, cuerpo_html, dominio, recibido_en,
+             (message_id, de, de_nombre, para, asunto, cuerpo_texto, cuerpo_html, dominio, recibido_en,
               estado, notificado, dedup_hash, thread_id, in_reply_to, referencias, leido)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`
         )
           .bind(
             parsed.messageId || null,
             de,
+            deNombre,
             para,
             (parsed.subject || "(sin asunto)").slice(0, 500),
-            (parsed.text || "").slice(0, 50000), // cap: correos enormes no deben romper el INSERT
+            cuerpoTexto.slice(0, 50000), // cap: correos enormes no deben romper el INSERT
             (parsed.html || "").slice(0, 100000),
             dominio,
             parsed.date || new Date().toISOString(),
@@ -303,17 +522,47 @@ export default {
             refsRaw || null
           )
           .run();
+        // Libreta de contactos (fase 11): solo remitentes legítimos.
+        if (estado === "nuevo") await upsertContacto(env, de, deNombre);
+        // Adjuntos del cliente (fase 13): antes se perdían y solo quedaban en el Gmail de respaldo.
+        const nuevoId = ins.meta && ins.meta.last_row_id;
+        if (nuevoId && ins.meta.changes > 0 && estado !== "bloqueado") {
+          await guardarAdjuntos(env, nuevoId, parsed.attachments);
+          // Solo lo legítimo suena: el spam y lo bloqueado no molestan.
+          if (estado === "nuevo") avisarYa = true;
+        }
       }
     } catch (err) {
       console.error("Error capturando correo:", err);
     }
     // Reenviar SIEMPRE al buzón humano (aunque falle la captura), SALVO remitente bloqueado (R5).
     if (!saltarForward) await message.forward(env.FORWARD_TO);
+    // Aviso INSTANTÁNEO (fase 16): antes el push esperaba al cron, o sea hasta 20 minutos.
+    // Gmail avisa al llegar; ahora esto también. El cron queda como red de seguridad.
+    if (avisarYa && ctx && ctx.waitUntil) {
+      ctx.waitUntil(
+        notificar(env).catch((e) => console.error("push inmediato falló:", e))
+      );
+    }
   },
 
-  // --- Cron (cada 20 min): avisa por push si hay correos nuevos sin responder ---
+  // --- Cron (cada 20 min): despierta lo pospuesto y avisa por push si hay pendientes ---
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(notificar(env));
+    ctx.waitUntil(
+      (async () => {
+        // Fase 14: las conversaciones pospuestas cuyo plazo venció vuelven a Recibidos,
+        // sin leer (para que salten a la vista) y con el push habilitado de nuevo.
+        try {
+          await env.DB.prepare(
+            `UPDATE correos SET pospuesto_hasta=NULL, leido=0, notificado=0
+             WHERE pospuesto_hasta IS NOT NULL AND pospuesto_hasta <= datetime('now')`
+          ).run();
+        } catch (e) {
+          /* columna aún no migrada: no romper el aviso */
+        }
+        await notificar(env);
+      })()
+    );
   },
 
   async fetch(request, env) {
@@ -337,9 +586,102 @@ export default {
       });
     }
     if (path === "/icon-512.png") return new Response(ICON_512, { headers: { "content-type": "image/png" } });
-    if (path === "/icon-180.png") return new Response(ICON_180, { headers: { "content-type": "image/png" } });
+    if (path === "/icon-180.png" || path === "/favicon.ico")
+      return new Response(ICON_180, { headers: { "content-type": "image/png", "cache-control": "public, max-age=86400" } });
+    if (path === "/vendor/purify.min.js" || path === "/vendor/squire.js") {
+      const src = path.endsWith("purify.min.js") ? PURIFY_JS : SQUIRE_JS;
+      return new Response(src, {
+        headers: {
+          "content-type": "application/javascript; charset=utf-8",
+          "cache-control": "public, max-age=86400",
+        },
+      });
+    }
     if (path === "/vapid-public") {
       return new Response(env.VAPID_PUBLIC || "", { headers: { "content-type": "text/plain" } });
+    }
+
+    // GET /adjunto?id=<id>&s=<hmac>  (fase 13): sirve un adjunto del cliente.
+    // Va firmado y fuera de /api/ porque un <img src="cid:…"> reescrito no puede
+    // mandar el header de la contraseña.
+    if (path === "/adjunto") {
+      const id = url.searchParams.get("id") || "";
+      const s = url.searchParams.get("s") || "";
+      if (!/^\d+$/.test(id)) return new Response("bad id", { status: 400 });
+      let ok = false;
+      try { ok = (await firmaHmac(env, "adj:" + id)) === s; } catch (e) { ok = false; }
+      if (!ok) return new Response("forbidden", { status: 403 });
+      const row = await env.DB.prepare(
+        `SELECT nombre, mime, datos_b64 FROM adjuntos WHERE id=?`
+      ).bind(id).first();
+      if (!row) return new Response("no existe", { status: 404 });
+      if (!row.datos_b64) return new Response("archivo demasiado grande: está en el buzón de respaldo", { status: 413 });
+      const bytes = Uint8Array.from(atob(row.datos_b64), (c) => c.charCodeAt(0));
+      const nombre = (row.nombre || "archivo").replace(/[^\w.\- ]/g, "_");
+      return new Response(bytes, {
+        headers: {
+          "content-type": row.mime || "application/octet-stream",
+          "content-disposition": `inline; filename="${nombre}"`,
+          "cache-control": "private, max-age=3600",
+          "x-content-type-options": "nosniff",
+        },
+      });
+    }
+
+    // GET /cotizacion?id=<correo_id>&s=<hmac>  (fase 14): el PDF que adjuntó la IA.
+    // Firmado y fuera de /api/ para poder abrirlo con un <a target="_blank">: en Safari/PWA,
+    // un window.open() después de un await queda bloqueado por el bloqueador de popups.
+    if (path === "/cotizacion") {
+      const id = url.searchParams.get("id") || "";
+      const s = url.searchParams.get("s") || "";
+      if (!/^\d+$/.test(id)) return new Response("bad id", { status: 400 });
+      let ok = false;
+      try { ok = (await firmaHmac(env, "cot:" + id)) === s; } catch (e) { ok = false; }
+      if (!ok) return new Response("forbidden", { status: 403 });
+      const row = await env.DB.prepare(
+        `SELECT adjunto_nombre, adjunto_b64 FROM correos WHERE id=?`
+      ).bind(id).first();
+      if (!row || !row.adjunto_b64) return new Response("sin adjunto", { status: 404 });
+      const bytes = Uint8Array.from(atob(row.adjunto_b64), (c) => c.charCodeAt(0));
+      const nombre = (row.adjunto_nombre || "cotizacion.pdf").replace(/[^\w.\- ]/g, "_");
+      return new Response(bytes, {
+        headers: {
+          "content-type": "application/pdf",
+          "content-disposition": `inline; filename="${nombre}"`,
+          "cache-control": "private, max-age=3600",
+        },
+      });
+    }
+
+    // GET /img-proxy?u=<url>&s=<hmac>  (fase 12, estilo googleusercontent):
+    // sirve imágenes remotas de los correos SIN exponer la IP/cookies del dueño.
+    // Firmada con HMAC (clave = PANEL_PASS) porque un <img> no puede mandar headers.
+    if (path === "/img-proxy") {
+      const u = url.searchParams.get("u") || "";
+      const s = url.searchParams.get("s") || "";
+      if (!/^https?:\/\//i.test(u)) return new Response("bad url", { status: 400 });
+      let okSig = false;
+      try { okSig = (await firmaHmac(env, u)) === s; } catch (e) { okSig = false; }
+      if (!okSig) return new Response("forbidden", { status: 403 });
+      try {
+        const r = await fetch(u, {
+          headers: { accept: "image/*" },
+          redirect: "follow",
+          cf: { cacheTtl: 86400, cacheEverything: true },
+        });
+        const ct = r.headers.get("content-type") || "";
+        if (!r.ok || !ct.toLowerCase().startsWith("image/"))
+          return new Response("not image", { status: 502 });
+        return new Response(r.body, {
+          headers: {
+            "content-type": ct,
+            "cache-control": "public, max-age=86400",
+            "x-content-type-options": "nosniff",
+          },
+        });
+      } catch (e) {
+        return new Response("fetch fail", { status: 502 });
+      }
     }
 
     if (!path.startsWith("/api/")) {
@@ -419,7 +761,8 @@ export default {
         archivados: `estado='archivado'`,
         spam: `estado='spam'`,
         papelera: `estado='papelera'`,
-        todos: `estado NOT IN ('spam','bloqueado','papelera')`, // archivado SÍ entra
+        borradores: `estado IN ('borrador','borrador_salida')`, // fase 11: pestaña Borradores
+        todos: `estado NOT IN ('spam','bloqueado','papelera','borrador_salida')`, // archivado SÍ entra
       };
       const cond = WHERE[filtro] || WHERE.recibidos; // 'bloqueado' nunca se incluye -> oculto siempre
       let page = parseInt(url.searchParams.get("page") || "1", 10);
@@ -473,18 +816,386 @@ export default {
       });
     }
 
+    // ============================================================
+    // Fase 10 — bandeja por CONVERSACIONES (lógica Gmail)
+    // Una fila = un hilo. La carpeta de un hilo se DERIVA de los estados de sus
+    // mensajes: con ≥1 mensaje activo (nuevo/borrador/ajuste/respondido) está en
+    // Recibidos; sin activos y con ≥1 archivado está en Archivados. Responder NO
+    // saca el hilo de Recibidos; un mensaje nuevo en hilo archivado lo hace volver
+    // solo (llega como 'nuevo' → el hilo vuelve a tener activos).
+    // Spam/Papelera/Bloqueados siguen siendo vistas por MENSAJE (/api/correos).
+    // ============================================================
+
+    // GET /api/hilos?filtro=recibidos|enviados|archivados|todos&page=&pageSize=
+    if (path === "/api/hilos" && request.method === "GET") {
+      const filtro = url.searchParams.get("filtro") || "recibidos";
+      const ACTIVOS = `SUM(CASE WHEN c.estado IN ('nuevo','borrador','ajuste','respondido') THEN 1 ELSE 0 END)`;
+      const HAVING = {
+        recibidos: `${ACTIVOS} > 0`,
+        archivados: `${ACTIVOS} = 0 AND SUM(CASE WHEN c.estado='archivado' THEN 1 ELSE 0 END) > 0`,
+        enviados: `SUM(CASE WHEN c.estado='enviado' OR c.respuesta_enviada IS NOT NULL THEN 1 ELSE 0 END) > 0`,
+        destacados: `MAX(COALESCE(c.destacado,0)) = 1`,
+        pospuestos: `MAX(COALESCE(c.pospuesto_hasta,'')) > datetime('now')`,
+        todos: `1`,
+      };
+      const having = HAVING[filtro] || HAVING.recibidos;
+      // Las conversaciones pospuestas desaparecen de Recibidos hasta su fecha (snooze de Gmail).
+      const NO_POSPUESTO = `AND COALESCE(c.pospuesto_hasta,'') <= datetime('now')`;
+      let baseWhere = `c.estado NOT IN ('spam','bloqueado','papelera','borrador_salida')`
+        + (filtro === "recibidos" ? " " + NO_POSPUESTO : "");
+      // Filtro por etiqueta (las "carpetas propias"): el hilo entra si CUALQUIER
+      // mensaje suyo la lleva, como en Gmail.
+      const etiq = (url.searchParams.get("etiqueta") || "").trim().toLowerCase();
+      const bindsEtq = [];
+      if (etiq) {
+        baseWhere += ` AND COALESCE(c.thread_id,'id:'||c.id) IN (
+          SELECT COALESCE(m.thread_id,'id:'||m.id) FROM correos m
+          WHERE (','||COALESCE(m.etiquetas,'')||',') LIKE '%,'||?||',%')`;
+        bindsEtq.push(etiq);
+      }
+      let page = parseInt(url.searchParams.get("page") || "1", 10);
+      let pageSize = parseInt(url.searchParams.get("pageSize") || "30", 10);
+      if (!Number.isFinite(page) || page < 1) page = 1;
+      if (!Number.isFinite(pageSize) || pageSize < 1) pageSize = 30;
+      if (pageSize > 100) pageSize = 100;
+      const offset = (page - 1) * pageSize;
+
+      const totalRow = await env.DB.prepare(
+        `SELECT count(*) AS n FROM
+           (SELECT 1 FROM correos c WHERE ${baseWhere}
+             GROUP BY COALESCE(c.thread_id,'id:'||c.id) HAVING ${having})`
+      )
+        .bind(...bindsEtq)
+        .first();
+      const total = (totalRow && totalRow.n) || 0;
+
+      const { results } = await env.DB.prepare(
+        rollupHilosSQL(baseWhere, having) + ` ORDER BY ultima DESC LIMIT ? OFFSET ?`
+      )
+        .bind(...bindsEtq, pageSize, offset)
+        .all();
+      const hilos = results || [];
+      return json({ hilos, page, pageSize, total, hasMore: offset + hilos.length < total });
+    }
+
+    // GET /api/buscar?q=...&adjunto=1&recibidos=1&mes=1  (fase 11: búsqueda FTS5)
+    // Busca en asunto/cuerpo/remitente de TODO el correo (menos bloqueados, spam y papelera,
+    // como Gmail) y devuelve conversaciones con la misma forma que /api/hilos.
+    if (path === "/api/buscar" && request.method === "GET") {
+      // Operadores estilo Gmail: from:rita  has:adjunto  is:destacado (el resto es texto libre).
+      const crudo = url.searchParams.get("q") || "";
+      const ops = { from: "", has: "", is: "" };
+      const texto = crudo
+        .replace(/\b(from|de|has|is)\s*:\s*(\S+)/gi, (m, k, v) => {
+          const clave = /^(from|de)$/i.test(k) ? "from" : k.toLowerCase();
+          ops[clave] = v.toLowerCase();
+          return " ";
+        })
+        .trim();
+      const q = ftsQuery(texto);
+      // Se puede buscar solo con filtros (sin escribir texto): "todo lo de Rita con adjunto".
+      const soloOps = !q && (ops.from || ops.has || ops.is
+        || url.searchParams.get("adjunto") === "1" || url.searchParams.get("recibidos") === "1"
+        || url.searchParams.get("mes") === "1" || url.searchParams.get("desde")
+        || url.searchParams.get("hasta") || url.searchParams.get("etiqueta"));
+      if (!q && !soloOps) return json({ hilos: [], total: 0 });
+      let having = `1`;
+      if (ops.has === "adjunto" || ops.has === "attachment" || url.searchParams.get("adjunto") === "1")
+        having += ` AND (SUM(CASE WHEN c.adjunto_nombre IS NOT NULL THEN 1 ELSE 0 END) > 0
+                      OR SUM(CASE WHEN EXISTS(SELECT 1 FROM adjuntos a WHERE a.correo_id=c.id AND a.inline=0) THEN 1 ELSE 0 END) > 0)`;
+      if (ops.is === "destacado" || ops.is === "starred") having += ` AND MAX(COALESCE(c.destacado,0)) = 1`;
+      if (ops.is === "noleido" || ops.is === "unread") having += ` AND SUM(CASE WHEN c.leido=0 THEN 1 ELSE 0 END) > 0`;
+      if (url.searchParams.get("recibidos") === "1") having += ` AND SUM(CASE WHEN c.estado IN ('nuevo','borrador','ajuste','respondido') THEN 1 ELSE 0 END) > 0`;
+      if (url.searchParams.get("mes") === "1") having += ` AND MAX(datetime(COALESCE(c.respondido_en,c.recibido_en,c.creado_en))) >= datetime('now','start of month')`;
+      // Rango de fechas del buscador avanzado (fase 16). Formato YYYY-MM-DD.
+      const soloFecha = (s) => (/^\d{4}-\d{2}-\d{2}$/.test(s || "") ? s : null);
+      const desde = soloFecha(url.searchParams.get("desde"));
+      const hasta = soloFecha(url.searchParams.get("hasta"));
+      if (desde) having += ` AND MAX(date(COALESCE(c.respondido_en,c.recibido_en,c.creado_en))) >= '${desde}'`;
+      if (hasta) having += ` AND MIN(date(COALESCE(c.respondido_en,c.recibido_en,c.creado_en))) <= '${hasta}'`;
+      // Etiqueta como filtro del buscador avanzado.
+      const etqBuscar = (url.searchParams.get("etiqueta") || "").trim().toLowerCase();
+      try {
+        const binds = [];
+        let baseWhere = `c.estado NOT IN ('spam','bloqueado','papelera','borrador_salida')`;
+        if (q) {
+          // El texto libre filtra por el índice FTS5 (rápido y sin tildes).
+          baseWhere += ` AND COALESCE(c.thread_id,'id:'||c.id) IN (
+            SELECT DISTINCT COALESCE(m.thread_id,'id:'||m.id)
+            FROM correos_fts JOIN correos m ON m.id = correos_fts.rowid
+            WHERE correos_fts MATCH ? AND m.estado NOT IN ('spam','bloqueado','papelera')
+            LIMIT 200)`;
+          binds.push(q);
+        }
+        if (ops.from) {
+          // from: mira el hilo completo (participantes), como Gmail.
+          baseWhere += ` AND COALESCE(c.thread_id,'id:'||c.id) IN (
+            SELECT DISTINCT COALESCE(m.thread_id,'id:'||m.id) FROM correos m
+            WHERE (lower(m.de) LIKE '%'||?||'%' OR lower(COALESCE(m.de_nombre,'')) LIKE '%'||?||'%'
+                   OR lower(COALESCE(m.para,'')) LIKE '%'||?||'%'))`;
+          binds.push(ops.from, ops.from, ops.from);
+        }
+        if (etqBuscar) {
+          baseWhere += ` AND COALESCE(c.thread_id,'id:'||c.id) IN (
+            SELECT COALESCE(m.thread_id,'id:'||m.id) FROM correos m
+            WHERE (','||COALESCE(m.etiquetas,'')||',') LIKE '%,'||?||',%')`;
+          binds.push(etqBuscar);
+        }
+        const { results } = await env.DB.prepare(
+          rollupHilosSQL(baseWhere, having) + ` ORDER BY ultima DESC LIMIT 50`
+        )
+          .bind(...binds)
+          .all();
+        return json({ hilos: results || [], total: (results || []).length });
+      } catch (e) {
+        // FTS aún no migrado o consulta inválida: no romper el panel.
+        return json({ hilos: [], total: 0, error_busqueda: String(e.message || e) });
+      }
+    }
+
+    // GET /api/ajustes  -> lo que el dueño configuró (firma, etc.). Con valores por defecto
+    // para que el panel nunca se quede sin firma aunque falte la migración.
+    if (path === "/api/ajustes" && request.method === "GET") {
+      const porDefecto = {
+        firma_texto: "", firma_html: "", firma_activa: "1", segundos_deshacer: "6",
+      };
+      try {
+        const { results } = await env.DB.prepare(`SELECT clave, valor FROM ajustes`).all();
+        for (const r of results || []) porDefecto[r.clave] = r.valor;
+      } catch (e) {
+        /* tabla no migrada aún: se devuelven los valores por defecto */
+      }
+      return json({ ajustes: porDefecto });
+    }
+
+    // POST /api/ajustes  { clave: valor, ... }  -> guarda solo las claves conocidas.
+    if (path === "/api/ajustes" && request.method === "POST") {
+      const b = await request.json().catch(() => ({}));
+      const PERMITIDAS = ["firma_texto", "firma_html", "firma_activa", "segundos_deshacer"];
+      const guardadas = [];
+      try {
+        for (const clave of PERMITIDAS) {
+          if (!(clave in b)) continue;
+          const valor = String(b[clave] ?? "").slice(0, 4000);
+          await env.DB.prepare(
+            `INSERT INTO ajustes (clave, valor, actualizado) VALUES (?, ?, datetime('now'))
+             ON CONFLICT(clave) DO UPDATE SET valor=excluded.valor, actualizado=excluded.actualizado`
+          ).bind(clave, valor).run();
+          guardadas.push(clave);
+        }
+      } catch (e) {
+        return json({ error: "tabla no migrada (fase 15)" }, 500);
+      }
+      return json({ ok: true, guardadas });
+    }
+
+    // GET /api/etiquetas  -> las etiquetas que existen, con cuántas conversaciones tiene cada una.
+    // Son las "carpetas propias" de Gmail: se muestran en el menú lateral (fase 16).
+    if (path === "/api/etiquetas" && request.method === "GET") {
+      try {
+        const { results } = await env.DB.prepare(
+          `SELECT COALESCE(NULLIF(c.etiquetas,''),'') AS csv,
+                  COUNT(DISTINCT COALESCE(c.thread_id,'id:'||c.id)) AS n
+           FROM correos c
+           WHERE COALESCE(c.etiquetas,'') <> '' AND c.estado NOT IN ('papelera','bloqueado')
+           GROUP BY csv`
+        ).all();
+        // Las etiquetas se guardan como CSV por correo: hay que desarmarlas y sumar.
+        const cuenta = {};
+        for (const r of results || []) {
+          for (const e of String(r.csv).split(",").map((x) => x.trim()).filter(Boolean)) {
+            cuenta[e] = (cuenta[e] || 0) + r.n;
+          }
+        }
+        const etiquetas = Object.keys(cuenta)
+          .sort((a, b) => cuenta[b] - cuenta[a] || a.localeCompare(b))
+          .slice(0, 30)
+          .map((nombre) => ({ nombre, n: cuenta[nombre] }));
+        return json({ etiquetas });
+      } catch (e) {
+        return json({ etiquetas: [] });
+      }
+    }
+
+    // GET /api/contactos?q=  -> autocompletado de destinatarios (máx 8, por frecuencia)
+    if (path === "/api/contactos" && request.method === "GET") {
+      const q = (url.searchParams.get("q") || "").trim().toLowerCase();
+      try {
+        const { results } = q
+          ? await env.DB.prepare(
+              `SELECT email, nombre FROM contactos
+               WHERE email LIKE '%'||?||'%' OR lower(COALESCE(nombre,'')) LIKE '%'||?||'%'
+               ORDER BY veces DESC, ultima_vez DESC LIMIT 8`
+            ).bind(q, q).all()
+          : await env.DB.prepare(
+              `SELECT email, nombre FROM contactos ORDER BY veces DESC, ultima_vez DESC LIMIT 8`
+            ).all();
+        return json({ contactos: results || [] });
+      } catch (e) {
+        return json({ contactos: [] });
+      }
+    }
+
+    // POST /api/archivar-hilo  { thread_id }  -> "Listo": archiva los mensajes activos del hilo.
+    // Los 'enviado' no se tocan (Enviados conserva el historial, como el Sent de Gmail).
+    if (path === "/api/archivar-hilo" && request.method === "POST") {
+      const { thread_id } = await request.json().catch(() => ({}));
+      if (!thread_id) return json({ error: "falta thread_id" }, 400);
+      const upd = await env.DB.prepare(
+        `UPDATE correos SET estado_prev_papelera=COALESCE(estado_prev_papelera, estado),
+           estado='archivado', leido=1, notificado=1
+         WHERE COALESCE(thread_id,'id:'||id)=? AND estado IN ('nuevo','borrador','ajuste','respondido')`
+      )
+        .bind(thread_id)
+        .run();
+      return json({ ok: true, afectados: (upd.meta && upd.meta.changes) || 0 });
+    }
+
+    // POST /api/restaurar-hilo  { thread_id }  -> vuelve el hilo archivado a Recibidos.
+    if (path === "/api/restaurar-hilo" && request.method === "POST") {
+      const { thread_id } = await request.json().catch(() => ({}));
+      if (!thread_id) return json({ error: "falta thread_id" }, 400);
+      const upd = await env.DB.prepare(
+        `UPDATE correos SET estado=COALESCE(estado_prev_papelera,'nuevo'), estado_prev_papelera=NULL
+         WHERE COALESCE(thread_id,'id:'||id)=? AND estado='archivado'`
+      )
+        .bind(thread_id)
+        .run();
+      return json({ ok: true, afectados: (upd.meta && upd.meta.changes) || 0 });
+    }
+
+    // POST /api/eliminar-hilo  { thread_id }  -> hilo completo a papelera (restaurable 1×1).
+    if (path === "/api/eliminar-hilo" && request.method === "POST") {
+      const { thread_id } = await request.json().catch(() => ({}));
+      if (!thread_id) return json({ error: "falta thread_id" }, 400);
+      const upd = await env.DB.prepare(
+        `UPDATE correos SET estado_prev_papelera=estado, estado='papelera', notificado=1
+         WHERE COALESCE(thread_id,'id:'||id)=? AND estado NOT IN ('papelera','bloqueado')`
+      )
+        .bind(thread_id)
+        .run();
+      return json({ ok: true, afectados: (upd.meta && upd.meta.changes) || 0 });
+    }
+
+    // POST /api/restaurar-hilo-papelera  { thread_id }  -> deshace un "eliminar hilo" (fase 12)
+    if (path === "/api/restaurar-hilo-papelera" && request.method === "POST") {
+      const { thread_id } = await request.json().catch(() => ({}));
+      if (!thread_id) return json({ error: "falta thread_id" }, 400);
+      const upd = await env.DB.prepare(
+        `UPDATE correos SET estado=COALESCE(estado_prev_papelera,'nuevo'), estado_prev_papelera=NULL
+         WHERE COALESCE(thread_id,'id:'||id)=? AND estado='papelera'`
+      )
+        .bind(thread_id)
+        .run();
+      return json({ ok: true, afectados: (upd.meta && upd.meta.changes) || 0 });
+    }
+
+    // GET/POST/DELETE /api/plantillas  (fase 12: respuestas frecuentes, idea de Zoho)
+    if (path === "/api/plantillas" && request.method === "GET") {
+      try {
+        const { results } = await env.DB.prepare(
+          `SELECT id, nombre, cuerpo FROM plantillas ORDER BY id DESC LIMIT 30`
+        ).all();
+        return json({ plantillas: results || [] });
+      } catch (e) {
+        return json({ plantillas: [] });
+      }
+    }
+    if (path === "/api/plantillas" && request.method === "POST") {
+      const b = await request.json().catch(() => ({}));
+      const nombre = (b.nombre || "").trim().slice(0, 80);
+      const cuerpo = (b.cuerpo || "").trim().slice(0, 20000);
+      if (!nombre || !cuerpo) return json({ error: "falta nombre o cuerpo" }, 400);
+      if (b.borrar && b.id) {
+        await env.DB.prepare(`DELETE FROM plantillas WHERE id=?`).bind(b.id).run();
+        return json({ ok: true });
+      }
+      const res = await env.DB.prepare(
+        `INSERT INTO plantillas (nombre, cuerpo) VALUES (?, ?)`
+      ).bind(nombre, cuerpo).run();
+      return json({ ok: true, id: res.meta && res.meta.last_row_id });
+    }
+    if (path === "/api/plantillas" && request.method === "DELETE") {
+      const b = await request.json().catch(() => ({}));
+      if (!b.id) return json({ error: "falta id" }, 400);
+      await env.DB.prepare(`DELETE FROM plantillas WHERE id=?`).bind(b.id).run();
+      return json({ ok: true });
+    }
+
+    // POST /api/posponer-hilo  { thread_id, horas }  -> "posponer" de Gmail (fase 14).
+    // horas=0 lo despierta ahora. El cron de 20 min despierta lo vencido.
+    if (path === "/api/posponer-hilo" && request.method === "POST") {
+      const { thread_id, horas } = await request.json().catch(() => ({}));
+      if (!thread_id) return json({ error: "falta thread_id" }, 400);
+      const h = Number(horas);
+      if (!Number.isFinite(h) || h < 0 || h > 24 * 90) return json({ error: "plazo inválido" }, 400);
+      try {
+        if (h === 0) {
+          await env.DB.prepare(
+            `UPDATE correos SET pospuesto_hasta=NULL WHERE COALESCE(thread_id,'id:'||id)=?`
+          ).bind(thread_id).run();
+          return json({ ok: true, despertado: true });
+        }
+        // Al posponer se marca como leído: vuelve a aparecer como novedad al despertar.
+        await env.DB.prepare(
+          `UPDATE correos SET pospuesto_hasta=datetime('now','+' || ? || ' hours'), leido=1
+           WHERE COALESCE(thread_id,'id:'||id)=? AND estado NOT IN ('papelera','bloqueado')`
+        ).bind(h, thread_id).run();
+        const fila = await env.DB.prepare(
+          `SELECT MAX(pospuesto_hasta) AS hasta FROM correos WHERE COALESCE(thread_id,'id:'||id)=?`
+        ).bind(thread_id).first();
+        return json({ ok: true, hasta: fila && fila.hasta });
+      } catch (e) {
+        return json({ error: "columna no migrada (fase 14)" }, 500);
+      }
+    }
+
+    // POST /api/destacar-hilo  { thread_id, destacado }  -> la estrella de Gmail (fase 13)
+    if (path === "/api/destacar-hilo" && request.method === "POST") {
+      const { thread_id, destacado } = await request.json().catch(() => ({}));
+      if (!thread_id) return json({ error: "falta thread_id" }, 400);
+      try {
+        await env.DB.prepare(
+          `UPDATE correos SET destacado=? WHERE COALESCE(thread_id,'id:'||id)=?
+             AND estado NOT IN ('papelera','bloqueado')`
+        )
+          .bind(destacado ? 1 : 0, thread_id)
+          .run();
+      } catch (e) {
+        return json({ error: "columna no migrada (fase 13)" }, 500);
+      }
+      return json({ ok: true });
+    }
+
+    // POST /api/marcar-leido-hilo  { thread_id, leido }
+    if (path === "/api/marcar-leido-hilo" && request.method === "POST") {
+      const { thread_id, leido } = await request.json().catch(() => ({}));
+      if (!thread_id) return json({ error: "falta thread_id" }, 400);
+      await env.DB.prepare(
+        `UPDATE correos SET leido=? WHERE COALESCE(thread_id,'id:'||id)=?
+           AND estado NOT IN ('papelera','bloqueado')`
+      )
+        .bind(leido ? 1 : 0, thread_id)
+        .run();
+      return json({ ok: true });
+    }
+
     // GET /api/contadores  -> conteos globales para badges (barato; lo llama el tick de 15s)
     if (path === "/api/contadores" && request.method === "GET") {
       const c = await env.DB.prepare(
         `SELECT
-           SUM(CASE WHEN estado='nuevo' OR (estado='borrador' AND confianza='baja') THEN 1 ELSE 0 END) AS pendientes,
-           SUM(CASE WHEN estado IN ('nuevo','borrador','ajuste') THEN 1 ELSE 0 END) AS recibidos,
-           SUM(CASE WHEN estado IN ('nuevo','borrador','ajuste') AND leido=0 THEN 1 ELSE 0 END) AS recibidos_no_leidos,
+           SUM(CASE WHEN (estado='nuevo' OR (estado='borrador' AND confianza='baja'))
+                     AND COALESCE(pospuesto_hasta,'') <= datetime('now') THEN 1 ELSE 0 END) AS pendientes,
+           SUM(CASE WHEN estado IN ('nuevo','borrador','ajuste','respondido') THEN 1 ELSE 0 END) AS recibidos,
+           SUM(CASE WHEN estado IN ('nuevo','borrador','ajuste','respondido') AND leido=0 THEN 1 ELSE 0 END) AS recibidos_no_leidos,
            SUM(CASE WHEN estado IN ('respondido','enviado') THEN 1 ELSE 0 END) AS enviados,
            SUM(CASE WHEN estado IN ('respondido','enviado') AND leido=0 THEN 1 ELSE 0 END) AS enviados_no_leidos,
            SUM(CASE WHEN estado='archivado' THEN 1 ELSE 0 END) AS archivados,
            SUM(CASE WHEN estado='papelera'  THEN 1 ELSE 0 END) AS papelera,
-           SUM(CASE WHEN estado='spam' THEN 1 ELSE 0 END) AS spam
+           SUM(CASE WHEN estado='spam' THEN 1 ELSE 0 END) AS spam,
+           SUM(CASE WHEN estado IN ('borrador','borrador_salida') THEN 1 ELSE 0 END) AS borradores,
+           SUM(CASE WHEN COALESCE(destacado,0)=1 THEN 1 ELSE 0 END) AS destacados,
+           SUM(CASE WHEN COALESCE(pospuesto_hasta,'') > datetime('now') THEN 1 ELSE 0 END) AS pospuestos
          FROM correos`
       ).first();
       return json({
@@ -496,23 +1207,85 @@ export default {
         archivados: (c && c.archivados) || 0,
         papelera: (c && c.papelera) || 0,
         spam: (c && c.spam) || 0,
+        borradores: (c && c.borradores) || 0,
+        destacados: (c && c.destacados) || 0,
+        pospuestos: (c && c.pospuestos) || 0,
       });
     }
 
-    // GET /api/hilo?thread_id=  -> todos los mensajes del hilo, cronológico
+    // GET /api/hilo?thread_id=  -> todos los mensajes del hilo, cronológico.
+    // Fase 10: acepta claves 'id:<n>' (filas legacy sin thread_id), devuelve todo lo que
+    // la vista de hilo necesita (incluye borrador/ajuste del mensaje accionable) y marca
+    // el hilo como leído al abrirlo (como Gmail).
     if (path === "/api/hilo" && request.method === "GET") {
       const tid = url.searchParams.get("thread_id");
       if (!tid) return json({ error: "falta thread_id" }, 400);
       const { results } = await env.DB.prepare(
-        `SELECT id, de, para, asunto, estado, recibido_en, respondido_en, respuesta_enviada,
-                adjunto_nombre, leido, substr(cuerpo_texto,1,20000) AS cuerpo_texto,
-                CASE WHEN (cuerpo_texto IS NULL OR cuerpo_texto='')
-                     THEN substr(cuerpo_html,1,40000) ELSE NULL END AS cuerpo_html
-         FROM correos WHERE thread_id=? AND estado<>'papelera' ORDER BY datetime(recibido_en) ASC, id ASC`
+        `SELECT id, message_id, de, de_nombre, para, asunto, estado, recibido_en, respondido_en,
+                respuesta_enviada, respuesta_borrador, ajuste_pedido, ajuste_enviar,
+                confianza, motivo_revision, etiquetas, adjunto_nombre, leido,
+                substr(cuerpo_texto,1,20000) AS cuerpo_texto,
+                substr(cuerpo_html,1,40000) AS cuerpo_html
+         FROM correos WHERE COALESCE(thread_id,'id:'||id)=? AND estado NOT IN ('papelera','bloqueado')
+         ORDER BY datetime(COALESCE(recibido_en,creado_en)) ASC, id ASC
+         LIMIT 40`
       )
         .bind(tid)
         .all();
-      return json({ thread_id: tid, mensajes: results || [] });
+      try {
+        await env.DB.prepare(
+          `UPDATE correos SET leido=1 WHERE COALESCE(thread_id,'id:'||id)=?
+             AND leido=0 AND estado NOT IN ('papelera','bloqueado')`
+        )
+          .bind(tid)
+          .run();
+      } catch (e) {
+        /* leído es cosmético: no romper la lectura si falla */
+      }
+      // Fase 13: adjuntos de cada mensaje del hilo (con su URL firmada si están guardados).
+      const msgs = results || [];
+      // Fase 14: URL firmada del PDF de cotización (abre con <a>, no con window.open).
+      for (const m of msgs) {
+        if (m.adjunto_nombre) {
+          try { m.url_cotizacion = `/cotizacion?id=${m.id}&s=${await firmaHmac(env, "cot:" + m.id)}`; }
+          catch (e) { m.url_cotizacion = null; }
+        }
+      }
+      try {
+        const ids = msgs.map((m) => m.id);
+        if (ids.length) {
+          const ph = ids.map(() => "?").join(",");
+          const { results: adjs } = await env.DB.prepare(
+            `SELECT id, correo_id, nombre, mime, tamano, cid, inline,
+                    (datos_b64 IS NOT NULL) AS guardado
+             FROM adjuntos WHERE correo_id IN (${ph}) ORDER BY id ASC`
+          ).bind(...ids).all();
+          const porCorreo = {};
+          for (const a of adjs || []) {
+            a.url = a.guardado ? `/adjunto?id=${a.id}&s=${await firmaHmac(env, "adj:" + a.id)}` : null;
+            (porCorreo[a.correo_id] = porCorreo[a.correo_id] || []).push(a);
+          }
+          for (const m of msgs) m.adjuntos = porCorreo[m.id] || [];
+        }
+      } catch (e) {
+        /* tabla puede no existir aún (pre-migración fase 13) */
+      }
+
+      // Fase 11: qué remitentes del hilo tienen las imágenes aprobadas ("mostrar siempre").
+      let imgOk = [];
+      try {
+        const des = [...new Set(msgs.map((m) => (m.de || "").toLowerCase()).filter(Boolean))];
+        if (des.length) {
+          const ph = des.map(() => "?").join(",");
+          const { results: ok } = await env.DB.prepare(
+            `SELECT remitente FROM imagenes_confiables WHERE remitente IN (${ph})`
+          ).bind(...des).all();
+          imgOk = (ok || []).map((r) => r.remitente);
+        }
+      } catch (e) {
+        /* tabla puede no existir aún */
+      }
+      return json({ thread_id: tid, mensajes: msgs, imagenes_confiables: imgOk });
     }
 
     // GET /api/correo?id=  (sin adjunto_b64 para no inflar el payload)
@@ -592,7 +1365,12 @@ export default {
           .first();
         if (prev) return json({ ok: true, id: prev.id, ya_registrada: true });
       }
-      const thread_id = "s:" + normAsunto(asunto) + "|" + para.toLowerCase();
+      // Fase 10: adopta el hilo reciente de esa contraparte si existe (ventana 7 días);
+      // si no, crea uno nuevo único. Así la respuesta del cliente agrupa con esta cotización.
+      const thread_id = await derivarThreadId(
+        env, "contacto@destaperapido.cl", para, asunto, null, null,
+        (resendId || ahora).slice(0, 16).replace(/[^\w.@-]/g, "")
+      );
       const res = await env.DB.prepare(
         `INSERT OR IGNORE INTO correos
            (message_id, de, para, asunto, cuerpo_texto, dominio, recibido_en,
@@ -627,10 +1405,253 @@ export default {
       return json({ ok: true, id: res.meta && res.meta.last_row_id });
     }
 
-    // POST /api/borrador  { id, texto }
-    if (path === "/api/borrador" && request.method === "POST") {
-      const { id, texto, confianza, motivo } = await request.json().catch(() => ({}));
+    // ============================================================
+    // Fase 11 — REDACTAR correo nuevo desde el panel (RF-17)
+    // ============================================================
+
+    // POST /api/redactar-guardar  { id?, para, asunto, texto }
+    // Guarda/actualiza un borrador de correo NUEVO (estado 'borrador_salida').
+    if (path === "/api/redactar-guardar" && request.method === "POST") {
+      const b = await request.json().catch(() => ({}));
+      const para = (b.para || "").trim();
+      const asunto = (b.asunto || "").slice(0, 500);
+      const texto = (b.texto || "").slice(0, 50000);
+      if (b.id) {
+        await env.DB.prepare(
+          `UPDATE correos SET para=?, asunto=?, respuesta_borrador=?
+           WHERE id=? AND estado='borrador_salida'`
+        )
+          .bind(para, asunto, texto, b.id)
+          .run();
+        return json({ ok: true, id: b.id });
+      }
+      const ahora = new Date().toISOString();
+      const res = await env.DB.prepare(
+        `INSERT INTO correos (de, para, asunto, respuesta_borrador, dominio, recibido_en,
+                              estado, notificado, leido)
+         VALUES (?, ?, ?, ?, ?, ?, 'borrador_salida', 1, 1)`
+      )
+        .bind(NOSOTROS, para, asunto, texto, para.includes("@") ? para.split("@")[1] : "", ahora)
+        .run();
+      return json({ ok: true, id: res.meta && res.meta.last_row_id });
+    }
+
+    // POST /api/redactar-enviar  { id?, para, asunto, texto, html? }
+    // Envía un correo nuevo vía Resend y lo registra como 'enviado' (agrupa hilo).
+    if (path === "/api/redactar-enviar" && request.method === "POST") {
+      if (!env.RESEND_API_KEY) return json({ error: "Falta RESEND_API_KEY en el Worker." }, 501);
+      const b = await request.json().catch(() => ({}));
+      const para = (b.para || "").trim();
+      const asunto = (b.asunto || "").trim().slice(0, 500) || "Mensaje de Destape Rápido";
+      const texto = (b.texto || "").trim();
+      if (!para || !para.includes("@")) return json({ error: "destinatario inválido" }, 400);
+      if (!texto) return json({ error: "falta el texto" }, 400);
+      // CC/CCO (fase 13): lista separada por comas, direcciones válidas nada más.
+      const listaCorreos = (s) =>
+        (s || "").split(/[,;]+/).map((x) => x.trim()).filter((x) => x.includes("@")).slice(0, 20);
+      try {
+        const cuerpo = {
+          from: "Destape Rápido <contacto@destaperapido.cl>",
+          to: listaCorreos(para).length ? listaCorreos(para) : [para],
+          subject: asunto,
+          text: texto,
+          headers: { "Content-Language": "es-CL" },
+        };
+        const cc = listaCorreos(b.cc), cco = listaCorreos(b.cco);
+        if (cc.length) cuerpo.cc = cc;
+        if (cco.length) cuerpo.bcc = cco;
+        if (b.html && b.html.trim()) cuerpo.html = b.html;
+        const adjs = Array.isArray(b.adjuntos) ? b.adjuntos.slice(0, 5) : [];
+        if (adjs.length)
+          cuerpo.attachments = adjs.map((a) => ({ filename: a.nombre || "archivo", content: a.b64 }));
+        const r = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${env.RESEND_API_KEY}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify(cuerpo),
+        });
+        const data = await r.json();
+        if (!r.ok) return json({ error: "Resend: " + (data.message || r.status) }, 502);
+        // Registrar como saliente (mismo camino que registrar-enviada) + libreta.
+        const ahora = new Date().toISOString();
+        let idCorreo = null;
+        const thread_id = await derivarThreadId(
+          env, NOSOTROS, para, asunto, null, null,
+          (data.id || ahora).slice(0, 16).replace(/[^\w.@-]/g, "")
+        );
+        try {
+          if (b.id) {
+            await env.DB.prepare(
+              `UPDATE correos SET message_id=?, para=?, asunto=?, cuerpo_texto=?, respuesta_borrador=NULL,
+                 respuesta_enviada=?, respondido_en=?, recibido_en=?, estado='enviado', thread_id=?, leido=1, notificado=1
+               WHERE id=? AND estado='borrador_salida'`
+            )
+              .bind(data.id || null, para, asunto, texto, texto, ahora, ahora, thread_id, b.id)
+              .run();
+            idCorreo = b.id;
+          } else {
+            const insEnv = await env.DB.prepare(
+              `INSERT INTO correos (message_id, de, para, asunto, cuerpo_texto, dominio, recibido_en,
+                                    estado, notificado, respuesta_enviada, respondido_en, thread_id, leido)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 'enviado', 1, ?, ?, ?, 1)`
+            )
+              .bind(data.id || null, NOSOTROS, para, asunto, texto,
+                para.split("@")[1] || "", ahora, texto, ahora, thread_id)
+              .run();
+            idCorreo = insEnv.meta && insEnv.meta.last_row_id;
+          }
+          if (idCorreo && adjs.length) {
+            await guardarAdjuntos(env, idCorreo, adjs.map((a) => ({
+              filename: a.nombre, mimeType: a.mime, content: a.b64, disposition: "attachment",
+            })));
+          }
+          await upsertContacto(env, para, null);
+        } catch (e) {
+          console.error("registro post-envío falló:", e);
+          return json({ ok: true, resend_id: data.id, sync_warning: true });
+        }
+        return json({ ok: true, resend_id: data.id });
+      } catch (err) {
+        return json({ error: "Error enviando: " + err.message }, 502);
+      }
+    }
+
+    // POST /api/responder-hilo  { thread_id, texto, cc?, cco?, adjuntos? }
+    // SEGUIMIENTO (fase 14): escribir otra vez en una conversación que ya respondiste,
+    // sin esperar a que el cliente conteste. Mantiene el hilo del lado del cliente usando
+    // In-Reply-To/References del último mensaje, y registra el envío dentro del mismo hilo.
+    if (path === "/api/responder-hilo" && request.method === "POST") {
+      if (!env.RESEND_API_KEY) return json({ error: "Falta RESEND_API_KEY en el Worker." }, 501);
+      const b = await request.json().catch(() => ({}));
+      const tid = b.thread_id;
+      const texto = (b.texto || "").trim();
+      if (!tid) return json({ error: "falta thread_id" }, 400);
+      if (!texto) return json({ error: "falta el texto" }, 400);
+
+      // Último mensaje del hilo: de ahí salen el destinatario, el asunto y los headers.
+      const { results: msgs } = await env.DB.prepare(
+        `SELECT id, message_id, de, para, asunto, referencias, recibido_en, respondido_en, creado_en, estado
+         FROM correos WHERE COALESCE(thread_id,'id:'||id)=? AND estado NOT IN ('papelera','bloqueado')
+         ORDER BY datetime(COALESCE(respondido_en, recibido_en, creado_en)) DESC, id DESC LIMIT 30`
+      ).bind(tid).all();
+      if (!msgs || !msgs.length) return json({ error: "conversación no encontrada" }, 404);
+
+      // El destinatario es la contraparte: el primer correo del hilo que no seamos nosotros.
+      let destino = "";
+      for (const m of msgs) {
+        const cand = (m.de || "").toLowerCase() === NOSOTROS ? m.para : m.de;
+        if (cand && cand.includes("@") && cand.toLowerCase() !== NOSOTROS) { destino = cand; break; }
+      }
+      if (!destino) return json({ error: "no pude determinar el destinatario" }, 400);
+
+      const ultimo = msgs[0];
+      const asuntoBase = ultimo.asunto || "su consulta";
+      const asunto = /^re:/i.test(asuntoBase) ? asuntoBase : `Re: ${asuntoBase}`;
+      const headers = { "Content-Language": "es-CL" };
+      // Encadenar con el último mensaje QUE TENGA Message-ID (los nuestros pueden no tenerlo).
+      const conMid = msgs.find((m) => m.message_id && m.message_id.startsWith("<"));
+      if (conMid) {
+        headers["In-Reply-To"] = conMid.message_id;
+        headers["References"] = ((conMid.referencias || "") + " " + conMid.message_id).trim();
+      }
+      const lista = (s) =>
+        (s || "").split(/[,;]+/).map((x) => x.trim()).filter((x) => x.includes("@")).slice(0, 20);
+      const ccArr = lista(b.cc), ccoArr = lista(b.cco);
+      const adjuntos = Array.isArray(b.adjuntos) ? b.adjuntos.slice(0, 5) : [];
+
+      try {
+        const r = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${env.RESEND_API_KEY}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "Destape Rápido <contacto@destaperapido.cl>",
+            to: [destino],
+            subject: asunto,
+            text: texto,
+            headers,
+            ...(ccArr.length ? { cc: ccArr } : {}),
+            ...(ccoArr.length ? { bcc: ccoArr } : {}),
+            ...(adjuntos.length
+              ? { attachments: adjuntos.map((a) => ({ filename: a.nombre || "archivo", content: a.b64 })) }
+              : {}),
+          }),
+        });
+        const data = await r.json();
+        if (!r.ok) return json({ error: "Resend: " + (data.message || r.status) }, 502);
+        // El correo ya salió: el registro no debe invalidarlo.
+        const ahora = new Date().toISOString();
+        try {
+          const ins = await env.DB.prepare(
+            `INSERT INTO correos (message_id, de, para, asunto, cuerpo_texto, dominio, recibido_en,
+                                  estado, notificado, respuesta_enviada, respondido_en, thread_id, leido)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'enviado', 1, ?, ?, ?, 1)`
+          )
+            .bind(data.id || null, NOSOTROS, destino, asunto, texto,
+              destino.split("@")[1] || "", ahora, texto, ahora, tid)
+            .run();
+          const nuevoId = ins.meta && ins.meta.last_row_id;
+          if (nuevoId && adjuntos.length) {
+            await guardarAdjuntos(env, nuevoId, adjuntos.map((a) => ({
+              filename: a.nombre, mimeType: a.mime, content: a.b64, disposition: "attachment",
+            })));
+          }
+          await upsertContacto(env, destino, null);
+        } catch (e) {
+          console.error("registro post-seguimiento falló:", e);
+          return json({ ok: true, resend_id: data.id, sync_warning: true });
+        }
+        return json({ ok: true, resend_id: data.id, para: destino });
+      } catch (err) {
+        return json({ error: "Error enviando: " + err.message }, 502);
+      }
+    }
+
+    // POST /api/descartar-borrador  { id }  -> borra un borrador de salida (DELETE real)
+    if (path === "/api/descartar-borrador" && request.method === "POST") {
+      const { id } = await request.json().catch(() => ({}));
       if (!id) return json({ error: "falta id" }, 400);
+      await env.DB.prepare(`DELETE FROM correos WHERE id=? AND estado='borrador_salida'`)
+        .bind(id)
+        .run();
+      return json({ ok: true });
+    }
+
+    // POST /api/imagenes-confiables  { remitente }  -> "mostrar imágenes siempre" (RF-14)
+    if (path === "/api/imagenes-confiables" && request.method === "POST") {
+      const { remitente } = await request.json().catch(() => ({}));
+      const r = (remitente || "").trim().toLowerCase();
+      if (!r || !r.includes("@")) return json({ error: "remitente inválido" }, 400);
+      try {
+        await env.DB.prepare(
+          `INSERT OR IGNORE INTO imagenes_confiables (remitente) VALUES (?)`
+        ).bind(r).run();
+      } catch (e) {
+        return json({ error: "tabla no migrada (fase 11)" }, 500);
+      }
+      return json({ ok: true });
+    }
+
+    // POST /api/borrador  { id, texto, auto? }
+    // auto=true (fase 11): AUTOGUARDADO del panel — solo actualiza el texto sin tocar
+    // confianza/motivo/ajuste (esos son del loop IA; el guardado manual los resetea).
+    if (path === "/api/borrador" && request.method === "POST") {
+      const { id, texto, confianza, motivo, auto } = await request.json().catch(() => ({}));
+      if (!id) return json({ error: "falta id" }, 400);
+      if (auto) {
+        await env.DB.prepare(
+          `UPDATE correos SET respuesta_borrador = ?,
+             estado = CASE WHEN estado='nuevo' THEN 'borrador' ELSE estado END
+           WHERE id = ? AND estado IN ('nuevo','borrador','ajuste')`
+        )
+          .bind(texto || "", id)
+          .run();
+        return json({ ok: true });
+      }
       await env.DB.prepare(
         `UPDATE correos SET respuesta_borrador = ?, estado = 'borrador',
            ajuste_pedido = NULL, ajuste_enviar = 0,
@@ -911,12 +1932,12 @@ export default {
       return json({ ok: true, actualizados });
     }
 
-    // POST /api/enviar  { id, texto }
+    // POST /api/enviar  { id, texto, cc?, cco? }
     if (path === "/api/enviar" && request.method === "POST") {
       if (!env.RESEND_API_KEY) {
         return json({ error: "Falta RESEND_API_KEY en el Worker." }, 501);
       }
-      const { id, texto } = await request.json().catch(() => ({}));
+      const { id, texto, cc, cco } = await request.json().catch(() => ({}));
       if (!id || !texto || !texto.trim()) {
         return json({ error: "falta id o texto" }, 400);
       }
@@ -940,6 +1961,10 @@ export default {
         headers["References"] = c.message_id;
       }
 
+      // Responder con copia (fase 13): útil para poner al jefe de obra en CC.
+      const lista = (s) =>
+        (s || "").split(/[,;]+/).map((x) => x.trim()).filter((x) => x.includes("@")).slice(0, 20);
+      const ccArr = lista(cc), ccoArr = lista(cco);
       try {
         const r = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -953,6 +1978,8 @@ export default {
             subject: asunto,
             text: texto,
             headers,
+            ...(ccArr.length ? { cc: ccArr } : {}),
+            ...(ccoArr.length ? { bcc: ccoArr } : {}),
             ...(c.adjunto_b64
               ? {
                   attachments: [
@@ -985,6 +2012,7 @@ export default {
           console.error("UPDATE post-envío falló:", e);
           return json({ ok: true, resend_id: data.id, sync_warning: true });
         }
+        await upsertContacto(env, c.de, c.de_nombre);
         return json({ ok: true, resend_id: data.id });
       } catch (err) {
         return json({ error: "Error enviando: " + err.message }, 502);

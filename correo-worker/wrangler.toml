@@ -19,10 +19,13 @@ crons = ["*/20 * * * *"]
 FORWARD_TO = "paginasfastdev@gmail.com"
 VAPID_PUBLIC = "BCC8yMzHYuBxfWp2A5SjERjUu1PxsGgdAU8Klz5BllDcpF-uJR20nyAxZTHYf4UFQXwz9baM8M8P0mFrAEh5-bM"
 
-# Permite importar el panel .html como texto dentro del bundle
+# Importables como texto dentro del bundle: el panel y las librerías vendoreadas.
+# (Wrangler admite UNA sola regla por tipo: van todos los globs juntos.)
+# Las librerías llevan extensión .txt a propósito: si fueran .js el bundler intentaría
+# EJECUTARLAS en el Worker (usan `document`). El Worker las sirve como /vendor/*.js.
 [[rules]]
 type = "Text"
-globs = ["**/*.html"]
+globs = ["**/*.html", "**/*.txt"]
 
 # Permite importar los íconos PNG como binario
 [[rules]]

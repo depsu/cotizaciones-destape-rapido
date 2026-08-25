@@ -14,12 +14,22 @@
   :root{
     --brand:#0F6E6E; --brand-soft:#EAF4F2; --accent:#E0A82E;
     --dark:#1E2A2A; --gray:#5F6B6B; --line:#e3e8e8; --bg:#f5f7f7;
+    /* Segunda capa de neutros: el menú y las barras van un tono más frío que el contenido. */
+    --panel:#eef2f2; --superficie:#fff; --linea-suave:#edf1f1;
+    /* Escala de profundidad con nombre, para no inventar números sueltos. */
+    --z-lista:1; --z-barra:5; --z-cabecera:10; --z-cajon:12; --z-vista:20;
+    --z-compose:25; --z-toast:40; --z-modal:50;
+    /* Curva y tiempos únicos: 150-250 ms, salida suave, sin rebotes. */
+    --curva:cubic-bezier(.2,.8,.3,1); --rapido:.15s; --normal:.22s;
+    /* Alto real de la cabecera. Lo mide el JS al arrancar: si se escribe a mano queda
+       desfasado en cuanto cambia el tamaño de letra, y las barras pegajosas se cortan. */
+    --alto-cabecera:64px;
   }
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
        background:var(--bg);color:var(--dark)}
   header{background:var(--brand);color:#fff;padding:14px 18px;display:flex;align-items:center;gap:12px;
-         position:sticky;top:0;z-index:10}
+         position:sticky;top:0;z-index:var(--z-cabecera)}
   header h1{font-size:17px;margin:0;font-weight:600;flex:1}
   header button{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;padding:7px 12px;
                 font-size:13px;cursor:pointer}
@@ -72,25 +82,85 @@
   .blq button{margin-top:8px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 11px;
               font-size:12.5px;cursor:pointer;color:var(--brand)}
 
-  #overlay{position:fixed;inset:0;background:rgba(20,30,30,.45);display:none;align-items:flex-start;
-           justify-content:center;padding:20px;z-index:20;overflow:auto}
-  #modal{background:#fff;border-radius:14px;max-width:760px;width:100%;margin:24px auto;overflow:hidden}
-  .mhead{background:var(--brand);color:#fff;padding:16px 18px}
-  .mhead .masunto{font-size:16px;font-weight:600;margin-bottom:6px}
-  .mhead .meta{font-size:12.5px;opacity:.92;line-height:1.5}
-  .mbody{padding:16px 18px;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-word;
-         max-height:44vh;overflow:auto;border-bottom:1px solid var(--line)}
-  .mbody iframe{width:100%;border:0;min-height:52vh;background:#fff;border-radius:6px}
-  .mclose{position:sticky;top:0;float:right;background:rgba(255,255,255,.2);border:0;color:#fff;
-          width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:18px;line-height:1}
+  /* ===== Lectura =====
+     En escritorio ancho es un PANEL AL COSTADO (la lista sigue a la vista, como un
+     cliente de correo de verdad); en pantallas chicas ocupa todo, con flecha de volver.
+     Nunca es una ventana flotante con scroll dentro de otro scroll. */
+  #overlay{display:none}
+  #overlay.abierta{display:block}
+  #modal{width:100%;background:transparent}
+  @media (min-width:1180px){
+    #overlay.abierta{position:relative;flex:1 1 0;min-width:0;align-self:stretch;
+      height:100%;overflow-y:auto;background:var(--bg);
+      border-left:1px solid var(--line);z-index:var(--z-lista)}
+    /* Con el panel abierto la lista se angosta. En ese ancho, una sola línea deja el
+       asunto en 90px (ilegible): la fila pasa a DOS líneas, como Apple Mail o Outlook. */
+    body.leyendo .principal{flex:0 0 clamp(340px, 30%, 460px)}
+    body.leyendo .hadj{display:none}
+    body.leyendo .hrow{height:auto;padding:8px 12px;align-items:flex-start}
+    body.leyendo .hrow > .hcheck,body.leyendo .hrow > .hstar,
+    body.leyendo .hrow > .av,body.leyendo .hrow > .hdot{margin-top:2px}
+    body.leyendo .hfila2{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+    body.leyendo .hquien{flex:none;width:auto;max-width:100%;font-size:13.5px}
+    body.leyendo .hasunto{flex:none;white-space:normal;display:-webkit-box;
+      -webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.35;font-size:13px}
+    body.leyendo .hfecha{align-self:flex-start;margin-top:2px}
+    /* Los estados bajan a su propia línea: si no, le comen el nombre al cliente. */
+    body.leyendo .hestados{display:flex;gap:4px;flex-wrap:wrap;margin-top:1px}
+    body.leyendo .hestados:empty{display:none}
+  }
+  @media (max-width:1179px){
+    /* La conversación ocupa la pantalla ENTERA, tapando la cabecera (como la app de
+       Gmail en el teléfono). Así su barra de acciones se pega arriba del todo: no hay
+       rendija por donde asome la lista ni nada que le corte los botones. */
+    #overlay.abierta{position:fixed;inset:0;background:var(--bg);z-index:var(--z-vista);
+      overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+    #modal{max-width:820px;margin:0 auto}
+  }
+  /* Barra superior fija: atrás + acciones, igual que la barra de Gmail sobre la conversación. */
+  /* Barra de acciones pegada arriba del panel. Opaca y con sombra al despegarse, para
+     que se note que el contenido pasa POR DEBAJO y no queda cortado a medias. */
+  .vbar{position:sticky;top:0;z-index:var(--z-barra);background:var(--bg);
+        border-bottom:1px solid var(--line);display:flex;align-items:center;gap:4px;
+        padding:8px 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+        transition:box-shadow var(--rapido) var(--curva)}
+  .vbar.despegada{box-shadow:0 4px 12px rgba(15,42,42,.10)}
+  /* Al despegarse aparece el asunto en la barra: así sabes qué estás leyendo aunque
+     hayas bajado. Gmail deja el asunto arriba y lo pierdes de vista. */
+  .vbar-asunto{display:none;flex:1;min-width:0;font-size:13.5px;font-weight:600;
+        color:var(--dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+        padding-left:6px}
+  .vbar.despegada .vbar-asunto{display:block}
+  .vbar.despegada .mbar{flex:0 0 auto}
+  /* Con panel al costado no hace falta "volver": la lista está ahí al lado. */
+  @media (min-width:1180px){ .vback{display:none} }
+  .vback{flex:none;background:none;border:0;font-size:20px;line-height:1;cursor:pointer;color:var(--dark);
+         padding:6px 10px;border-radius:8px}
+  .vback:hover{background:var(--surface2,#e7edec)}
+  .mhead{padding:16px 18px 10px;background:transparent;color:var(--dark)}
+  .mhead .masunto{font-size:21px;font-weight:600;margin-bottom:6px;line-height:1.25;color:var(--dark)}
+  .mhead .meta{font-size:12.5px;color:var(--gray);line-height:1.5}
+  /* El hilo NO es una tarjeta con tarjetas dentro: cada mensaje es su propia superficie. */
+  .mbody{font-size:14px;line-height:1.6;word-break:break-word;margin:0 14px;
+         display:flex;flex-direction:column;gap:8px}
+  .mbody:not(.hilo){padding:16px 18px;white-space:pre-wrap;background:var(--superficie);
+         border:1px solid var(--line);border-radius:12px}
+  /* Sin min-height: el alto lo calcula montarIframe() según el contenido real del correo. */
+  .mbody iframe{width:100%;border:0;background:#fff;border-radius:6px;display:block}
+  .mclose{display:none}
   .burbuja{max-width:82%;padding:9px 12px;border-radius:12px;margin:8px 0;white-space:pre-wrap;
            font-size:13.5px;line-height:1.5;word-break:break-word}
   .b-cli{background:#fff;border:1px solid var(--line);margin-right:auto;border-top-left-radius:3px}
   .b-nos{background:var(--brand-soft);margin-left:auto;border-top-right-radius:3px}
   .b-meta{font-size:11px;color:var(--gray);margin-bottom:4px;font-weight:600}
   .b-adj{font-size:12px;color:var(--brand);margin-top:6px}
-  .resp{padding:16px 18px;background:#fafcfc}
-  .resp h3{margin:0 0 8px;font-size:13px;color:var(--brand);text-transform:uppercase;letter-spacing:.04em}
+  /* La caja de respuesta es la acción principal: se distingue del hilo con un fondo propio
+     y el borde en color de marca, no con más ruido. */
+  .resp{padding:16px 18px;background:var(--superficie);border:1px solid var(--line);
+        border-top:2px solid var(--brand);border-radius:12px;margin:14px 14px 48px;
+        box-shadow:0 2px 10px rgba(15,42,42,.06)}
+  .resp h3{margin:0 0 10px;font-size:14px;font-weight:700;color:var(--brand);
+        text-transform:none;letter-spacing:0}
   .resp textarea{width:100%;min-height:160px;border:1px solid var(--line);border-radius:9px;padding:11px;
                  font-size:14px;font-family:inherit;line-height:1.6;resize:vertical}
   .acciones{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
@@ -112,18 +182,372 @@
         font-weight:600;white-space:nowrap}
   .metiquetas{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .chip-x{cursor:pointer;margin-left:5px;opacity:.7;font-weight:700}
-  .chip-add{font-size:11px;background:rgba(255,255,255,.18);color:#fff;border:0;
+  /* La cabecera de la conversación ahora es clara (vista, no modal teal): chip legible. */
+  .chip-add{font-size:11px;background:var(--brand-soft);color:var(--brand);border:1px solid var(--line);
         border-radius:20px;padding:3px 10px;cursor:pointer}
-  .mbar{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff;
-        border-top:1px solid var(--line);padding:10px 14px}
+  .chip-add:hover{background:#d8ebe8}
+  .mbar{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:transparent;
+        padding:0;flex:1}
   .mbar-b{min-height:40px;padding:0 12px;font-size:13.5px;border-radius:9px;border:1px solid var(--line);
         background:#f2f5f5;color:var(--dark);flex:0 0 auto;cursor:pointer;white-space:nowrap}
   .mbar-b.primary{border-color:var(--brand);color:var(--brand)}
   .mbar-b.danger{color:#b5462e}
   .mbar-b[disabled]{opacity:.5;cursor:default}
-  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--dark);color:#fff;
-        padding:10px 16px;border-radius:10px;font-size:13.5px;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none}
-  .toast.show{opacity:1}
+  /* ===== Movimiento (fase 18) =====
+     Gmail es casi estático: aparecer/desaparecer sin transición. Aquí se suaviza lo que
+     el ojo necesita seguir —abrir un mensaje, entrar a la conversación, el aviso que
+     aparece abajo— sin caer en adornos. Todo se apaga si el sistema pide menos movimiento. */
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);
+        background:var(--dark);color:#fff;padding:10px 16px;border-radius:10px;font-size:13.5px;
+        z-index:var(--z-toast);opacity:0;pointer-events:none;
+        transition:opacity .18s ease, transform .22s cubic-bezier(.2,.8,.3,1)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* El cuerpo de un mensaje se despliega al abrirse. Se anima el CONTENIDO (no la altura
+     con grid): los iframes de los correos calculan su alto solos y una animación de
+     altura les gana la pelea, dejando el correo cortado. */
+  .hm-body{display:none;padding:0 16px 12px}
+  .hm.abierto .hm-body{display:block;animation:despliega .26s cubic-bezier(.2,.8,.3,1)}
+  @keyframes despliega{ from{opacity:0; transform:translateY(-6px)} to{opacity:1; transform:none} }
+  .hm.abierto .hm-snip{display:none}
+  .hm-head{transition:background .12s ease}
+  .hm-head:hover{background:#fafcfc}
+
+  /* La conversación entra deslizándose desde la derecha (y el gesto atrás se siente natural). */
+  @keyframes entraVista{ from{opacity:0; transform:translateX(18px)} to{opacity:1; transform:none} }
+  #overlay.abierta #modal{animation:entraVista var(--normal) var(--curva)}
+  /* La ventana de redactar sube desde abajo, como en Gmail al abrirla. */
+  @keyframes subeCompose{ from{opacity:0; transform:translateY(24px)} to{opacity:1; transform:none} }
+  #overlay2[style*="block"] #compose{animation:subeCompose .2s cubic-bezier(.2,.8,.3,1)}
+  #overlay2{transition:max-height .2s ease}
+  /* Las filas de la lista aparecen escalonadas al cargar: se nota que "llegó" correo. */
+  @keyframes entraFila{ from{opacity:0; transform:translateY(-4px)} to{opacity:1; transform:none} }
+  .hlist.animar .hrow{animation:entraFila .22s ease backwards}
+  .mini-abre{animation:subeCompose .16s ease}
+  /* Respeto por quien pide menos movimiento en su teléfono (accesibilidad). */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
+      transition-duration:.01ms !important;scroll-behavior:auto !important}
+  }
+
+  /* ===== Fase 10: lista por CONVERSACIONES (filas densas estilo Gmail) ===== */
+  .hlist{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  /* Fila de 40px de alto, como la de Gmail (medido en su interfaz real). */
+  .hrow{display:flex;align-items:center;gap:8px;padding:0 12px;height:40px;
+        border-bottom:1px solid var(--line);cursor:pointer;position:relative;min-width:0}
+  .hrow:last-child{border-bottom:0}
+  .hrow:hover{background:#f7fafa}
+  .hrow.leida{background:#fafcfc}
+  .hrow.leida:hover{background:#f2f6f6}
+  .hdot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--brand)}
+  .hrow.leida .hdot{background:transparent}
+  /* En la lista ancha, remitente, asunto y estados van en la misma línea:
+     el envoltorio desaparece con display:contents y no estorba. */
+  .hfila2{display:contents}
+  .hestados{display:contents}
+  /* Columna de participantes de 200px fija, como Gmail: los asuntos quedan alineados. */
+  .hquien{flex:0 0 200px;font-size:14px;color:var(--ink,#1E2A2A);
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* Entre 820 y 900 la lista sigue en una línea pero con menos espacio para el nombre.
+     Bajo 820 manda el bloque de fila compacta (dos líneas). */
+  @media (max-width:900px){ .hquien{flex:0 0 150px} }
+  .hrow.noleida .hquien,.hrow.noleida .hasunto{font-weight:700}
+  .hn{color:var(--gray);font-size:11.5px;font-weight:400}
+  .hasunto{flex:1 1 auto;min-width:0;font-size:14px;color:var(--dark);
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hasunto .hsnip{color:var(--gray);font-weight:400}
+  /* Nombres de los adjuntos en la propia fila, como hace Gmail. */
+  .hadj{flex:none;display:flex;gap:4px;max-width:230px;overflow:hidden}
+  .hadj span{font-size:11px;background:var(--surface2,#eef2f2);border:1px solid var(--line);
+        border-radius:6px;padding:1px 7px;color:var(--gray);white-space:nowrap;
+        overflow:hidden;text-overflow:ellipsis;max-width:110px}
+  @media (max-width:820px){ .hadj{display:none} }
+  .hclip{flex:none;font-size:12px;color:var(--gray)}
+  .hchip{flex:none;font-size:10px;font-weight:800;border-radius:8px;padding:1.5px 7px;white-space:nowrap}
+  .hchip-rev{background:#fde0e0;color:#b5462e}
+  .hchip-bor{background:#efe9fb;color:#5b3fbf}
+  .hchip-aju{background:#fff6ed;color:#b07222}
+  .hchip-ok{background:var(--brand-soft);color:var(--brand)}
+  .hfecha{flex:none;font-size:12px;color:var(--ink,#1E2A2A);white-space:nowrap;min-width:48px;text-align:right}
+  .pag{border:0;background:none;color:var(--gray);cursor:pointer;font-size:15px;padding:2px 8px;
+       border-radius:6px;line-height:1}
+  .pag:hover:not([disabled]){background:#e7edec;color:var(--dark)}
+  .pag[disabled]{opacity:.3;cursor:default}
+  .hacts{display:none;position:absolute;right:8px;top:50%;transform:translateY(-50%);gap:4px;
+         background:#fff;border:1px solid var(--line);border-radius:9px;padding:3px 5px;
+         box-shadow:0 3px 10px rgba(0,0,0,.08)}
+  /* Al pasar el cursor, las acciones ocupan el lugar de la fecha y los chips (no los tapan). */
+  @media (hover:hover){
+    .hrow:hover .hacts{display:flex}
+    .hrow:hover .hfecha,.hrow:hover .hchip,.hrow:hover .hclip{visibility:hidden}
+  }
+  .hacts button{border:0;background:none;font-size:14px;cursor:pointer;padding:3px 6px;border-radius:6px}
+  .hacts button:hover{background:var(--brand-soft)}
+
+  /* ===== Fase 10: vista de hilo (mensajes colapsados + citas ocultas) ===== */
+  /* El hilo NO tiene scroll propio: scrollea la página, como Gmail. */
+  .mbody.hilo{white-space:normal;padding:0}
+  /* CERRADO: fila plana y compacta, casi parte del fondo.
+     ABIERTO: tarjeta elevada, con borde y sombra. Se ve de inmediato cuál estás leyendo. */
+  .hm{background:var(--superficie);border:1px solid var(--linea-suave);border-radius:10px;
+      transition:box-shadow var(--normal) var(--curva), border-color var(--normal) var(--curva),
+                 margin var(--normal) var(--curva)}
+  .hm.abierto{border-color:var(--line);box-shadow:0 2px 10px rgba(15,42,42,.09);margin:6px 0}
+  .hm-head{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;min-width:0;
+           border-radius:10px}
+  .hm.abierto .hm-head{padding:12px 16px 6px;border-bottom:1px solid var(--linea-suave);
+           border-radius:10px 10px 0 0}
+  /* Flecha que gira: dice si el mensaje está abierto o cerrado sin leer nada. */
+  .hm-chev{flex:none;color:var(--gray);font-size:11px;width:14px;text-align:center;
+           transition:transform var(--normal) var(--curva)}
+  .hm.abierto .hm-chev{transform:rotate(90deg);color:var(--brand)}
+  .hm-quien{flex:none;font-size:13px;font-weight:700;color:var(--dark);max-width:38%;
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hm-quien.nos{color:var(--brand)}
+  .hm-mail{flex:0 1 auto;font-size:11.5px;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hm-snip{flex:1 1 auto;min-width:0;font-size:12.5px;color:var(--gray);
+           white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hm-fecha{flex:none;font-size:11px;color:var(--gray);white-space:nowrap}
+  .hm-mas{flex:none;background:none;border:0;color:var(--gray);cursor:pointer;font-size:15px;
+          line-height:1;padding:4px 6px;border-radius:6px;opacity:0}
+  .hm:hover .hm-mas,.hm.abierto .hm-mas{opacity:1}
+  .hm-mas:hover{background:var(--surface2,#e7edec)}
+  @media (hover:none){ .hm-mas{opacity:1} }
+  /* El mostrar/ocultar y su animación están en el bloque de movimiento, más abajo. */
+  .hm-body{font-size:13.5px;line-height:1.6}
+  .hm-txt{white-space:pre-wrap;word-break:break-word}
+  .hm-cita{display:none;white-space:pre-wrap;word-break:break-word;color:var(--gray);
+           border-left:2px solid var(--line);padding-left:10px;margin-top:8px}
+  .hm.concita .hm-cita.abierta{display:block}
+  .qbtn{display:inline-block;margin-top:8px;background:#f2f5f5;border:1px solid var(--line);
+        border-radius:10px;padding:0 10px;color:var(--gray);font-weight:800;letter-spacing:.12em;
+        cursor:pointer;font-size:13px;line-height:1.5}
+  .qbtn:hover{background:#e7edec}
+  .hm-body iframe{width:100%;border:0;background:#fff;border-radius:6px;display:block}
+  .hm-adj{font-size:12.5px;color:var(--brand);margin-top:8px}
+
+  /* ===== Fase 13: adjuntos del cliente + estrella ===== */
+  /* Zona de "suelta el archivo aquí": aparece solo mientras arrastras algo. */
+  .soltando{position:relative}
+  .soltando::after{content:"📎  Suelta el archivo para adjuntarlo";position:absolute;inset:6px;
+        border:2px dashed var(--brand);border-radius:12px;background:rgba(15,110,110,.07);
+        display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;
+        color:var(--brand);pointer-events:none;z-index:2}
+  .adjs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .adj{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;
+       padding:7px 11px;background:#fbfdfd;font-size:12.5px;max-width:280px;text-decoration:none;color:var(--dark)}
+  .adj:hover{background:var(--brand-soft);border-color:var(--brand)}
+  .adj .ic{font-size:16px;flex:none}
+  .adj .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+  .adj .t{color:var(--gray);font-size:11px}
+  .adj.grande{background:#fff8ed;border-color:#f1d3b5;cursor:default}
+  .adj.grande:hover{background:#fff8ed;border-color:#f1d3b5}
+  /* ===== Fase 15: avatares (el círculo con la inicial, marca de Gmail) ===== */
+  .av{flex:none;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;
+      justify-content:center;color:#fff;font-weight:700;font-size:13px;text-transform:uppercase;
+      user-select:none}
+  .hrow .av{width:24px;height:24px;font-size:11.5px}
+
+  /* ===== Fila compacta de dos líneas =====
+     Se usa en TODO ancho estrecho: el teléfono y el panel de lectura de escritorio.
+     En una línea, el asunto queda en 90px y la fecha se sale de la pantalla. */
+  @media (max-width:820px){
+    .hrow{height:auto;min-height:58px;padding:8px 10px;align-items:flex-start;gap:7px;overflow:hidden}
+    .hfila2{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+    .hquien{flex:none;width:auto;max-width:100%;font-size:13.5px}
+    .hasunto{flex:none;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;
+      -webkit-box-orient:vertical;overflow:hidden;line-height:1.35;font-size:13px}
+    .hestados{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+    .hestados:empty{display:none}
+    .hfecha{align-self:flex-start;margin-top:2px;font-size:11.5px;min-width:0}
+    .hadj{display:none}
+    .hcheck,.hstar,.hdot{margin-top:3px}
+    /* Objetivos táctiles de 44px: con el dedo, y muchas veces con una sola mano. */
+    .hcheck{width:22px;height:22px;padding:11px;margin:-11px -11px -11px 0;box-sizing:content-box}
+    .hstar{padding:11px;margin:-11px}
+    .btn,.qa-b,.mbar-b,.side-b{min-height:44px}
+    .ctoolbar button{min-width:44px;height:44px}
+    .hm-head{min-height:44px}
+    .hm-mas{padding:11px}
+    header button{min-height:40px;min-width:40px}
+  }
+  .hm-av{width:34px;height:34px;font-size:14px;margin-right:2px}
+  /* En el teléfono el avatar SÍ se muestra (con la fila de dos líneas hay espacio y
+     ayuda a reconocer al cliente de una mirada, como la app de Gmail). */
+
+  /* ===== Fase 15: menú lateral de carpetas (sidebar en escritorio, cajón en el teléfono) ===== */
+  /* Medidas tomadas del Gmail real: menú 240px, botón Redactar 140×56 con radio 16.
+     La aplicación ocupa TODO el ancho disponible: nada de una columna angosta al centro. */
+  .layout{display:flex;align-items:flex-start;width:100%;margin:0}
+  .side{flex:0 0 240px;padding:12px 8px 40px;position:sticky;top:var(--alto-cabecera);
+        align-self:flex-start;background:var(--panel);
+        min-height:calc(100vh - var(--alto-cabecera))}
+
+  /* ===== En escritorio la página NO scrollea: scrollea cada columna por separado.
+     Es como funciona un cliente de correo de verdad, y evita que las barras pegajosas
+     se metan debajo de la cabecera al hacer scroll. ===== */
+  @media (min-width:1180px){
+    html,body{height:100%;overflow:hidden}
+    .layout{height:calc(100vh - var(--alto-cabecera));align-items:stretch}
+    .side{position:static;min-height:0;overflow-y:auto;height:100%}
+    .principal{overflow-y:auto;height:100%}
+  }
+  .btn-redactar{display:flex;align-items:center;gap:10px;width:140px;height:56px;border:0;
+        border-radius:16px;background:var(--brand);color:#fff;font-size:14.5px;font-weight:600;
+        cursor:pointer;padding:0 18px;margin:4px 0 14px 8px;box-shadow:0 1px 3px rgba(0,0,0,.16)}
+  .btn-redactar:hover{box-shadow:0 2px 8px rgba(0,0,0,.24)}
+  .btn-redactar .ic{font-size:17px}
+  .side-b{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;
+          background:none;border-radius:0 999px 999px 0;padding:8px 14px;font-size:13.5px;
+          color:var(--dark);cursor:pointer;margin-bottom:2px}
+  .side-b:hover{background:#e9efee}
+  .side-b.activo{background:var(--brand-soft);color:var(--brand-ink,#0A5252);font-weight:700}
+  .side-b .ic{flex:none;width:18px;text-align:center;font-size:15px}
+  .side-b .lbl{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .side-b .cnt{font-size:11.5px;color:var(--gray);font-weight:600}
+  .side-b.activo .cnt{color:var(--brand)}
+  .principal{flex:1;min-width:0;padding:12px 14px 40px}
+  .burger{display:none;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;
+          padding:7px 11px;font-size:15px;cursor:pointer}
+  .velo{display:none;position:fixed;inset:0;background:rgba(20,30,30,.4);z-index:calc(var(--z-cajon) - 1)}
+  @media (max-width:820px){
+    .burger{display:block}
+    .side{position:fixed;left:0;top:0;bottom:0;width:250px;background:#fff;z-index:var(--z-cajon);
+          transform:translateX(-102%);transition:transform .22s ease;overflow-y:auto;
+          box-shadow:2px 0 16px rgba(0,0,0,.14);padding-top:16px}
+    .side.abierto{transform:none}
+    .velo.on{display:block}
+    .principal{padding:10px}
+  }
+  .side-tit{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);
+            font-weight:700;padding:10px 14px 6px}
+
+  .hstar{flex:none;background:none;border:0;cursor:pointer;font-size:14px;line-height:1;
+         padding:0 2px;color:#c8d2d1;filter:grayscale(1);opacity:.55}
+  .hstar.on{filter:none;opacity:1}
+  .hstar:hover{opacity:1}
+
+  /* ===== Fase 11: buscador + chips ===== */
+  /* Buscador dentro de la cabecera, ancho completo (como Gmail). */
+  .buscador{flex:1;max-width:720px;margin:0 12px;display:flex;gap:4px;align-items:center;
+        background:rgba(255,255,255,.16);border-radius:10px;padding:2px 6px 2px 12px;
+        transition:background var(--rapido) var(--curva)}
+  .buscador:focus-within{background:#fff}
+  .buscador input{flex:1;padding:8px 4px;border:0;font-size:14px;background:transparent;
+        outline:none;color:#fff;min-width:0}
+  .buscador input::placeholder{color:rgba(255,255,255,.75)}
+  .buscador:focus-within input{color:var(--dark)}
+  .buscador:focus-within input::placeholder{color:var(--gray)}
+  .buscador .blimpiar{border:0;background:none;font-size:15px;cursor:pointer;
+        color:rgba(255,255,255,.8);display:none;padding:4px 6px}
+  .buscador:focus-within .blimpiar,.buscador:focus-within .bavanz{color:var(--gray)}
+  .solo-angosto{display:none}
+  @media (max-width:820px){
+    header h1{display:none}
+    header{gap:6px;padding:10px 10px}
+    .buscador{margin:0 4px;min-width:0}
+    .solo-ancho{display:none}          /* "Salir" pasa al menú: en la cabecera no cabe */
+    .solo-angosto{display:flex}
+  }
+  .bavanz{border:0;background:none;font-size:15px;cursor:pointer;color:rgba(255,255,255,.85);
+        padding:4px 7px;border-radius:8px}
+  .bavanz:hover{background:rgba(255,255,255,.18)}
+  .buscador:focus-within .bavanz:hover{background:#e7edec}
+  /* Buscador avanzado: los campos del panel de Gmail */
+  .avanzada{display:none;max-width:720px;margin:8px auto 0;background:#fff;border:1px solid var(--line);
+        border-radius:12px;padding:12px 16px;box-shadow:0 4px 16px rgba(0,0,0,.07)}
+  .avanzada.on{display:block}
+  .af{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+  .af label{font-size:12.5px;color:var(--gray);min-width:72px}
+  .af input{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13.5px;
+        font-family:inherit;min-width:0}
+  .af input[type=date]{flex:0 1 160px}
+  .af-acc{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+  .fchips{max-width:720px;margin:0 auto;padding:8px 16px 0;display:none;gap:6px;flex-wrap:wrap}
+  .fchips.on{display:flex}
+  .fchip{font-size:12px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 11px;
+        cursor:pointer;color:var(--gray)}
+  .fchip.on{background:var(--brand);border-color:var(--brand);color:#fff}
+
+  /* ===== Fase 11: aviso de imágenes bloqueadas ===== */
+  .img-aviso{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--gray);
+        background:#f6f8f8;border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-bottom:8px}
+  .img-aviso button{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 9px;
+        font-size:12px;cursor:pointer;color:var(--brand)}
+  .img-aviso.espia{background:var(--brand-soft);border-color:#cfe3df;color:var(--brand)}
+
+  /* ===== Fase 11: redactar (compose) ===== */
+  /* ===== Redactar: ventana en la esquina, como Gmail — NO bloquea la bandeja.
+     Puedes seguir leyendo y buscando mientras escribes; se minimiza. ===== */
+  #overlay2{position:fixed;right:18px;bottom:0;display:none;z-index:var(--z-compose);
+        width:min(540px, calc(100vw - 36px));max-height:86vh}
+  #compose{background:#fff;border-radius:12px 12px 0 0;width:100%;overflow:hidden;
+        box-shadow:0 -2px 24px rgba(0,0,0,.22);display:flex;flex-direction:column;max-height:86vh}
+  #compose .chead{background:var(--dark);color:#fff;padding:10px 14px;font-weight:600;font-size:14px;
+        display:flex;align-items:center;gap:4px;cursor:pointer}
+  #compose .chead span{flex:1}
+  #compose .cclose{background:rgba(255,255,255,.16);border:0;color:#fff;width:26px;height:26px;
+        border-radius:7px;cursor:pointer;font-size:15px;line-height:1}
+  #compose .cuerpoCompose{display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+  #overlay2.min #compose .cuerpoCompose{display:none}
+  #overlay2.min{max-height:none}
+  /* En el teléfono ocupa la pantalla completa, como la app de Gmail. */
+  @media (max-width:640px){
+    #overlay2{right:0;left:0;top:0;width:100%;max-height:none}
+    #compose{border-radius:0;max-height:100vh;height:100vh}
+    #overlay2.min{top:auto;bottom:0}
+    #overlay2.min #compose{height:auto}
+  }
+  #compose .campo{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);padding:9px 16px}
+  #compose .campo label{font-size:12.5px;color:var(--gray);min-width:52px}
+  #compose .campo input{flex:1;border:0;outline:none;font-size:14px;font-family:inherit;background:none}
+  .ctoolbar{display:flex;gap:4px;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .ctoolbar button{border:1px solid var(--line);background:#f7fafa;border-radius:7px;min-width:32px;height:30px;
+        cursor:pointer;font-size:13px}
+  .ctoolbar button:hover{background:var(--brand-soft)}
+  #editor{min-height:220px;max-height:46vh;overflow:auto;padding:14px 16px;font-size:14px;line-height:1.6;
+        outline:none;word-break:break-word}
+  .firma-editor{border:1px solid var(--line);border-radius:9px;padding:10px 12px;min-height:90px;
+        font-size:13.5px;line-height:1.6;outline:none;background:#fff}
+  .firma-editor:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px rgba(15,110,110,.1)}
+  #editor blockquote{border-left:2px solid var(--line);margin:6px 0;padding-left:10px;color:var(--gray)}
+  .cacciones{display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--line)}
+  .cestado{font-size:12px;color:var(--gray);flex:1;text-align:right}
+
+  /* ===== Fase 12: mini-modal propio (adiós prompt/confirm que congelan la PWA) ===== */
+  #overlay3{position:fixed;inset:0;background:rgba(20,30,30,.5);display:none;align-items:center;
+        justify-content:center;padding:20px;z-index:var(--z-modal)}
+  #mini{background:#fff;border-radius:13px;max-width:400px;width:100%;padding:18px}
+  #mini h4{margin:0 0 8px;font-size:15px}
+  #mini p{margin:0 0 12px;font-size:13px;color:var(--gray)}
+  #mini input,#mini textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 11px;
+        font-size:14px;font-family:inherit;margin-bottom:12px}
+  #mini .mbtns{display:flex;gap:8px;justify-content:flex-end}
+
+  /* ===== Fase 12: toast con Deshacer + selección múltiple + swipe + atajos ===== */
+  .toast.undo{pointer-events:auto;display:flex;gap:12px;align-items:center}
+  .toast .tundo{background:none;border:0;color:#7fd4c8;font-weight:700;font-size:13.5px;cursor:pointer}
+  /* En Gmail el cuadrado de selección está SIEMPRE visible, no aparece al pasar el mouse. */
+  .hcheck{flex:none;width:16px;height:16px;border:1.5px solid #b9c6c4;border-radius:3px;display:flex;
+        align-items:center;justify-content:center;font-size:11px;color:transparent;cursor:pointer;
+        transition:background .12s ease, border-color .12s ease, transform .12s ease}
+  .hcheck:hover{border-color:var(--brand);transform:scale(1.12)}
+  .hrow.sel{background:var(--brand-soft)}
+  .hrow.sel .hcheck{background:var(--brand);border-color:var(--brand);color:#fff}
+  .hrow.activo,.hrow:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;border-radius:4px}
+  /* La conversación que estás leyendo queda marcada en la lista (panel al costado). */
+  .hrow.leyendo{background:var(--brand-soft);box-shadow:inset 3px 0 0 var(--brand)}
+  /* El foco de teclado tiene que verse en TODO lo interactivo (accesibilidad básica). */
+  button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
+  [tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .selbar{display:none;max-width:820px;margin:0 auto;padding:8px 16px 0;gap:8px;align-items:center}
+  .selbar.on{display:flex}
+  .selbar .scnt{font-size:13px;color:var(--gray);flex:1}
+  .selbar button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;
+        font-size:13px;cursor:pointer}
+  .hrow{touch-action:pan-y}
+  .hrow.swiping{transition:none}
+  .hrow.swipe-vuelta{transition:transform .18s ease}
 </style>
 </head>
 <body>
@@ -138,45 +562,194 @@
 
 <div id="app" style="display:none">
   <header>
-    <h1>📥 Bandeja de cotizaciones</h1>
+    <button class="burger" onclick="toggleMenu()" title="Carpetas" aria-label="Abrir carpetas">☰</button>
+    <h1>📥&nbsp;Bandeja de cotizaciones</h1>
+    <!-- El buscador vive en la cabecera y ocupa el ancho, como en Gmail -->
+    <div class="buscador">
+      <input id="qBusca" placeholder="Buscar en todo el correo…" autocomplete="off"
+             aria-label="Buscar en todo el correo" />
+      <button class="blimpiar" id="qLimpiar" onclick="limpiarBusqueda()" title="Cerrar búsqueda"
+              aria-label="Cerrar búsqueda">✕</button>
+      <button class="bavanz" onclick="toggleAvanzada()" title="Búsqueda avanzada"
+              aria-label="Búsqueda avanzada">⚙</button>
+    </div>
     <button onclick="activarNotis()" title="Activar notificaciones">🔔</button>
-    <button onclick="cargar(true)">↻</button>
-    <button onclick="salir()">Salir</button>
+    <button onclick="cargar(true)" title="Actualizar" aria-label="Actualizar bandeja">↻</button>
+    <button class="solo-ancho" onclick="salir()">Salir</button>
   </header>
-  <div class="tabs">
-    <button id="tab-recibidos" class="tab activo" onclick="setFiltro('recibidos')">Recibidos</button>
-    <button id="tab-enviados" class="tab" onclick="setFiltro('enviados')">Enviados</button>
-    <button id="tab-archivados" class="tab" onclick="setFiltro('archivados')">Archivados</button>
-    <button id="tab-spam" class="tab" onclick="setFiltro('spam')">Spam</button>
-    <button id="tab-papelera" class="tab" onclick="setFiltro('papelera')">Papelera</button>
-    <button id="tab-bloqueados" class="tab" onclick="setFiltro('bloqueados')">Bloqueados</button>
+  <!-- Buscador avanzado: los mismos campos del panel de Gmail -->
+  <div class="avanzada" id="avanzada">
+    <div class="af"><label>De</label><input id="afDe" list="dlContactos" placeholder="nombre o correo"></div>
+    <div class="af"><label>Contiene</label><input id="afTexto" placeholder="palabras del asunto o del cuerpo"></div>
+    <div class="af"><label>Etiqueta</label><input id="afEtiqueta" list="dlEtiquetas" placeholder="cualquiera">
+      <datalist id="dlEtiquetas"></datalist></div>
+    <div class="af"><label>Desde</label><input id="afDesde" type="date">
+      <label style="margin-left:8px">Hasta</label><input id="afHasta" type="date"></div>
+    <div class="af"><label>Con adjunto</label><input id="afAdj" type="checkbox" style="width:auto">
+      <label style="margin-left:14px">Sin leer</label><input id="afNoLeido" type="checkbox" style="width:auto"></div>
+    <div class="af-acc">
+      <button class="btn btn-enviar" onclick="buscarAvanzada()">🔍 Buscar</button>
+      <button class="btn btn-guardar" onclick="limpiarAvanzada()">Limpiar</button>
+    </div>
   </div>
-  <div class="wrap" id="lista"><div class="vacio">Cargando…</div></div>
-</div>
-
-<div id="overlay" onclick="if(event.target.id==='overlay')cerrar()">
-  <div id="modal">
+  <div class="fchips" id="fchips">
+    <button class="fchip" data-chip="adjunto" onclick="toggleChip(this)">📎 Con adjunto</button>
+    <button class="fchip" data-chip="recibidos" onclick="toggleChip(this)">📥 Solo recibidos</button>
+    <button class="fchip" data-chip="mes" onclick="toggleChip(this)">📅 Este mes</button>
+  </div>
+  <div class="velo" id="velo" onclick="toggleMenu()"></div>
+  <div class="layout">
+    <!-- Carpetas al costado, como Gmail (en el teléfono es un cajón que se desliza) -->
+    <nav class="side" id="side" aria-label="Carpetas">
+      <button class="btn-redactar" onclick="abrirCompose()" title="Redactar (tecla c)">
+        <span class="ic">✏️</span>Redactar</button>
+      <button id="tab-recibidos" class="side-b activo" onclick="setFiltro('recibidos')">
+        <span class="ic">📥</span><span class="lbl">Recibidos</span><span class="cnt"></span></button>
+      <button id="tab-destacados" class="side-b" onclick="setFiltro('destacados')">
+        <span class="ic">⭐</span><span class="lbl">Destacados</span><span class="cnt"></span></button>
+      <button id="tab-pospuestos" class="side-b" onclick="setFiltro('pospuestos')">
+        <span class="ic">⏰</span><span class="lbl">Pospuestos</span><span class="cnt"></span></button>
+      <button id="tab-enviados" class="side-b" onclick="setFiltro('enviados')">
+        <span class="ic">📤</span><span class="lbl">Enviados</span><span class="cnt"></span></button>
+      <button id="tab-borradores" class="side-b" onclick="setFiltro('borradores')">
+        <span class="ic">📝</span><span class="lbl">Borradores</span><span class="cnt"></span></button>
+      <button id="tab-archivados" class="side-b" onclick="setFiltro('archivados')">
+        <span class="ic">🗂️</span><span class="lbl">Archivados</span><span class="cnt"></span></button>
+      <div class="side-tit">Filtros</div>
+      <button id="tab-spam" class="side-b" onclick="setFiltro('spam')">
+        <span class="ic">🚫</span><span class="lbl">Spam</span><span class="cnt"></span></button>
+      <button id="tab-papelera" class="side-b" onclick="setFiltro('papelera')">
+        <span class="ic">🗑️</span><span class="lbl">Papelera</span><span class="cnt"></span></button>
+      <button id="tab-bloqueados" class="side-b" onclick="setFiltro('bloqueados')">
+        <span class="ic">⛔</span><span class="lbl">Bloqueados</span><span class="cnt"></span></button>
+      <div class="side-tit" id="tituloEtiquetas" style="display:none">Mis etiquetas</div>
+      <div id="listaEtiquetas"></div>
+      <div class="side-tit">Vista</div>
+      <button class="side-b" id="btnVista" onclick="alternarVista()">
+        <span class="ic">🧵</span><span class="lbl">Conversaciones</span></button>
+      <button class="side-b" id="btnImgs" onclick="alternarImagenes()">
+        <span class="ic">🖼️</span><span class="lbl">Imágenes</span></button>
+      <!-- En el teléfono, cerrar sesión vive en el menú: en la cabecera no cabe. -->
+      <button class="side-b" id="btnAtajos" onclick="alternarAtajos()">
+        <span class="ic">⌨️</span><span class="lbl">Atajos: sí</span></button>
+      <button class="side-b" onclick="abrirAjustes()">
+        <span class="ic">⚙️</span><span class="lbl">Ajustes y firma</span></button>
+      <button class="side-b solo-angosto" onclick="salir()">
+        <span class="ic">🚪</span><span class="lbl">Cerrar sesión</span></button>
+    </nav>
+    <main class="principal">
+      <div class="selbar" id="selbar">
+        <span class="scnt" id="selCnt"></span>
+        <button onclick="selAccion('archivar')">✅ Listo</button>
+        <button onclick="selAccion('posponer')">⏰ Posponer</button>
+        <button onclick="selAccion('eliminar')">🗑️ Eliminar</button>
+        <button onclick="selLimpiar()">Cancelar</button>
+      </div>
+      <div id="lista"><div class="vacio">Cargando…</div></div>
+    </main>
+    <!-- Lectura: panel al costado en escritorio, pantalla completa en el teléfono -->
+    <section id="overlay" aria-label="Conversación">
+  <div id="modal" role="region" aria-labelledby="mAsunto">
+    <div class="vbar">
+      <button class="vback" onclick="cerrar()" title="Volver a la bandeja" aria-label="Volver a la bandeja">←</button>
+      <div class="mbar" id="mBar"></div>
+      <span class="vbar-asunto" id="vbarAsunto"></span>
+    </div>
     <div class="mhead">
-      <button class="mclose" onclick="cerrar()">×</button>
       <div class="masunto" id="mAsunto"></div>
       <div class="meta" id="mMeta"></div>
       <div class="metiquetas" id="mEtiquetas"></div>
     </div>
     <div class="mbody" id="mBody"></div>
-    <div class="mbar" id="mBar"></div>
     <div class="resp" id="mResp"></div>
+  </div>
+    </section>
   </div>
 </div>
 
+<!-- Redactar (fase 11) -->
+<div id="overlay2">
+  <div id="compose">
+    <div class="chead" onclick="if(event.target.classList.contains('chead')||event.target.tagName==='SPAN')minimizarCompose()">
+      <span id="cTitulo">✏️ Mensaje nuevo</span>
+      <button class="cclose" onclick="event.stopPropagation();minimizarCompose()" title="Minimizar"
+              aria-label="Minimizar">–</button>
+      <button class="cclose" onclick="event.stopPropagation();cerrarCompose()" title="Guardar y cerrar"
+              aria-label="Guardar y cerrar">×</button>
+    </div>
+    <div class="cuerpoCompose">
+    <div class="campo"><label>Para</label>
+      <input id="cPara" list="dlContactos" placeholder="cliente@correo.cl" autocomplete="off" />
+      <datalist id="dlContactos"></datalist>
+      <button class="cclose" style="background:none;color:var(--gray);width:auto;padding:0 6px;font-size:12px"
+              onclick="toggleCC()" title="Copia y copia oculta">CC/CCO</button>
+    </div>
+    <div class="campo" id="filaCC" style="display:none"><label>CC</label>
+      <input id="cCC" list="dlContactos" placeholder="copia@correo.cl, otro@correo.cl" autocomplete="off" /></div>
+    <div class="campo" id="filaCCO" style="display:none"><label>CCO</label>
+      <input id="cCCO" list="dlContactos" placeholder="copia oculta" autocomplete="off" /></div>
+    <div class="campo"><label>Asunto</label><input id="cAsunto" placeholder="Asunto" /></div>
+    <div class="ctoolbar">
+      <button title="Negrita" onclick="fmt('bold')"><b>B</b></button>
+      <button title="Cursiva" onclick="fmt('italic')"><i>I</i></button>
+      <button title="Lista" onclick="fmt('ul')">≡</button>
+      <button title="Enlace" onclick="fmt('link')">🔗</button>
+      <button title="Quitar formato" onclick="fmt('clean')">⌫</button>
+      <button title="Plantillas" onclick="menuPlantillas('compose')">📋</button>
+    </div>
+    <div id="editor"></div>
+    <div id="adjComposeElegidos" class="adjs" style="padding:0 16px"></div>
+    <div class="cacciones">
+      <button class="btn btn-enviar" onclick="composeEnviar()">📤 Enviar</button>
+      <button class="btn btn-guardar" onclick="elegirArchivos('compose')">📎 Adjuntar</button>
+      <button class="btn btn-guardar solo-angosto" onclick="tomarFoto('compose')">📷 Foto</button>
+      <button class="btn btn-guardar" onclick="composeDescartar()">🗑️ Descartar</button>
+      <span class="cestado" id="cEstado"></span>
+    </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mini-modal propio (fase 12): reemplaza prompt()/confirm() del navegador -->
+<div id="overlay3">
+  <div id="mini">
+    <h4 id="miniTit"></h4>
+    <p id="miniTxt"></p>
+    <input id="miniInput" style="display:none" />
+    <div class="mbtns">
+      <button class="btn btn-guardar" id="miniNo">Cancelar</button>
+      <button class="btn btn-enviar" id="miniSi">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+
+
+<script src="/vendor/purify.min.js"></script>
+<script src="/vendor/squire.js"></script>
 <script>
 const KEY = "panel_pass_agente";
 const NOSOTROS = "contacto@destaperapido.cl";
 let pass = localStorage.getItem(KEY) || "";
-let actual = null;                 // correo abierto
+let actual = null;                 // correo accionable abierto (para responder/ajustar)
+let actualTid = null;              // hilo abierto (fase 10); null = mensaje suelto (spam/papelera)
 let filtro = "recibidos";
 let page = 1, pageSize = 25, hasMore = false, cargando = false;
-let items = [], lastTotal = 0;
+let items = [], lastTotal = 0;     // hilos (vistas de conversación) o correos (spam/papelera)
 let bloqueadosItems = [];
+
+// Vistas por CONVERSACIÓN (fase 10). Spam/Papelera/Borradores/Bloqueados siguen por mensaje.
+function esVistaHilos(f){
+  // 'todos' es la vista que usan las etiquetas (carpetas propias): también va por conversación.
+  return f==="recibidos"||f==="enviados"||f==="archivados"||f==="destacados"
+      || f==="pospuestos"||f==="todos";
+}
+
+// Estado de búsqueda (fase 11) y de selección múltiple (fase 12).
+let busca = "", chips = {adjunto:false, recibidos:false, mes:false}, buscaTimer = null;
+let seleccion = new Set();
+let cursor = -1;                   // fila activa para atajos j/k
+let imagenesOk = [];               // remitentes con imágenes aprobadas en el hilo abierto
 
 function esc(s){return (s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));}
 function fmtFecha(iso){
@@ -191,14 +764,246 @@ function fmtFecha(iso){
   return d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"});
 }
 function fechaFull(iso){ const d=new Date(iso); return isNaN(d)?(iso||""):d.toLocaleString("es-CL"); }
+// MEJORA sobre Gmail: en una bandeja de cotizaciones lo que importa no es "cuándo llegó"
+// sino CUÁNTO LLEVA ESPERANDO. Gmail cambia el formato según antigüedad y confunde;
+// aquí lo reciente se muestra como tiempo de espera y lo viejo como fecha.
+function fmtEspera(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  if(isNaN(d)) return esc(iso);
+  const min = Math.floor((Date.now() - d.getTime())/60000);
+  if(min < 1) return "recién";
+  if(min < 60) return `hace ${min} min`;
+  const h = Math.floor(min/60);
+  if(h < 24) return `hace ${h} h`;
+  return fmtFecha(iso);
+}
+// Horas que lleva esperando un mensaje entrante sin responder (para el aviso de retraso).
+function horasEsperando(iso){
+  const d = new Date(iso);
+  return isNaN(d) ? 0 : (Date.now() - d.getTime())/3600000;
+}
+// Fechas que vienen de datetime() de SQLite: 'YYYY-MM-DD HH:MM:SS' en UTC.
+function fmtFechaSql(s){ return s ? fmtFecha(s.replace(" ","T")+"Z") : ""; }
+function fmtEsperaSql(s){ return s ? fmtEspera(s.replace(" ","T")+"Z") : ""; }
+function fechaFullSql(s){ return s ? fechaFull(s.replace(" ","T")+"Z") : ""; }
+// Quita los prefijos Re:/Fwd: para mostrar el asunto "limpio" de la conversación.
+function quitarRe(s){ return (s||"").replace(/^(\s*(re|rv|ref|res|fwd|fw)\s*:\s*)+/i,"").trim() || "(sin asunto)"; }
+// "Rita Pérez, yo (3)": nombres de pila si hay varios participantes, nombre completo si es uno.
+function participantesTxt(h){
+  let arr = (h.participantes||"").split("|").map(s=>s.trim()).filter(Boolean);
+  const vistos = new Set(), unicos = [];
+  for(const p of arr){ const k=p.toLowerCase(); if(!vistos.has(k)){ vistos.add(k); unicos.push(p); } }
+  if((h.salientes||0)>0 && !vistos.has("yo")) unicos.push("yo");
+  if(!unicos.length) return "(desconocido)";
+  if(unicos.length===1) return unicos[0];
+  // varios: primer nombre de cada uno ("yo" al final, como Gmail)
+  const yo = unicos.includes("yo");
+  const otros = unicos.filter(p=>p!=="yo").map(p=>p.includes("@")?p.split("@")[0]:p.split(/\s+/)[0]);
+  return otros.join(", ") + (yo?", yo":"");
+}
+// Recorte de citas (fase 10): separa el texto nuevo del historial citado
+// ("El [fecha] ... escribió:", "On ... wrote:", "-----Mensaje original-----",
+//  bloque "De:/Desde:" con cabeceras, o líneas ">"). Devuelve {visible, cita}.
+function partirCitas(texto){
+  const lineas = (texto||"").split("\n");
+  const marcaSimple = /^((el|on)\s.{4,120}(escribi[oó]|wrote)\s*:?\s*$)|(^-{2,}\s*(mensaje original|original message|mensaje reenviado|forwarded message))|(^>)/i;
+  const marcaDe = /^(de|desde|from)\s*:\s*.+/i;
+  const cabecera = /^(enviado|para|asunto|fecha|cc|sent|to|subject|date)\s*:\s*/i;
+  let idx = -1;
+  for(let i=0;i<lineas.length;i++){
+    const l = lineas[i].trim();
+    if(!l) continue;
+    if(marcaSimple.test(l)){ idx=i; break; }
+    if(marcaDe.test(l)){
+      // "De:" solo cuenta como cita si viene seguido de más cabeceras (Enviado:/Para:/…)
+      let cab=0;
+      for(let j=i+1;j<Math.min(i+4,lineas.length);j++){ if(cabecera.test(lineas[j].trim())) cab++; }
+      if(cab>=1){ idx=i; break; }
+    }
+  }
+  if(idx<=0) return {visible:(texto||"").trimEnd(), cita:""};
+  return {visible:lineas.slice(0,idx).join("\n").trimEnd(), cita:lineas.slice(idx).join("\n").trimEnd()};
+}
 
+// ============================================================
+// Fase 11 — mostrar el HTML de un correo de forma segura y bonita.
+// Patrón de la industria (Fastmail/Proton/Close.com): sanitizar con DOMPurify
+// y AISLAR en un iframe con sandbox SIN allow-scripts + CSP script-src 'none'.
+// allow-same-origin (sin allow-scripts) nos deja medir el alto desde el padre.
+// ============================================================
+let imgsBloqueadas = 0;        // imágenes normales no cargadas (modo cauteloso)
+let rastreadoresBloqueados = 0; // píxeles espía eliminados (siempre)
+
+// Un píxel de rastreo se delata por el tamaño (1x1 o 0) o por la pinta de la dirección.
+// Ante la duda NO se elimina: una imagen real perdida molesta más que un rastreo.
+const PISTAS_RASTREO = /(open|track|beacon|pixel|spacer|blank|wf\/open|\/o\.gif|utm_|mailstat|sendgrid\.net\/wf)/i;
+function esRastreador(img, src){
+  const w = parseInt(img.getAttribute("width")||"0",10);
+  const h = parseInt(img.getAttribute("height")||"0",10);
+  if((w && w<=3) || (h && h<=3)) return true;               // el clásico 1x1
+  const est = (img.getAttribute("style")||"").replace(/\s/g,"");
+  if(/(width|height):0(px)?[;$]/i.test(est) || /display:none/i.test(est)) return true;
+  // Sin dimensiones declaradas y con una URL que huele a baliza de apertura.
+  if(!w && !h && PISTAS_RASTREO.test(src)) return true;
+  return false;
+}
+// Por defecto las imágenes SE VEN, igual que Gmail: no hay que aceptar nada. La privacidad
+// la cubre el proxy del Worker (el remitente no ve tu IP ni puede ponerte cookies).
+// Se puede apagar desde el menú lateral si algún día molesta.
+let mostrarImagenesSiempre = localStorage.getItem("imgs_bloqueadas") !== "1";
+
+// Reescribe imágenes remotas a un atributo inerte; el CSS url(...) se neutraliza igual.
+function sanitizarCorreo(html, mostrarImgs, adjuntos){
+  imgsBloqueadas = 0; rastreadoresBloqueados = 0;
+  if(!window.DOMPurify) return "";  // sin la librería no mostramos HTML crudo: nunca
+  // Imágenes incrustadas del propio correo (src="cid:…"): se sirven desde nuestro Worker,
+  // así que no rastrean y se muestran siempre.
+  const porCid = {};
+  for(const a of (adjuntos||[])) if(a.cid && a.url) porCid[a.cid] = a.url;
+  // <style> SÍ se permite (los correos dependen de él para verse bien) porque va dentro
+  // de un iframe aislado con CSP script-src 'none'; lo que se limpia son sus url() e @import.
+  const limpio = DOMPurify.sanitize(html||"", {
+    USE_PROFILES:{html:true},
+    FORBID_TAGS:["form","input","button","base","link","meta","iframe","object","embed"],
+    FORBID_ATTR:["srcset","ping","autoplay","formaction"],
+    ADD_TAGS:["style"],
+    ADD_ATTR:["target"],
+    RETURN_DOM_FRAGMENT:true,
+  });
+  const cont = document.createElement("div");
+  cont.appendChild(limpio);
+  for(const st of cont.querySelectorAll("style")){
+    st.textContent = (st.textContent||"")
+      .replace(/@import[^;]+;/gi,"")
+      .replace(/url\s*\([^)]*\)/gi,"none")
+      .replace(/position\s*:\s*(fixed|absolute)/gi,"position:static");
+  }
+  for(const img of cont.querySelectorAll("img")){
+    const src = img.getAttribute("src")||"";
+    if(/^data:image\//i.test(src)) continue;          // inline: no rastrea, se deja
+    if(/^cid:/i.test(src)){                            // imagen incrustada del propio correo
+      const url = porCid[src.slice(4).replace(/^<|>$/g,"")];
+      url ? img.setAttribute("src", url) : img.removeAttribute("src");
+      continue;
+    }
+    if(!/^https?:/i.test(src)){ img.removeAttribute("src"); continue; }
+    // Los píxeles de rastreo se eliminan SIEMPRE, se muestren o no las imágenes.
+    // Si se cargaran (aunque fuera por el proxy), el remitente sabría que abriste el
+    // correo: es justo la fuga que Google admite en Gmail y que aquí no queremos.
+    if(esRastreador(img, src)){ img.remove(); rastreadoresBloqueados++; continue; }
+    if(mostrarImgs){ img.setAttribute("src", proxyImg(src)); continue; }
+    img.removeAttribute("src"); img.setAttribute("data-bloqueada", src);
+    img.setAttribute("alt", img.getAttribute("alt")||"imagen bloqueada"); imgsBloqueadas++;
+  }
+  // Los enlaces abren fuera y sin filtrar el referrer.
+  for(const a of cont.querySelectorAll("a")){
+    a.setAttribute("target","_blank");
+    a.setAttribute("rel","noopener noreferrer nofollow");
+  }
+  for(const el of cont.querySelectorAll("[style]")){
+    const s = el.getAttribute("style")||"";
+    if(/url\s*\(/i.test(s)) el.setAttribute("style", s.replace(/url\s*\([^)]*\)/gi,"none"));
+    if(/position\s*:\s*(fixed|absolute)/i.test(s)) el.setAttribute("style", s.replace(/position\s*:\s*(fixed|absolute)/gi,"position:static"));
+  }
+  return cont.innerHTML;
+}
+// URL firmada del proxy de imágenes del Worker (fase 12): oculta la IP del dueño.
+let imgKey = null;
+async function prepararImgKey(){
+  if(imgKey || !pass || !window.crypto || !crypto.subtle) return;
+  try{
+    imgKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass),
+      {name:"HMAC",hash:"SHA-256"}, false, ["sign"]);
+  }catch(e){ imgKey=null; }
+}
+const firmaCache = new Map();
+function proxyImg(u){
+  const f = firmaCache.get(u);
+  return f ? `/img-proxy?u=${encodeURIComponent(u)}&s=${f}` : u;
+}
+async function firmarImgs(html){
+  await prepararImgKey();
+  if(!imgKey) return;
+  const urls = [...(html||"").matchAll(/<img[^>]+src=["'](https?:[^"']+)["']/gi)].map(m=>m[1]);
+  for(const u of new Set(urls)){
+    if(firmaCache.has(u)) continue;
+    try{
+      const mac = await crypto.subtle.sign("HMAC", imgKey, new TextEncoder().encode(u));
+      firmaCache.set(u, [...new Uint8Array(mac)].map(b=>b.toString(16).padStart(2,"0")).join("").slice(0,32));
+    }catch(e){}
+  }
+}
+
+// Monta el HTML sanitizado en un iframe aislado y ajusta su alto al contenido.
+function montarIframe(iframe, htmlLimpio){
+  const doc = `<!doctype html><html><head><meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'">
+    <style>html,body{margin:0;padding:0;background:#fff;color:#1E2A2A;
+      font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+      word-break:break-word;overflow-x:auto;overflow-y:hidden}
+      img{max-width:100%;height:auto}img:not([src]){display:inline-block;min-width:20px;min-height:20px;
+      background:#eef2f2;border:1px dashed #cdd8d7;border-radius:4px}
+      table{max-width:100%}a{color:#0F6E6E}</style></head><body><div id="_medir">${htmlLimpio}</div></body></html>`;
+  iframe.setAttribute("sandbox","allow-popups allow-popups-to-escape-sandbox allow-same-origin");
+  iframe.setAttribute("referrerpolicy","no-referrer");
+  iframe.srcdoc = doc;
+  // OJO: NO medir body.scrollHeight — nunca baja del alto del propio iframe, así que
+  // crece en bucle (iframe más alto -> scrollHeight mayor -> …). Se mide el div interno,
+  // que sí refleja el alto REAL del contenido.
+  const ajustar = () => {
+    try{
+      const d = iframe.contentDocument;
+      const caja = d && d.getElementById("_medir");
+      if(!caja) return;
+      const h = Math.min(Math.max(Math.ceil(caja.getBoundingClientRect().height) + 8, 40), 4000);
+      if(iframe.style.height !== h + "px") iframe.style.height = h + "px";
+    }catch(e){}
+  };
+  iframe.addEventListener("load", () => {
+    ajustar();
+    // El contenido puede crecer al cargar imágenes: observar desde el padre.
+    try{
+      const d = iframe.contentDocument;
+      const caja = d.getElementById("_medir");
+      if(window.ResizeObserver && caja) new ResizeObserver(ajustar).observe(caja);
+      d.querySelectorAll("img").forEach(i=>i.addEventListener("load",ajustar));
+    }catch(e){}
+    setTimeout(ajustar, 350);
+  });
+}
+
+// Distingue tres cosas que antes se confundían: sin conexión, contraseña mala y error del
+// servidor. Confundirlas hacía que un túnel sin señal borrara la contraseña guardada.
+class ErrRed extends Error{ constructor(){ super("sin conexión"); this.red=true; } }
+class ErrAuth extends Error{ constructor(){ super("contraseña incorrecta"); this.auth=true; } }
 async function api(path, opts){
   const o = opts || {};
   o.headers = Object.assign({ "x-panel-pass": pass }, o.headers || {});
-  const r = await fetch(path, o);
-  if (r.status === 401) throw new Error("401");
+  let r;
+  try{
+    r = await fetch(path, o);
+  }catch(e){ marcarSinConexion(true); throw new ErrRed(); }
+  marcarSinConexion(false);
+  if (r.status === 401) throw new ErrAuth();
+  if (!r.ok && r.status >= 500) throw new Error("el servidor falló ("+r.status+")");
   return r.json();
 }
+// Aviso fijo de "sin conexión" (como Gmail): el dueño se entera de por qué no pasa nada.
+function marcarSinConexion(sin){
+  let el=document.getElementById("sinred");
+  if(sin){
+    if(!el){
+      el=document.createElement("div"); el.id="sinred";
+      el.style.cssText="position:fixed;left:0;right:0;bottom:0;background:#5F6B6B;color:#fff;"+
+        "text-align:center;padding:7px;font-size:13px;z-index:60";
+      el.textContent="📡 Sin conexión — se reintenta solo";
+      document.body.appendChild(el);
+    }
+  } else if(el) el.remove();
+}
+window.addEventListener("online", ()=>{ marcarSinConexion(false); if(pass) cargar(true).catch(()=>{}); });
+window.addEventListener("offline", ()=>marcarSinConexion(true));
 
 function entrar(){
   pass = document.getElementById("pass").value.trim();
@@ -214,32 +1019,255 @@ async function iniciar(){
     document.getElementById("login").style.display="none";
     document.getElementById("app").style.display="block";
     refrescarContadores();
+    cargarEtiquetas();
+    cargarAjustes();
+    pintarBotonVista();
+    pintarBotonImagenes();
+    pintarBotonAtajos();
+    medirCabecera();
+    setTimeout(medirCabecera, 300);
+    setTimeout(ofrecerBorradorLocal, 1200);
     asegurarPush();
   }catch(e){
+    // Solo un 401 significa contraseña mala: un fallo de red NO debe borrarla.
+    if(e && e.red){
+      document.getElementById("login").style.display="none";
+      document.getElementById("app").style.display="block";
+      marcarSinConexion(true);
+      return;
+    }
     document.getElementById("login").style.display="block";
     document.getElementById("app").style.display="none";
-    document.getElementById("loginErr").textContent = "Contraseña incorrecta.";
-    localStorage.removeItem(KEY); pass="";
+    document.getElementById("loginErr").textContent =
+      (e && e.auth) ? "Contraseña incorrecta." : "No se pudo entrar: "+(e && e.message || "error");
+    if(e && e.auth){ localStorage.removeItem(KEY); pass=""; }
   }
 }
 
 // ---------- Navegación por carpetas ----------
+const TABS = ["recibidos","destacados","pospuestos","enviados","borradores","archivados","spam","papelera","bloqueados"];
+
+// ---------- Avatar de color (fase 15): el círculo con la inicial de Gmail ----------
+// El color sale del propio nombre, así que un mismo cliente siempre tiene el mismo.
+const COLORES_AV = ["#0F6E6E","#B0562C","#5B3FBF","#1F7A4D","#A33A5B","#2C5FA8","#8A6D1F","#7A3E8F"];
+function avatarHtml(nombre, clase){
+  const txt = (nombre||"?").trim();
+  const inicial = (txt.replace(/^[^\p{L}\p{N}]+/u,"")[0] || "?");
+  let suma = 0;
+  for(let i=0;i<txt.length;i++) suma = (suma*31 + txt.charCodeAt(i)) >>> 0;
+  const color = txt.toLowerCase()==="yo" ? "#5F6B6B" : COLORES_AV[suma % COLORES_AV.length];
+  return `<span class="av ${clase||''}" style="background:${color}" aria-hidden="true">${esc(inicial)}</span>`;
+}
+
+// ---------- Menú lateral en el teléfono ----------
+function toggleMenu(){
+  const s=document.getElementById("side"), v=document.getElementById("velo");
+  const abrir = !s.classList.contains("abierto");
+  s.classList.toggle("abierto", abrir);
+  v.classList.toggle("on", abrir);
+}
+function cerrarMenu(){
+  document.getElementById("side").classList.remove("abierto");
+  document.getElementById("velo").classList.remove("on");
+}
+
+// ---------- Posponer (fase 15): las opciones rápidas de Gmail ----------
+const PLAZOS = [
+  {t:"Esta tarde (en 3 horas)", h:3},
+  {t:"Mañana por la mañana", h:16},
+  {t:"El lunes", h:24*3},
+  {t:"La próxima semana", h:24*7},
+];
+function menuPosponer(tid){
+  const opciones = PLAZOS.map((p,i)=>
+    `<button class="qa-b" data-h="${p.h}" style="display:block;width:100%;text-align:left;margin-bottom:5px">⏰ ${esc(p.t)}</button>`).join("");
+  miniHtml("Posponer conversación",
+    `<p style="font-size:13px;color:var(--gray);margin:0 0 10px">Desaparece de Recibidos y vuelve sola arriba de todo.</p>`+opciones,
+    (root, cerrarMini)=>{
+      root.querySelectorAll("[data-h]").forEach(b=>{
+        b.onclick=async ()=>{
+          cerrarMini();
+          await posponer(tid, +b.dataset.h);
+        };
+      });
+    });
+}
+async function posponer(tid, horas){
+  const idx = items.findIndex(x=>x.tid===tid);
+  const copia = idx>=0 ? items[idx] : null;
+  cerrar(); quitarDeListaHilo(tid);
+  try{
+    const d = await api("/api/posponer-hilo",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({thread_id:tid, horas})});
+    if(d.error){ if(copia){ items.splice(idx,0,copia); render(); } toast("⚠️ "+d.error); return; }
+    refrescarContadores();
+    toastUndo("Pospuesto ⏰", async ()=>{
+      await api("/api/posponer-hilo",{method:"POST",headers:{"content-type":"application/json"},
+        body:JSON.stringify({thread_id:tid, horas:0})});
+      cargar(true); refrescarContadores(); toast("Deshecho ↩️");
+    });
+  }catch(e){ if(copia){ items.splice(idx,0,copia); render(); } toast("⚠️ "+e.message); }
+}
 function setFiltro(f){
-  filtro = f;
-  for(const t of ["recibidos","enviados","archivados","spam","papelera","bloqueados"]){
+  filtro = f; selLimpiar(); cursor=-1; etiquetaActiva="";
+  document.querySelectorAll("#listaEtiquetas .side-b").forEach(b=>b.classList.remove("activo"));
+  if(busca) limpiarBusqueda(true);
+  for(const t of TABS){
     const el=document.getElementById("tab-"+t); if(el) el.classList.toggle("activo", t===f);
   }
+  cerrarMenu();
+  animarLista = true;
   if(f==="bloqueados"){ cargarBloqueados(); return; }
   cargar(true);
 }
 
-// ---------- Lista de correos (paginada) ----------
+// ============================================================
+// Fase 16 — etiquetas como carpetas propias, buscador avanzado y vista por mensajes.
+// ============================================================
+let etiquetaActiva = "";
+let vistaPorMensaje = localStorage.getItem("vista_mensajes") === "1";
+
+async function cargarEtiquetas(){
+  try{
+    const d = await api("/api/etiquetas");
+    const arr = d.etiquetas || [];
+    const cont = document.getElementById("listaEtiquetas");
+    document.getElementById("tituloEtiquetas").style.display = arr.length ? "" : "none";
+    cont.innerHTML = arr.map(e=>
+      `<button class="side-b${etiquetaActiva===e.nombre?' activo':''}" data-etq="${esc(e.nombre)}"
+               onclick="filtrarEtiqueta('${esc(e.nombre).replace(/'/g,"\\'")}')">
+         <span class="ic">🏷️</span><span class="lbl">${esc(e.nombre)}</span>
+         <span class="cnt">${e.n}</span></button>`).join("");
+    document.getElementById("dlEtiquetas").innerHTML =
+      arr.map(e=>`<option value="${esc(e.nombre)}">`).join("");
+  }catch(e){}
+}
+function filtrarEtiqueta(nombre){
+  etiquetaActiva = etiquetaActiva===nombre ? "" : nombre;
+  cerrarMenu();
+  if(etiquetaActiva){
+    for(const t of TABS){ const el=document.getElementById("tab-"+t); if(el) el.classList.remove("activo"); }
+    filtro = "todos";
+  } else filtro = "recibidos";
+  cargarEtiquetas();
+  cargar(true);
+}
+
+// Interruptor conversaciones ↔ mensajes sueltos (Gmail lo tiene en Configuración).
+function alternarVista(){
+  vistaPorMensaje = !vistaPorMensaje;
+  localStorage.setItem("vista_mensajes", vistaPorMensaje ? "1" : "0");
+  pintarBotonVista();
+  cargar(true);
+}
+// Interruptor de imágenes: por defecto se ven; se puede volver al modo cauteloso.
+function alternarImagenes(){
+  mostrarImagenesSiempre = !mostrarImagenesSiempre;
+  localStorage.setItem("imgs_bloqueadas", mostrarImagenesSiempre ? "0" : "1");
+  pintarBotonImagenes();
+  toast(mostrarImagenesSiempre ? "Imágenes visibles 🖼️" : "Imágenes bloqueadas 🔒");
+  if(actualTid){ const t=actualTid; cacheHilos.delete(t); cerrar(); setTimeout(()=>verHilo(t),150); }
+}
+function pintarBotonImagenes(){
+  const b=document.getElementById("btnImgs");
+  if(!b) return;
+  b.querySelector(".ic").textContent = mostrarImagenesSiempre ? "🖼️" : "🔒";
+  b.querySelector(".lbl").textContent = mostrarImagenesSiempre ? "Imágenes: sí" : "Imágenes: preguntar";
+  b.title = mostrarImagenesSiempre
+    ? "Se muestran solas (pasan por nuestro proxy: el remitente no ve tu IP)"
+    : "Pide confirmación antes de cargar imágenes";
+}
+function pintarBotonVista(){
+  const b=document.getElementById("btnVista");
+  if(!b) return;
+  b.querySelector(".ic").textContent = vistaPorMensaje ? "✉️" : "🧵";
+  b.querySelector(".lbl").textContent = vistaPorMensaje ? "Mensajes sueltos" : "Conversaciones";
+  b.title = vistaPorMensaje ? "Cambiar a vista por conversaciones" : "Cambiar a vista por mensajes";
+}
+
+// ---------- Buscador avanzado ----------
+function toggleAvanzada(){
+  const a=document.getElementById("avanzada");
+  a.classList.toggle("on");
+  if(a.classList.contains("on")){ cargarContactos(""); document.getElementById("afDe").focus(); }
+}
+function limpiarAvanzada(){
+  ["afDe","afTexto","afEtiqueta","afDesde","afHasta"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("afAdj").checked=false;
+  document.getElementById("afNoLeido").checked=false;
+}
+async function buscarAvanzada(){
+  const de=document.getElementById("afDe").value.trim();
+  const texto=document.getElementById("afTexto").value.trim();
+  const etq=document.getElementById("afEtiqueta").value.trim();
+  const desde=document.getElementById("afDesde").value;
+  const hasta=document.getElementById("afHasta").value;
+  const adj=document.getElementById("afAdj").checked;
+  const noLeido=document.getElementById("afNoLeido").checked;
+  // Se arma la misma consulta que escribirías a mano: from:… has:adjunto is:noleido
+  let q = texto;
+  if(de) q = `from:${de.split(/\s+/)[0]} ${q}`.trim();
+  if(adj) q = `has:adjunto ${q}`.trim();
+  if(noLeido) q = `is:noleido ${q}`.trim();
+  if(!q && !desde && !hasta && !etq){ toast("⚠️ Pon al menos un filtro"); return; }
+  busca = q || "(filtros)";
+  document.getElementById("qBusca").value = q;
+  document.getElementById("qLimpiar").style.display="block";
+  let url = `/api/buscar?q=${encodeURIComponent(q)}`;
+  if(desde) url += `&desde=${desde}`;
+  if(hasta) url += `&hasta=${hasta}`;
+  if(etq) url += `&etiqueta=${encodeURIComponent(etq.toLowerCase())}`;
+  try{
+    const d = await api(url);
+    items = d.hilos||[]; hasMore=false; lastTotal=items.length;
+    render();
+    document.getElementById("avanzada").classList.remove("on");
+    toast(items.length ? `${items.length} conversaciones` : "Sin resultados");
+  }catch(e){ toast("⚠️ "+(e.message||"error")); }
+}
+
+// ---------- Búsqueda (fase 11) ----------
+function chipsQuery(){
+  return Object.keys(chips).filter(k=>chips[k]).map(k=>`&${k}=1`).join("");
+}
+function toggleChip(btn){
+  const k=btn.dataset.chip; chips[k]=!chips[k];
+  btn.classList.toggle("on", chips[k]);
+  if(busca) buscar();
+}
+async function buscar(){
+  try{
+    const d = await api(`/api/buscar?q=${encodeURIComponent(busca)}${chipsQuery()}`);
+    items = d.hilos||[]; hasMore=false; lastTotal=items.length;
+    if(d.error_busqueda) toast("⚠️ Búsqueda no disponible (falta migrar)");
+    render();
+  }catch(e){ toast(e && e.red ? "📡 Sin conexión: no se pudo buscar" : "⚠️ "+(e.message||"error")); }
+}
+function limpiarBusqueda(silencioso){
+  busca=""; document.getElementById("qBusca").value="";
+  document.getElementById("qLimpiar").style.display="none";
+  document.getElementById("fchips").classList.remove("on");
+  for(const k in chips){ chips[k]=false; }
+  document.querySelectorAll(".fchip").forEach(c=>c.classList.remove("on"));
+  if(!silencioso) cargar(true);
+}
+
+// ---------- Lista (paginada): hilos en Recibidos/Enviados/Archivados, correos en el resto ----------
 async function cargar(reset){
   if(reset){ page=1; items=[]; }
-  const d = await api(`/api/correos?filtro=${filtro}&page=${page}&pageSize=${pageSize}`);
-  items = reset ? (d.correos||[]) : items.concat(d.correos||[]);
-  hasMore = !!d.hasMore;
-  lastTotal = d.total || items.length;
+  if(busca){ await buscar(); return; }
+  const etqQ = etiquetaActiva ? `&etiqueta=${encodeURIComponent(etiquetaActiva.toLowerCase())}` : "";
+  if(esVistaHilos(filtro) && !vistaPorMensaje){
+    const d = await api(`/api/hilos?filtro=${filtro}&page=${page}&pageSize=${pageSize}${etqQ}`);
+    items = reset ? (d.hilos||[]) : items.concat(d.hilos||[]);
+    hasMore = !!d.hasMore;
+    lastTotal = d.total || items.length;
+  } else {
+    const d = await api(`/api/correos?filtro=${filtro}&page=${page}&pageSize=${pageSize}${etqQ}`);
+    items = reset ? (d.correos||[]) : items.concat(d.correos||[]);
+    hasMore = !!d.hasMore;
+    lastTotal = d.total || items.length;
+  }
   render();
 }
 async function cargarMas(){
@@ -249,8 +1277,13 @@ async function cargarMas(){
 }
 
 function vacioMsg(){
-  return filtro==="enviados"   ? "Aún no hay correos ni cotizaciones enviadas."
+  if(busca) return `Sin resultados para “${esc(busca)}”.`;
+  if(etiquetaActiva) return `Nada con la etiqueta “${esc(etiquetaActiva)}”.`;
+  return filtro==="destacados" ? "Sin conversaciones destacadas. Toca la ☆ de una fila para guardarla aquí."
+       : filtro==="pospuestos" ? "Nada pospuesto. Usa ⏰ para esconder una conversación y que vuelva sola."
+       : filtro==="enviados"   ? "Aún no hay correos ni cotizaciones enviadas."
        : filtro==="archivados" ? "Sin correos archivados."
+       : filtro==="borradores" ? "No hay borradores. Los que escriba la IA o tú aparecerán aquí."
        : filtro==="spam"       ? "No hay spam."
        : filtro==="papelera"   ? "La papelera está vacía."
        : "Sin correos por responder. Cuando llegue uno a contacto@destaperapido.cl aparecerá aquí.";
@@ -271,6 +1304,11 @@ function accionesHtml(c){
       <button class="qa-b" onclick="${stop}bloquear(${c.id},'dominio')">🌐 Bloquear dominio</button>
     </div>`;
   }
+  if(filtro==="borradores"){
+    return c.estado==="borrador_salida"
+      ? `<div class="qa"><button class="qa-b" onclick="${stop}descartarBorrador(${c.id})">🗑️ Descartar</button></div>`
+      : `<div class="qa"><button class="qa-b" onclick="${stop}accArchivar(${c.id})">✅ Listo</button></div>`;
+  }
   if(filtro==="papelera")   return `<div class="qa"><button class="qa-b" onclick="${stop}accRestaurar(${c.id})">♻️ Restaurar</button></div>`;
   if(filtro==="archivados") return `<div class="qa"><button class="qa-b" onclick="${stop}accRestaurar(${c.id})">📥 Mover a Recibidos</button></div>`;
   if(filtro==="enviados") return "";
@@ -285,14 +1323,20 @@ function cardHtml(c){
   // se muestran como salientes: "→ destinatario". El destinatario de una respuesta es el cliente (c.de).
   const quien = c.estado==="enviado" ? "→ "+esc(c.para||"")
               : c.estado==="respondido" ? "→ "+esc(c.de||"")
-              : esc(c.de);
+              : c.estado==="borrador_salida" ? "→ "+esc(c.para||"(sin destinatario)")
+              : esc(c.de_nombre||c.de);
+  // Abrir: un borrador de salida vuelve al compositor; lo demás abre su conversación.
+  const abrir = c.estado==="borrador_salida" ? `abrirCompose(${c.id})`
+              : (filtro==="borradores" ? `verHilo('${esc(c.thread_id||("id:"+c.id)).replace(/'/g,"\\'")}')`
+                                       : `ver(${c.id})`);
   // Los salientes se ordenan/fechan por la fecha de envío (respondido_en), no la de recepción.
   const cuando = (c.estado==="respondido"||c.estado==="enviado") ? (c.respondido_en||c.recibido_en) : c.recibido_en;
   const nHilo = c.hilo_n || 1;
   return `
-    <div class="card${noLeido?' card-noleido':''}" onclick="ver(${c.id})">
+    <div class="card${noLeido?' card-noleido':''}" onclick="${abrir}">
       <div class="row1">
         <span class="de${noLeido?' bold':''}">${quien}</span>
+        ${c.estado==="borrador_salida"?`<span class="est est-ajuste" style="background:#efe9fb;color:#5b3fbf">✍ Sin enviar</span>`:""}
         ${c.confianza==="baja"?`<span class="est est-ajuste">⚠️ Revisar</span>`:""}
         ${nHilo>1?`<span class="badge">💬 ${nHilo}</span>`:""}
         <span class="fecha" title="${esc(fechaFull(cuando))}">${esc(fmtFecha(cuando))}</span>
@@ -304,41 +1348,277 @@ function cardHtml(c){
     </div>`;
 }
 
+// ---------- Fila de conversación (fase 10, densa estilo Gmail) ----------
+// Gmail muestra el NOMBRE del archivo en la propia fila; ver "cotizacion.pdf" de un
+// vistazo evita abrir el correo solo para comprobar si el adjunto llegó.
+function adjNombresHtml(h){
+  const arr=(h.adj_nombres||"").split("|").map(s=>s.trim()).filter(Boolean).slice(0,2);
+  if(!arr.length) return "";
+  return `<span class="hadj">`+arr.map(n=>`<span title="${esc(n)}">${esc(n)}</span>`).join("")+`</span>`;
+}
+// MEJORA sobre Gmail: si una cotización lleva mucho sin responder, la fila lo grita.
+// Gmail no puede hacer esto porque no sabe qué es un cliente esperando presupuesto.
+const HORAS_AVISO = 4, HORAS_URGENTE = 24;
+function avisoEspera(h){
+  // Solo aplica a lo que el cliente está esperando: entrante y aún sin responder.
+  if(filtro!=="recibidos" || (h.respondidos||0)>0) return "";
+  if(h.ult_de==="yo") return "";
+  const hrs = horasEsperando((h.ultima||"").replace(" ","T")+"Z");
+  if(hrs >= HORAS_URGENTE) return `<span class="hchip hchip-rev" title="Lleva más de un día esperando respuesta">⏳ ${Math.floor(hrs/24)}d sin responder</span>`;
+  if(hrs >= HORAS_AVISO) return `<span class="hchip hchip-aju" title="Lleva varias horas esperando respuesta">⏳ ${Math.floor(hrs)}h</span>`;
+  return "";
+}
+function hiloChips(h){
+  let chips = "";
+  if((h.revisar||0)>0)        chips += `<span class="hchip hchip-rev">⚠ Revisar</span>`;
+  else if((h.ajustes||0)>0)   chips += `<span class="hchip hchip-aju">⏳ Ajuste</span>`;
+  else if((h.borradores||0)>0)chips += `<span class="hchip hchip-bor">✍ Borrador IA</span>`;
+  if((h.respondidos||0)>0 && filtro!=="enviados") chips += `<span class="hchip hchip-ok">✓ Respondido</span>`;
+  if(filtro==="pospuestos" && h.pospuesto_hasta)
+    chips += `<span class="hchip hchip-aju">⏰ ${esc(fmtFechaSql(h.pospuesto_hasta))}</span>`;
+  return chips;
+}
+function hiloActsHtml(h){
+  const stop='event.stopPropagation();';
+  const tid = `'${esc(h.tid).replace(/'/g,"\\'")}'`;
+  if(filtro==="archivados")
+    return `<div class="hacts">
+      <button title="Mover a Recibidos" onclick="${stop}accRestaurarHilo(${tid})">📥</button>
+      <button title="Eliminar" onclick="${stop}accEliminarHilo(${tid})">🗑️</button></div>`;
+  if(filtro==="enviados")
+    return `<div class="hacts">
+      <button title="Eliminar" onclick="${stop}accEliminarHilo(${tid})">🗑️</button></div>`;
+  if(filtro==="pospuestos")
+    return `<div class="hacts">
+      <button title="Despertar ahora" onclick="${stop}posponer(${tid},0)">⏰</button>
+      <button title="Listo (archivar)" onclick="${stop}accArchivarHilo(${tid})">✅</button>
+      <button title="Eliminar" onclick="${stop}accEliminarHilo(${tid})">🗑️</button></div>`;
+  return `<div class="hacts">
+    <button title="Listo (archivar)" onclick="${stop}accArchivarHilo(${tid})">✅</button>
+    <button title="Posponer" onclick="${stop}menuPosponer(${tid})">⏰</button>
+    <button title="Marcar no leído" onclick="${stop}accNoLeidoHilo(${tid})">✉️</button>
+    <button title="Eliminar" onclick="${stop}accEliminarHilo(${tid})">🗑️</button></div>`;
+}
+function hiloHtml(h){
+  const noLeida = (h.no_leidos||0)>0;
+  const n = h.n||1;
+  // El extracto muestra solo el texto nuevo del último mensaje (sin el historial citado).
+  const snip = partirCitas(h.ult_snippet||"").visible.replace(/\s+/g," ").trim();
+  const tid = `'${esc(h.tid).replace(/'/g,"\\'")}'`;
+  return `
+    <div class="hrow ${noLeida?'noleida':'leida'}${seleccion.has(h.tid)?' sel':''}"
+         data-tid="${esc(h.tid)}" onclick="verHilo(${tid})"
+         tabindex="0" role="button"
+         aria-label="Conversación con ${esc(participantesTxt(h))}: ${esc(quitarRe(h.ult_asunto))}${noLeida?', no leída':''}"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();verHilo(${tid});}">
+      <span class="hcheck" role="checkbox" aria-checked="${seleccion.has(h.tid)}"
+            title="Seleccionar" onclick="selToggle(${tid},event)">✓</span>
+      <button class="hstar${h.destacado?' on':''}" title="Destacar"
+              aria-label="${h.destacado?'Quitar de destacados':'Destacar'}" aria-pressed="${!!h.destacado}"
+              onclick="destacar(${tid},${h.destacado?0:1},event)">${h.destacado?"⭐":"☆"}</button>
+      <span class="hdot"></span>
+      ${avatarHtml(h.ult_de==="yo" ? participantesTxt(h) : (h.ult_de||participantesTxt(h)))}
+      <span class="hfila2">
+        <span class="hquien">${esc(participantesTxt(h))}${n>1?` <span class="hn">${n}</span>`:""}</span>
+        <span class="hasunto">${esc(quitarRe(h.ult_asunto))}${snip?` <span class="hsnip">— ${esc(snip)}</span>`:""}</span>
+        <span class="hestados">${hiloChips(h)}${avisoEspera(h)}</span>
+      </span>
+      ${adjNombresHtml(h)}
+      ${((h.adjuntos||0)+(h.adj_cliente||0))>0?`<span class="hclip">📎</span>`:""}
+      <span class="hfecha" title="${esc(fechaFullSql(h.ultima))}">${esc(fmtEsperaSql(h.ultima))}</span>
+      ${hiloActsHtml(h)}
+    </div>`;
+}
+
+// La entrada escalonada solo se usa al cambiar de carpeta o buscar, nunca en el
+// refresco automático: animar cada 15 segundos marearía.
+let animarLista = false;
 function render(){
   const lista = document.getElementById("lista");
-  let html = items.length ? items.map(c=>cardHtml(c)).join("") : `<div class="vacio">${vacioMsg()}</div>`;
+  let html;
+  if(esVistaHilos(filtro) && !vistaPorMensaje){
+    // Solo se anima cuando la lista se pinta de nuevo (no en cada refresco de 15 s).
+    html = items.length
+      ? `<div class="hlist${animarLista?' animar':''}">`+items.map(h=>hiloHtml(h)).join("")+`</div>`
+      : `<div class="vacio">${vacioMsg()}</div>`;
+  } else {
+    html = items.length ? items.map(c=>cardHtml(c)).join("") : `<div class="vacio">${vacioMsg()}</div>`;
+  }
+  // Contador "1–30 de 234" con flechas de página, arriba a la derecha, como Gmail.
+  if(items.length && !busca){
+    const total = lastTotal||items.length;
+    html = `<div style="display:flex;justify-content:flex-end;align-items:center;gap:2px;
+              padding:0 4px 8px;font-size:12.5px;color:var(--gray)">
+              <span style="margin-right:8px">1–${items.length} de ${total}</span>
+              <button class="pag" onclick="cargar(true)" title="Actualizar" aria-label="Actualizar">↻</button>
+              <button class="pag" ${hasMore?'':'disabled'} onclick="cargarMas()"
+                      title="Ver más antiguos" aria-label="Ver más antiguos">›</button>
+            </div>` + html;
+  }
   if(hasMore){
     html += `<button class="cargar-mas" onclick="cargarMas()">⬇️ Cargar más antiguos (${items.length} de ${lastTotal})</button>`;
   }
   lista.innerHTML = html;
+  if(tidLeyendo){
+    const f=lista.querySelector(`.hrow[data-tid="${CSS.escape(tidLeyendo)}"]`);
+    if(f) f.classList.add("leyendo");
+  }
+  if(animarLista){
+    // Escalonado corto: 18 ms entre filas, tope 10, para que se sienta vivo sin demorar.
+    lista.querySelectorAll(".hrow").forEach((f,i)=>{ f.style.animationDelay = Math.min(i,10)*18+"ms"; });
+    animarLista = false;
+  }
+  if(esVistaHilos(filtro) && !busca) setTimeout(prefetchHilos, 300);
 }
 
 // ---------- Contadores / badges ----------
 async function refrescarContadores(){
   try{
+    if(!navigator.onLine){ marcarSinConexion(true); return; }
     const c = await api("/api/contadores");
-    const setB = (id, n, gris) => {
+    // El número va a la derecha de cada carpeta del menú, como Gmail.
+    const setB = (id, n, negrita) => {
       const el=document.getElementById("tab-"+id); if(!el) return;
-      const base = id.charAt(0).toUpperCase()+id.slice(1);
-      el.innerHTML = base + (n>0 ? ` <span class="tab-cnt${gris?' gris':''}">${n>99?'99+':n}</span>` : "");
+      const cnt = el.querySelector(".cnt"); if(!cnt) return;
+      cnt.textContent = n>0 ? (n>999?"999+":String(n)) : "";
+      const lbl = el.querySelector(".lbl");
+      if(lbl) lbl.style.fontWeight = (negrita && n>0) ? "700" : "";
     };
-    setB("recibidos", c.recibidos_no_leidos||0, false);
-    setB("enviados", c.enviados_no_leidos||0, true);
-    setB("archivados", c.archivados||0, true);
-    setB("spam", c.spam||0, true);
-    setB("papelera", c.papelera||0, true);
+    setB("recibidos", c.recibidos_no_leidos||0, true);
+    setB("destacados", c.destacados||0, false);
+    setB("pospuestos", c.pospuestos||0, false);
+    setB("enviados", c.enviados_no_leidos||0, false);
+    setB("borradores", c.borradores||0, false);
+    setB("archivados", c.archivados||0, false);
+    setB("spam", c.spam||0, false);
+    setB("papelera", c.papelera||0, false);
     if(navigator.setAppBadge){ try{ (c.pendientes>0)?navigator.setAppBadge(c.pendientes):navigator.clearAppBadge(); }catch(e){} }
   }catch(e){}
 }
 
 // ---------- Utilidades de acción (toast + quitar de la lista sin recargar) ----------
-function toast(t){
+function toastEl(){
   let el=document.getElementById("toast");
-  if(!el){ el=document.createElement("div"); el.id="toast"; el.className="toast"; document.body.appendChild(el); }
-  el.textContent=t; el.classList.add("show"); clearTimeout(el._t);
+  if(!el){
+    el=document.createElement("div"); el.id="toast"; el.className="toast";
+    el.setAttribute("role","status"); el.setAttribute("aria-live","polite");
+    document.body.appendChild(el);
+  }
+  return el;
+}
+function toast(t){
+  const el=toastEl();
+  el.className="toast show"; el.textContent=t; clearTimeout(el._t);
   el._t=setTimeout(()=>el.classList.remove("show"),2200);
 }
+// Toast con "Deshacer" (fase 12): la acción ya ocurrió y se puede revertir.
+function toastUndo(t, alDeshacer, ms){
+  const el=toastEl();
+  el.className="toast show undo"; el.innerHTML="";
+  el.appendChild(document.createTextNode(t));
+  const b=document.createElement("button"); b.className="tundo"; b.textContent="Deshacer";
+  b.onclick=async ()=>{ clearTimeout(el._t); el.classList.remove("show"); await alDeshacer(); };
+  el.appendChild(b);
+  clearTimeout(el._t);
+  el._t=setTimeout(()=>{ el.classList.remove("show"); el.className="toast"; }, ms||6000);
+}
+
+// ---------- Mini-modal propio (fase 12) ----------
+// Los diálogos del navegador (confirm/prompt) CONGELAN la PWA en iOS: los reemplazamos.
+function miniCerrar(){ document.getElementById("overlay3").style.display="none"; }
+function miniBase(titulo, texto, conInput, valorIni, placeholder, onOk){
+  const ov=document.getElementById("overlay3");
+  document.getElementById("miniTit").textContent=titulo;
+  const p=document.getElementById("miniTxt"); p.textContent=texto||""; p.style.display=texto?"block":"none";
+  const inp=document.getElementById("miniInput");
+  inp.style.display=conInput?"block":"none";
+  inp.value=valorIni||""; inp.placeholder=placeholder||"";
+  const si=document.getElementById("miniSi"), no=document.getElementById("miniNo");
+  const cerrar=()=>{ miniCerrar(); si.onclick=null; no.onclick=null; inp.onkeydown=null; };
+  si.onclick=()=>{ const v=conInput?inp.value.trim():true; cerrar(); onOk(v); };
+  no.onclick=cerrar;
+  inp.onkeydown=(e)=>{ if(e.key==="Enter"){ e.preventDefault(); si.click(); } };
+  ov.style.display="flex";
+  setTimeout(()=>{ if(conInput) inp.focus(); },50);
+}
+function miniPrompt(titulo, texto, placeholder, onOk){ miniBase(titulo,texto,true,"",placeholder,(v)=>{ if(v) onOk(v); }); }
+function miniConfirm(titulo, texto, onOk){ miniBase(titulo,texto,false,"","",()=>onOk()); }
+// Modal con HTML propio (para listas de opciones, p.ej. plantillas).
+function miniHtml(titulo, html, montar){
+  const ov=document.getElementById("overlay3"), caja=document.getElementById("mini");
+  document.getElementById("miniTit").textContent=titulo;
+  const p=document.getElementById("miniTxt");
+  p.style.display="block"; p.innerHTML=html;
+  document.getElementById("miniInput").style.display="none";
+  const si=document.getElementById("miniSi"), no=document.getElementById("miniNo");
+  si.style.display="none"; no.textContent="Cerrar";
+  const cerrar=()=>{ miniCerrar(); si.style.display=""; no.textContent="Cancelar"; p.innerHTML=""; no.onclick=null; };
+  no.onclick=cerrar;
+  ov.style.display="flex";
+  if(montar) montar(p, cerrar);
+}
 function quitarDeLista(id){ const i=items.findIndex(x=>x.id===id); if(i>=0){ items.splice(i,1); render(); } }
+function quitarDeListaHilo(tid){
+  cacheHilos.delete(tid);
+  const i=items.findIndex(x=>x.tid===tid); if(i>=0){ items.splice(i,1); render(); }
+}
+
+// ---------- Acciones sobre un hilo completo (fase 10) ----------
+// Fase 12: UI optimista — la fila desaparece al instante y el toast ofrece Deshacer.
+async function accionHilo(url, tid, okMsg, quitar, urlDeshacer){
+  const idx = items.findIndex(x=>x.tid===tid);
+  const copia = idx>=0 ? items[idx] : null;
+  if(quitar){ cerrar(); quitarDeListaHilo(tid); }
+  try{
+    const d=await api(url,{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({thread_id:tid})});
+    if(!d || d.error){
+      if(copia){ items.splice(idx,0,copia); render(); }   // revertir el optimismo
+      toast("⚠️ "+((d&&d.error)||"error")); return;
+    }
+    refrescarContadores();
+    if(urlDeshacer){
+      toastUndo(okMsg, async ()=>{
+        try{
+          await api(urlDeshacer,{method:"POST",headers:{"content-type":"application/json"},
+            body:JSON.stringify({thread_id:tid})});
+          if(copia){ items.splice(Math.min(idx,items.length),0,copia); render(); }
+          refrescarContadores(); toast("Deshecho ↩️");
+        }catch(e){ toast("⚠️ "+e.message); }
+      });
+    } else toast(okMsg);
+  }catch(e){
+    if(copia){ items.splice(idx,0,copia); render(); }
+    toast("⚠️ "+e.message);
+  }
+}
+// Estrella (fase 13): se pinta al instante y se guarda detrás.
+async function destacar(tid, valor, ev){
+  if(ev) ev.stopPropagation();
+  const it = items.find(x=>x.tid===tid);
+  if(it){ it.destacado = valor; render(); }
+  try{
+    await api("/api/destacar-hilo",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({thread_id:tid, destacado:valor})});
+    if(filtro==="destacados" && !valor) quitarDeListaHilo(tid);
+    refrescarContadores();
+  }catch(e){
+    if(it){ it.destacado = valor?0:1; render(); }   // revertir si falló
+    toast("⚠️ "+e.message);
+  }
+}
+function accArchivarHilo(tid){ accionHilo("/api/archivar-hilo",tid,"Listo ✅",true,"/api/restaurar-hilo"); }
+function accRestaurarHilo(tid){ accionHilo("/api/restaurar-hilo",tid,"En Recibidos 📥",true,"/api/archivar-hilo"); }
+function accEliminarHilo(tid){ accionHilo("/api/eliminar-hilo",tid,"En papelera 🗑️",true,"/api/restaurar-hilo-papelera"); }
+async function accNoLeidoHilo(tid){
+  try{
+    await api("/api/marcar-leido-hilo",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({thread_id:tid,leido:0})});
+    cerrar();
+    const it=items.find(x=>x.tid===tid); if(it){ it.no_leidos=Math.max(1,it.no_leidos||0); render(); }
+    refrescarContadores(); toast("Marcado no leído ✉️");
+  }catch(e){ toast("⚠️ "+e.message); }
+}
 
 // ---------- Acciones spam / bloqueo (con aprendizaje) ----------
 async function spam(id){
@@ -354,19 +1634,79 @@ async function noSpam(id){
   cerrar(); cargar(true); refrescarContadores();
   toast(d.afectados>1 ? `${d.afectados} correos fuera de spam ↩️` : "Fuera de spam ↩️");
 }
-async function bloquear(id, tipo){
+function bloquear(id, tipo){
   const c = items.find(x=>x.id===id) || actual;
   if(!c || !c.de){ return; }
   const objetivo = tipo==="dominio" ? (c.de.split("@")[1]||c.de) : c.de;
-  const motivo = prompt(`¿Por qué bloquear "${objetivo}" para SIEMPRE?\nLa IA aprende de esto (obligatorio):`);
-  if(!motivo || !motivo.trim()) return;
-  if(!confirm(`Se ocultarán TODOS los correos de "${objetivo}" y no volverá a llegar. ¿Confirmas?`)) return;
-  const body = tipo==="dominio" ? {dominio:c.de.split("@")[1], motivo} : {de:c.de, motivo};
+  miniPrompt(`Bloquear ${objetivo}`,
+    "Se ocultarán TODOS sus correos y no volverán a llegar. ¿Por qué lo bloqueas? (la IA aprende de esto)",
+    "Motivo", async (motivo)=>{
+      const body = tipo==="dominio" ? {dominio:c.de.split("@")[1], motivo} : {de:c.de, motivo};
+      try{
+        const d = await api("/api/bloquear",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
+        if(d.error){ toast("⚠️ "+d.error); return; }
+      }catch(e){ toast("⚠️ "+e.message); return; }
+      cerrar(); cargar(true); refrescarContadores(); toast("Bloqueado 🚫");
+    });
+}
+
+// ---------- Selección múltiple (fase 12) ----------
+function selLimpiar(){
+  seleccion.clear();
+  document.getElementById("selbar").classList.remove("on");
+  document.querySelector(".principal").classList.remove("selmode");
+  document.querySelectorAll(".hrow.sel").forEach(r=>r.classList.remove("sel"));
+}
+function selToggle(tid, ev){
+  if(ev) ev.stopPropagation();
+  seleccion.has(tid) ? seleccion.delete(tid) : seleccion.add(tid);
+  const bar=document.getElementById("selbar");
+  bar.classList.toggle("on", seleccion.size>0);
+  document.querySelector(".principal").classList.toggle("selmode", seleccion.size>0);
+  document.getElementById("selCnt").textContent =
+    seleccion.size===1 ? "1 conversación" : `${seleccion.size} conversaciones`;
+  const fila=document.querySelector(`.hrow[data-tid="${CSS.escape(tid)}"]`);
+  if(fila) fila.classList.toggle("sel", seleccion.has(tid));
+}
+async function selAccion(tipo){
+  const tids=[...seleccion];
+  if(!tids.length) return;
+  if(tipo==="posponer"){
+    selLimpiar();
+    miniHtml("Posponer "+tids.length+" conversaciones",
+      PLAZOS.map(p=>`<button class="qa-b" data-h="${p.h}" style="display:block;width:100%;text-align:left;margin-bottom:5px">⏰ ${esc(p.t)}</button>`).join(""),
+      (root,cerrarMini)=>{
+        root.querySelectorAll("[data-h]").forEach(b=>{
+          b.onclick=async ()=>{
+            cerrarMini();
+            for(const t of tids) quitarDeListaHilo(t);
+            try{
+              await Promise.all(tids.map(t=>api("/api/posponer-hilo",{method:"POST",
+                headers:{"content-type":"application/json"},
+                body:JSON.stringify({thread_id:t, horas:+b.dataset.h})})));
+              refrescarContadores(); toast(`${tids.length} pospuestas ⏰`);
+            }catch(e){ toast("⚠️ "+e.message); cargar(true); }
+          };
+        });
+      });
+    return;
+  }
+  const url = tipo==="archivar" ? "/api/archivar-hilo" : "/api/eliminar-hilo";
+  const undo = tipo==="archivar" ? "/api/restaurar-hilo" : "/api/restaurar-hilo-papelera";
+  selLimpiar();
+  for(const t of tids) quitarDeListaHilo(t);
   try{
-    const d = await api("/api/bloquear",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
-    if(d.error){ alert("⚠️ "+d.error); return; }
-  }catch(e){ alert("Error: "+e.message); return; }
-  cerrar(); cargar(true); refrescarContadores();
+    await Promise.all(tids.map(t=>api(url,{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({thread_id:t})})));
+  }catch(e){ toast("⚠️ "+e.message); cargar(true); return; }
+  refrescarContadores();
+  toastUndo(`${tids.length} ${tipo==="archivar"?"archivadas ✅":"en papelera 🗑️"}`, async ()=>{
+    try{
+      await Promise.all(tids.map(t=>api(undo,{method:"POST",headers:{"content-type":"application/json"},
+        body:JSON.stringify({thread_id:t})})));
+      cargar(true); refrescarContadores(); toast("Deshecho ↩️");
+    }catch(e){ toast("⚠️ "+e.message); }
+  });
 }
 
 // ---------- Carpeta Bloqueados ----------
@@ -385,49 +1725,337 @@ async function cargarBloqueados(){
       <button onclick="desbloquear(${i})">↩️ Desbloquear</button>
     </div>`).join("");
 }
-async function desbloquear(idx){
+function desbloquear(idx){
   const b = bloqueadosItems[idx];
   if(!b) return;
-  const motivo = prompt(`¿Por qué quitas el bloqueo de "${b.valor}"? (opcional, la IA aprende)`) || "";
-  try{
-    await api("/api/desbloquear",{method:"POST",headers:{"content-type":"application/json"},
-      body:JSON.stringify({tipo:b.tipo, valor:b.valor, motivo})});
-  }catch(e){ alert("Error: "+e.message); return; }
-  cargarBloqueados(); refrescarContadores();
+  // miniBase (no miniPrompt) porque aquí el motivo es OPCIONAL: acepta vacío.
+  miniBase(`Desbloquear ${b.valor}`, "¿Por qué quitas el bloqueo? (la IA aprende de esto)",
+    true, "", "Motivo (opcional)", async (motivo)=>{
+      try{
+        await api("/api/desbloquear",{method:"POST",headers:{"content-type":"application/json"},
+          body:JSON.stringify({tipo:b.tipo, valor:b.valor, motivo:motivo||""})});
+      }catch(e){ toast("⚠️ "+e.message); return; }
+      cargarBloqueados(); refrescarContadores(); toast("Desbloqueado ↩️");
+    });
 }
 
-// ---------- Modal: correo / conversación ----------
+// ---------- Modal: mensaje suelto (Spam/Papelera) ----------
 async function ver(id){
-  const c = await api("/api/correo?id="+id);
-  actual = c;
+  let c;
+  try{ c = await api("/api/correo?id="+id); }
+  catch(e){ toast(e && e.red ? "📡 Sin conexión: no se pudo abrir" : "⚠️ "+(e.message||"error")); return; }
+  actual = c; actualTid = null; hiloUnico = false;
   document.getElementById("mAsunto").textContent = c.asunto || "(sin asunto)";
-  let hilo = null;
-  if(c.thread_id){
-    try{ hilo = await api("/api/hilo?thread_id="+encodeURIComponent(c.thread_id)); }catch(e){}
-  }
   const body = document.getElementById("mBody");
-  if(hilo && hilo.mensajes && hilo.mensajes.length>1){
-    document.getElementById("mMeta").innerHTML = `Conversación · ${hilo.mensajes.length} mensajes`;
-    body.innerHTML = conversacionHtml(hilo.mensajes);
-    body.scrollTop = body.scrollHeight;
-  } else {
-    document.getElementById("mMeta").innerHTML =
-      `De: <b>${esc(c.de)}</b><br>Para: ${esc(c.para)}<br>${esc(fechaFull(c.recibido_en))}`;
-    // Preferimos el HTML del correo (se ve como el original: fuentes, firma, formato).
-    // El texto plano queda solo de respaldo cuando el correo no trae versión HTML.
-    if (c.cuerpo_html && c.cuerpo_html.trim()){
-      body.innerHTML='<iframe sandbox></iframe>';
-      body.querySelector("iframe").srcdoc=c.cuerpo_html;
+  body.className = "mbody";
+  document.getElementById("mMeta").innerHTML =
+    `De: <b>${esc(c.de_nombre||c.de)}</b> &lt;${esc(c.de)}&gt;<br>Para: ${esc(c.para)}<br>${esc(fechaFull(c.recibido_en))}`;
+  // Preferimos el HTML del correo (se ve como el original), siempre sanitizado y aislado.
+  // El texto plano queda de respaldo cuando el correo no trae versión HTML.
+  if (c.cuerpo_html && c.cuerpo_html.trim()){
+    body.innerHTML="";
+    const limpio = sanitizarCorreo(c.cuerpo_html, false);   // spam: nunca cargar sus imágenes
+    if(imgsBloqueadas>0){
+      const av=document.createElement("div"); av.className="img-aviso";
+      av.textContent=`🖼️ ${imgsBloqueadas} ${imgsBloqueadas===1?"imagen bloqueada":"imágenes bloqueadas"} (correo no confiable).`;
+      body.appendChild(av);
     }
-    else if (c.cuerpo_texto && c.cuerpo_texto.trim()){ body.textContent = c.cuerpo_texto; }
-    else { body.textContent="(sin contenido)"; }
+    const marco=document.createElement("iframe"); body.appendChild(marco);
+    montarIframe(marco, limpio);
   }
+  else if (c.cuerpo_texto && c.cuerpo_texto.trim()){ body.textContent = c.cuerpo_texto; }
+  else { body.textContent="(sin contenido)"; }
   renderResp(c);
   renderEtiquetas(c);
   renderBar(c);
-  document.getElementById("overlay").style.display="flex";
-  // Marcado como leído server-side al abrir: reflejarlo en la lista sin recargar.
+  abrirVista(null);
+  focoPrevio = document.activeElement;
   const it = items.find(x=>x.id===id); if(it){ it.leido=1; render(); }
+  refrescarContadores();
+}
+
+// ---------- Modal: CONVERSACIÓN completa (fase 10) ----------
+let hiloUnico = false; // hilo de 1 solo mensaje entrante -> permite "Spam" directo
+
+// Aplana los mensajes en entradas de conversación: cada respuesta enviada
+// (respuesta_enviada del correo entrante) se vuelve su propia entrada saliente.
+function entradasHilo(msgs){
+  const arr=[];
+  for(const m of msgs){
+    const esNuestro = (m.de||"").toLowerCase()===NOSOTROS || m.estado==="enviado";
+    arr.push({
+      id:String(m.id), dir:esNuestro?"out":"in",
+      nombre: esNuestro?"Yo":(((m.de_nombre||"").trim()) || m.de || "(desconocido)"),
+      email: m.de||"", ts:m.recibido_en, leido:m.leido,
+      texto:(m.cuerpo_texto||""), html:(m.cuerpo_html||""),
+      adj: esNuestro?m.adjunto_nombre:null, adjId:m.id, urlCot:m.url_cotizacion||null,
+      adjuntos: m.adjuntos || []          // fase 13: archivos que mandó el cliente
+    });
+    if(m.url_cotizacion) urlsCot.set(m.id, m.url_cotizacion);
+    if(!esNuestro && m.respuesta_enviada && m.respuesta_enviada.trim()){
+      arr.push({ id:"r"+m.id, dir:"out", nombre:"Yo", email:NOSOTROS,
+        ts:m.respondido_en||m.recibido_en, leido:1,
+        texto:m.respuesta_enviada, html:"", adj:m.adjunto_nombre, adjId:m.id });
+    }
+  }
+  arr.sort((a,b)=>(new Date(a.ts||0))-(new Date(b.ts||0)));
+  return arr;
+}
+
+// Separa el historial citado dentro de un HTML ya sanitizado (blockquote / gmail_quote).
+function partirCitasHtml(htmlLimpio){
+  const div = document.createElement("div");
+  div.innerHTML = htmlLimpio;
+  const citas = div.querySelectorAll('blockquote, div.gmail_quote, .gmail_quote, [type="cite"], .moz-cite-prefix, #appendonsend');
+  if(!citas.length) return {visible:htmlLimpio, hayCita:false};
+  citas.forEach(c=>c.remove());
+  // Si al quitar las citas no queda nada legible, mejor mostrar el correo entero.
+  if(!div.textContent.trim() && !div.querySelector("img")) return {visible:htmlLimpio, hayCita:false};
+  return {visible:div.innerHTML, hayCita:true};
+}
+
+let entradasActuales = [];  // entradas del hilo abierto (para montar cuerpos al vuelo)
+
+// Monta el cuerpo de un mensaje (HTML aislado o texto plano) la primera vez que se abre.
+function montarCuerpo(idx){
+  const e = entradasActuales[idx];
+  const cont = document.querySelector(`.hm-body[data-idx="${idx}"]`);
+  if(!e || !cont || cont.dataset.montado) return;
+  cont.dataset.montado = "1";
+  let extra = "";
+  if(e.html){
+    // Las imágenes se muestran SOLAS (como Gmail), porque igual pasan por nuestro proxy:
+    // el remitente nunca ve tu IP ni te pone cookies. Solo se bloquean en Spam/Papelera.
+    // Las firmas de las imágenes ya se calcularon en verHiloInterno, antes de montar.
+    const confiable = mostrarImagenesSiempre || imagenesOk.includes((e.email||"").toLowerCase()) || e.dir==="out";
+    const limpio = sanitizarCorreo(e.html, confiable, e.adjuntos);
+    const bloqueadas = imgsBloqueadas;
+    const part = partirCitasHtml(limpio);
+    const espias = rastreadoresBloqueados;
+    if(bloqueadas>0){
+      const av = document.createElement("div");
+      av.className="img-aviso";
+      av.innerHTML = `🖼️ ${bloqueadas} ${bloqueadas===1?"imagen bloqueada":"imágenes bloqueadas"} para proteger tu privacidad.
+        <button data-ver="1">Mostrar</button><button data-siempre="1">Mostrar siempre de este remitente</button>`;
+      av.querySelector("[data-ver]").onclick = (ev)=>{ ev.stopPropagation(); mostrarImgs(idx,false); };
+      av.querySelector("[data-siempre]").onclick = (ev)=>{ ev.stopPropagation(); mostrarImgs(idx,true); };
+      cont.appendChild(av);
+    }
+    // Aviso honesto: este correo te estaba espiando y no lo dejamos. Gmail no avisa.
+    if(espias>0){
+      const nota=document.createElement("div"); nota.className="img-aviso espia";
+      nota.textContent = espias===1
+        ? "🕵️ Se bloqueó 1 rastreador: el remitente no sabrá que abriste este correo."
+        : `🕵️ Se bloquearon ${espias} rastreadores: el remitente no sabrá que abriste este correo.`;
+      cont.appendChild(nota);
+    }
+    const marco = document.createElement("iframe");
+    cont.appendChild(marco);
+    montarIframe(marco, part.hayCita?part.visible:limpio);
+    if(part.hayCita){
+      const b = document.createElement("button");
+      b.className="qbtn"; b.textContent="⋯"; b.title="Mostrar texto citado";
+      let abierto=false;
+      b.onclick=(ev)=>{ ev.stopPropagation(); abierto=!abierto; montarIframe(marco, abierto?limpio:part.visible); };
+      cont.appendChild(b);
+    }
+  } else {
+    const part = partirCitas(e.texto||"");
+    const d = document.createElement("div"); d.className="hm-txt";
+    d.textContent = part.visible || "(sin contenido)";
+    cont.appendChild(d);
+    if(part.cita){
+      const b=document.createElement("button"); b.className="qbtn"; b.textContent="⋯"; b.title="Mostrar texto citado";
+      const q=document.createElement("div"); q.className="hm-cita"; q.textContent=part.cita;
+      b.onclick=(ev)=>{ ev.stopPropagation(); q.classList.toggle("abierta"); };
+      cont.appendChild(b); cont.appendChild(q);
+    }
+  }
+  if(e.adj) cont.insertAdjacentHTML("beforeend", pdfCotizacionHtml(e));
+  const chips = adjuntosHtml(e);
+  if(chips) cont.insertAdjacentHTML("beforeend", chips);
+  cont.insertAdjacentHTML("beforeend", extra);
+}
+
+// El PDF de cotización que dejó la IA, como enlace firmado (abre bien en el iPhone).
+function pdfCotizacionHtml(e){
+  if(!e.adj) return "";
+  return e.urlCot
+    ? `<div class="hm-adj">📎 <a href="${esc(e.urlCot)}" target="_blank" rel="noopener"
+         onclick="event.stopPropagation()"><b>${esc(e.adj)}</b></a> · cotización en PDF</div>`
+    : `<div class="hm-adj">📎 <b>${esc(e.adj)}</b></div>`;
+}
+
+// ---------- Adjuntos que mandó el cliente (fase 13) ----------
+function pesoLegible(b){
+  if(!b) return "";
+  return b < 1024 ? b+" B" : b < 1048576 ? Math.round(b/1024)+" KB" : (b/1048576).toFixed(1)+" MB";
+}
+function iconoArchivo(mime, nombre){
+  const n=(nombre||"").toLowerCase(), m=(mime||"").toLowerCase();
+  if(m.includes("pdf")||n.endsWith(".pdf")) return "📕";
+  if(m.startsWith("image/")) return "🖼️";
+  if(m.includes("sheet")||/\.(xlsx?|csv)$/.test(n)) return "📊";
+  if(m.includes("word")||/\.docx?$/.test(n)) return "📝";
+  if(/\.(zip|rar|7z)$/.test(n)) return "🗜️";
+  return "📎";
+}
+function adjuntosHtml(e){
+  // Los 'inline' son las imágenes incrustadas del cuerpo: no se listan como archivos.
+  const arr=(e.adjuntos||[]).filter(a=>!a.inline);
+  if(!arr.length) return "";
+  return `<div class="adjs">`+arr.map(a=> a.url
+    ? `<a class="adj" href="${esc(a.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+         <span class="ic">${iconoArchivo(a.mime,a.nombre)}</span>
+         <span><span class="n">${esc(a.nombre||"archivo")}</span><br><span class="t">${pesoLegible(a.tamano)}</span></span>
+       </a>`
+    : `<span class="adj grande" title="Los archivos sobre 600 KB no se guardan en el panel">
+         <span class="ic">${iconoArchivo(a.mime,a.nombre)}</span>
+         <span><span class="n">${esc(a.nombre||"archivo")}</span><br>
+         <span class="t">${pesoLegible(a.tamano)} · muy pesado, búscalo en tu Gmail</span></span>
+       </span>`).join("")+`</div>`;
+}
+
+// "Mostrar imágenes" de un mensaje (y opcionalmente confiar en el remitente para siempre).
+async function mostrarImgs(idx, siempre){
+  const e = entradasActuales[idx];
+  if(!e) return;
+  if(siempre){
+    try{
+      await api("/api/imagenes-confiables",{method:"POST",headers:{"content-type":"application/json"},
+        body:JSON.stringify({remitente:e.email})});
+      if(!imagenesOk.includes((e.email||"").toLowerCase())) imagenesOk.push((e.email||"").toLowerCase());
+      toast("Se mostrarán siempre sus imágenes 🖼️");
+    }catch(err){ toast("⚠️ "+err.message); }
+  }
+  await firmarImgs(e.html);
+  const cont = document.querySelector(`.hm-body[data-idx="${idx}"]`);
+  if(!cont) return;
+  const limpio = sanitizarCorreo(e.html, true, e.adjuntos);
+  cont.innerHTML=""; delete cont.dataset.montado;
+  const marco=document.createElement("iframe"); cont.appendChild(marco);
+  montarIframe(marco, limpio);
+  cont.dataset.montado="1";
+  if(e.adj) cont.insertAdjacentHTML("beforeend", pdfCotizacionHtml(e));
+  const chips = adjuntosHtml(e);
+  if(chips) cont.insertAdjacentHTML("beforeend", chips);
+}
+
+function hiloMsgHtml(e, abierto){
+  const base = e.texto ? partirCitas(e.texto).visible : "";
+  const snip = (base || (e.html?"(mensaje con formato)":"")).replace(/\s+/g," ").slice(0,90);
+  return `<div class="hm ${abierto?'abierto':''}" id="hm-${esc(e.id)}">
+    <div class="hm-head" role="button" tabindex="0"
+         aria-expanded="${abierto}" aria-controls="hmb-${esc(e.id)}"
+         aria-label="${abierto?'Cerrar':'Abrir'} el mensaje de ${esc(e.nombre)}"
+         onclick="toggleHm('${esc(e.id)}',${e.idx})"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleHm('${esc(e.id)}',${e.idx});}">
+      <span class="hm-chev" aria-hidden="true">▶</span>
+      ${avatarHtml(e.nombre,"hm-av")}
+      <span class="hm-quien ${e.dir==='out'?'nos':''}">${esc(e.nombre)}</span>
+      ${e.dir==='in'?`<span class="hm-mail">&lt;${esc(e.email)}&gt;</span>`:""}
+      <span class="hm-snip">${esc(snip)}</span>
+      <span class="hm-fecha" title="${esc(fechaFull(e.ts))}">${esc(fmtFecha(e.ts))}</span>
+      <button class="hm-mas" title="Acciones de este mensaje" aria-label="Acciones de este mensaje"
+              onclick="event.stopPropagation();menuMensaje(${e.idx})">⋮</button>
+    </div>
+    <div class="hm-body" id="hmb-${esc(e.id)}" data-idx="${e.idx}"></div>
+  </div>`;
+}
+// Menú por mensaje (fase 15): Gmail tiene responder y "⋮" en CADA mensaje del hilo.
+function menuMensaje(idx){
+  const e = entradasActuales[idx];
+  if(!e) return;
+  miniHtml("Mensaje de "+e.nombre,
+    `<button class="qa-b" data-a="responder" style="display:block;width:100%;text-align:left;margin-bottom:5px">↩️ Responder</button>
+     <button class="qa-b" data-a="reenviar" style="display:block;width:100%;text-align:left;margin-bottom:5px">↪️ Reenviar la conversación</button>
+     <button class="qa-b" data-a="copiar" style="display:block;width:100%;text-align:left">📋 Copiar dirección (${esc(e.email||"—")})</button>`,
+    (root, cerrarMini)=>{
+      root.querySelector('[data-a="responder"]').onclick=()=>{
+        cerrarMini();
+        const ta=document.getElementById("respTxt");
+        if(ta){ ta.scrollIntoView({block:"center",behavior:"smooth"}); setTimeout(()=>ta.focus(),300); }
+        else toast("⚠️ Esta vista no permite responder");
+      };
+      root.querySelector('[data-a="reenviar"]').onclick=()=>{ cerrarMini(); reenviar(); };
+      root.querySelector('[data-a="copiar"]').onclick=async ()=>{
+        cerrarMini();
+        try{ await navigator.clipboard.writeText(e.email||""); toast("Dirección copiada 📋"); }
+        catch(err){ toast("⚠️ No se pudo copiar"); }
+      };
+    });
+}
+function toggleHm(id, idx){
+  const el=document.getElementById("hm-"+id);
+  if(!el) return;
+  const abierto = !el.classList.contains("abierto");
+  el.classList.toggle("abierto", abierto);
+  const cab = el.querySelector(".hm-head");
+  if(cab) cab.setAttribute("aria-expanded", String(abierto));
+  if(abierto) montarCuerpo(idx);
+}
+
+// ---------- Velocidad (fase 12, receta Superhuman): caché + prefetch ----------
+// Los hilos que probablemente abras se piden en segundo plano; al tocarlos, abren al instante.
+const cacheHilos = new Map();
+function prefetchHilos(){
+  if(!pass) return;
+  const objetivos = items.slice(0,5).map(h=>h && h.tid).filter(t=>t && !cacheHilos.has(t));
+  objetivos.forEach(async (t)=>{
+    try{ cacheHilos.set(t, await api("/api/hilo?thread_id="+encodeURIComponent(t))); }
+    catch(e){ cacheHilos.delete(t); }
+  });
+  if(cacheHilos.size>40) cacheHilos.clear();
+}
+
+async function verHilo(tid){
+  try{ await verHiloInterno(tid); }
+  catch(e){ toast(e && e.red ? "📡 Sin conexión: no se pudo abrir" : "⚠️ "+(e.message||"error")); }
+}
+async function verHiloInterno(tid){
+  // Pinta al instante si ya está en caché, y refresca detrás (UI optimista).
+  const cache = cacheHilos.get(tid);
+  const d = cache || await api("/api/hilo?thread_id="+encodeURIComponent(tid));
+  if(cache){ api("/api/hilo?thread_id="+encodeURIComponent(tid)).then(f=>cacheHilos.set(tid,f)).catch(()=>{}); }
+  else cacheHilos.set(tid, d);
+  const msgs = d.mensajes||[];
+  if(!msgs.length){ toast("⚠️ Conversación vacía"); return; }
+  actualTid = tid;
+  // Correo "accionable" (para responder/ajustar): el último pendiente; si no, el último entrante.
+  const accionables = msgs.filter(m=>["nuevo","borrador","ajuste"].includes(m.estado));
+  const entrantes = msgs.filter(m=>(m.de||"").toLowerCase()!==NOSOTROS && m.estado!=="enviado");
+  actual = accionables[accionables.length-1] || entrantes[entrantes.length-1] || msgs[msgs.length-1];
+  hiloUnico = msgs.length===1 && entrantes.length===1;
+  imagenesOk = d.imagenes_confiables || [];
+  const ent = entradasHilo(msgs); ent.forEach((e,i)=>e.idx=i);
+  entradasActuales = ent;
+  document.getElementById("mAsunto").textContent = quitarRe(msgs[0].asunto || actual.asunto);
+  document.getElementById("mMeta").innerHTML = ent.length>1
+    ? `Conversación · ${ent.length} mensajes`
+    : `De: <b>${esc(actual.de_nombre||actual.de)}</b> &lt;${esc(actual.de)}&gt;<br>${esc(fechaFull(actual.recibido_en))}`;
+  const body=document.getElementById("mBody");
+  body.className="mbody hilo";
+  // La vista se muestra ANTES de montar los cuerpos: si los iframes se crean mientras
+  // está oculta, miden 0 y quedan cortados.
+  abrirVista(tid);
+  // Regla Gmail: expandidos el último mensaje y los no leídos; el resto colapsado en una línea.
+  const abiertos = ent.map((e,i)=> e.leido===0 || i===ent.length-1);
+  body.innerHTML = ent.map((e,i)=>hiloMsgHtml(e, abiertos[i])).join("");
+  // Firmar TODAS las imágenes antes de montar: así se ven de una, sin parpadeo ni botón.
+  if(ent.some(e=>e.html)) await firmarImgs(ent.filter(e=>e.html).map(e=>e.html).join(""));
+  ent.forEach((e,i)=>{ if(abiertos[i]) montarCuerpo(i); });
+  renderResp(actual);
+  renderEtiquetas(actual);
+  renderBar(actual);
+  // Se abre ARRIBA del todo, con el asunto a la vista (como Gmail), no a mitad del hilo.
+  const ov=document.getElementById("overlay");
+  ov.scrollTop = 0;
+  document.querySelector(".vbar").classList.remove("despegada");
+  vigilarScrollVista();
+  setTimeout(()=>{ ov.scrollTop = 0; }, 60);
+  // El server ya marcó leído el hilo al abrirlo: reflejar sin recargar.
+  const it=items.find(x=>x.tid===tid); if(it && it.no_leidos){ it.no_leidos=0; render(); }
+  marcarFilaLeyendo(tid);
   refrescarContadores();
 }
 
@@ -437,6 +2065,24 @@ function renderBar(c){
   const bar=document.getElementById("mBar"); const e=c.estado;
   const B=(cls,lbl,fn)=>`<button class="mbar-b ${cls}" onclick="${fn}">${lbl}</button>`;
   let h="";
+  // Modo CONVERSACIÓN (fase 10): las acciones aplican al hilo completo.
+  if(actualTid){
+    const tid=`'${esc(actualTid).replace(/'/g,"\\'")}'`;
+    if(filtro==="archivados"){
+      h = B('primary','📥 Mover a Recibidos','accRestaurarHilo('+tid+')')
+        + B('','🏷️ Etiqueta','agregarEtiqueta('+c.id+')')
+        + B('danger','🗑️ Eliminar','accEliminarHilo('+tid+')');
+    } else {
+      h = B('primary','✓ Listo','accArchivarHilo('+tid+')')
+        + B('','⏰ Posponer','menuPosponer('+tid+')')
+        + B('','↪️ Reenviar','reenviar()')
+        + B('','🏷️ Etiqueta','agregarEtiqueta('+c.id+')')
+        + B('','✉️ No leído','accNoLeidoHilo('+tid+')')
+        + (hiloUnico?B('','🚫 Spam','accSpam('+c.id+')'):"")
+        + B('danger','🗑️ Eliminar','accEliminarHilo('+tid+')');
+    }
+    bar.innerHTML=h; return;
+  }
   if(["nuevo","borrador","ajuste"].includes(e)){
     h = B('primary','✓ Listo','accArchivar('+c.id+')')
       + B('','🏷️ Etiqueta','agregarEtiqueta('+c.id+')')
@@ -480,13 +2126,14 @@ function syncEtiquetas(id, arr){
   if(actual && actual.id===id){ actual.etiquetas=csv; renderEtiquetas(actual); }
   const it=items.find(x=>x.id===id); if(it){ it.etiquetas=csv; render(); }
 }
-async function agregarEtiqueta(id){
-  const t=prompt("Nueva etiqueta:"); if(!t||!t.trim()) return;
-  try{
-    const d=await api("/api/etiqueta",{method:"POST",headers:{"content-type":"application/json"},
-      body:JSON.stringify({id,etiqueta:t,accion:"add"})});
-    if(d.ok) syncEtiquetas(id,d.etiquetas); else toast("⚠️ "+(d.error||"error"));
-  }catch(e){ toast("⚠️ "+e.message); }
+function agregarEtiqueta(id){
+  miniPrompt("Nueva etiqueta","Sirve para agrupar y buscar después.","Ej: urgente", async (t)=>{
+    try{
+      const d=await api("/api/etiqueta",{method:"POST",headers:{"content-type":"application/json"},
+        body:JSON.stringify({id,etiqueta:t,accion:"add"})});
+      if(d.ok) syncEtiquetas(id,d.etiquetas); else toast("⚠️ "+(d.error||"error"));
+    }catch(e){ toast("⚠️ "+e.message); }
+  });
 }
 async function quitarEtiqueta(id,i){
   const arr=(actual.etiquetas||"").split(",").map(s=>s.trim()).filter(Boolean);
@@ -500,10 +2147,11 @@ async function quitarEtiqueta(id,i){
 // ---------- Acciones del modal (archivar / eliminar / restaurar / no leído) ----------
 async function accion(url, id, okMsg, quitar){
   barBusy(true);
+  const tid = actualTid; // capturar antes de cerrar (cerrar() lo limpia)
   try{
     const d=await api(url,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id})});
     if(!d || d.error){ toast("⚠️ "+((d&&d.error)||"error")); barBusy(false); return; }
-    if(quitar){ cerrar(); quitarDeLista(id); refrescarContadores(); }
+    if(quitar){ cerrar(); if(tid) quitarDeListaHilo(tid); else quitarDeLista(id); refrescarContadores(); }
     toast(okMsg);
   }catch(e){ toast("⚠️ "+e.message); }
   barBusy(false);
@@ -513,8 +2161,8 @@ function accEliminar(id){ accion("/api/eliminar",id,"En papelera 🗑️",true);
 function accRestaurar(id){ accion("/api/restaurar",id,"Restaurado ♻️",true); }
 function accSpam(id){ accion("/api/spam",id,"Marcado spam 🚫",true); }
 function accEliminarDef(id){
-  if(!confirm("¿Eliminar definitivamente? Esta acción NO se puede deshacer.")) return;
-  accion("/api/eliminar-definitivo",id,"Eliminado ⛔",true);
+  miniConfirm("Eliminar definitivamente","Esta acción NO se puede deshacer.",
+    ()=>accion("/api/eliminar-definitivo",id,"Eliminado ⛔",true));
 }
 async function accNoLeido(id){
   barBusy(true);
@@ -526,49 +2174,76 @@ async function accNoLeido(id){
   barBusy(false);
 }
 
-function conversacionHtml(msgs){
-  const arr = [];
-  for(const m of msgs){
-    const esNuestro = (m.de||"").toLowerCase()===NOSOTROS || m.estado==="enviado";
-    const texto = (m.cuerpo_texto && m.cuerpo_texto.trim())
-      ? m.cuerpo_texto
-      : (m.cuerpo_html ? "(contenido HTML — abre el mensaje individual para verlo)" : "(sin contenido)");
-    arr.push({lado: esNuestro?"nos":"cli", texto, ts:m.recibido_en, adj:null});
-    if(!esNuestro && m.respuesta_enviada && m.respuesta_enviada.trim()){
-      arr.push({lado:"nos", texto:m.respuesta_enviada, ts:m.respondido_en||m.recibido_en, adj:m.adjunto_nombre});
-    }
-  }
-  arr.sort((a,b)=> (new Date(a.ts||0)) - (new Date(b.ts||0)));
-  return arr.map(it=>`
-    <div class="burbuja ${it.lado==="nos"?"b-nos":"b-cli"}">
-      <div class="b-meta">${it.lado==="nos"?"Nosotros":"Cliente"} · ${esc(fmtFecha(it.ts))}</div>
-      <div>${esc(it.texto)}</div>
-      ${it.adj?`<div class="b-adj">📎 ${esc(it.adj)}</div>`:""}
-    </div>`).join("");
-}
-
+// El PDF se abre con un ENLACE firmado, no con window.open() tras un await:
+// en Safari (y en la PWA del iPhone) el popup diferido queda bloqueado.
 function adjuntoHtml(c){
   if(!c.adjunto_nombre) return "";
+  const url = c.url_cotizacion || urlCotizacion(c.id);
   return `<div style="margin-bottom:10px;font-size:13px">📎 <b>${esc(c.adjunto_nombre)}</b>
-    <button class="btn btn-guardar" style="padding:4px 10px;font-size:12px" onclick="verAdjunto(${c.id})">Ver PDF</button></div>`;
+    ${url ? `<a class="btn btn-guardar" style="padding:4px 10px;font-size:12px;text-decoration:none"
+              href="${esc(url)}" target="_blank" rel="noopener">Ver PDF</a>`
+          : `<button class="btn btn-guardar" style="padding:4px 10px;font-size:12px" onclick="verAdjunto(${c.id})">Ver PDF</button>`}</div>`;
 }
+// Cache de URLs firmadas del PDF (para los mensajes del hilo ya vienen del servidor).
+const urlsCot = new Map();
+function urlCotizacion(id){ return urlsCot.get(id) || null; }
 async function verAdjunto(id){
+  // Respaldo por si no hay URL firmada: descarga con la clave y abre el blob.
   try{
     const r = await fetch("/api/adjunto?id="+id, { headers: { "x-panel-pass": pass } });
-    if(!r.ok){ alert("No se pudo abrir el PDF"); return; }
+    if(!r.ok){ toast("⚠️ No se pudo abrir el PDF"); return; }
     const blob = await r.blob();
-    window.open(URL.createObjectURL(blob), "_blank");
-  }catch(e){ alert("Error: "+e.message); }
+    const u = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href=u; a.target="_blank"; a.rel="noopener"; a.download=""; document.body.appendChild(a);
+    a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(u), 30000);
+  }catch(e){ toast("⚠️ "+e.message); }
 }
 
+// Caja de seguimiento (fase 14): escribir de nuevo en una conversación ya respondida,
+// sin esperar a que el cliente conteste. Antes el hilo quedaba en solo lectura.
+function cajaSeguimiento(){
+  return `
+    <h3>✍️&nbsp;Escribir de nuevo</h3>
+    <div class="campo" id="filaRespCC" style="display:none;padding:0 0 8px;border:0">
+      <label style="font-size:12.5px;color:var(--gray);min-width:52px">CC</label>
+      <input id="respCC" list="dlContactos" placeholder="copia@correo.cl"
+             style="flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13.5px" />
+    </div>
+    <textarea id="respTxt" placeholder="Hacer seguimiento a esta conversación…">${esc(FIRMA.replace(/^\n+/,"\n\n"))}</textarea>
+    <div id="adjElegidos" class="adjs"></div>
+    <div class="acciones">
+      <button class="btn btn-enviar" onclick="enviarSeguimiento()">📤 Enviar</button>
+      <button class="btn btn-guardar" onclick="elegirArchivos('resp')">📎 Adjuntar</button>
+      <button class="btn btn-guardar solo-angosto" onclick="tomarFoto('resp')">📷 Foto</button>
+      <button class="btn btn-guardar" onclick="toggleRespCC()">👥 CC</button>
+      <button class="btn btn-guardar" onclick="menuPlantillas('resp')">📋 Plantillas</button>
+    </div>
+    <div class="estado-msg" id="respMsg">Ctrl+Enter para enviar</div>`;
+}
+function montarSeguimiento(){
+  const ta=document.getElementById("respTxt");
+  if(!ta) return;
+  ta.addEventListener("keydown",(e)=>{
+    if((e.metaKey||e.ctrlKey)&&e.key==="Enter"){ e.preventDefault(); enviarSeguimiento(); }
+  });
+  activarSoltarArchivos(document.getElementById("mResp"), "resp");
+  activarPegarImagenes(ta, "resp");
+}
 function renderResp(c){
   const r = document.getElementById("mResp");
   if (c.estado === "enviado"){
-    r.innerHTML = `<h3>✅ Cotización enviada</h3>${adjuntoHtml(c)}<div class="estado-msg">Enviada ${esc(fmtFecha(c.respondido_en||c.recibido_en))} · a ${esc(c.para)}</div>`;
+    r.innerHTML = `<h3>✅&nbsp;Cotización enviada</h3>${adjuntoHtml(c)}
+      <div class="estado-msg">Enviada ${esc(fmtFecha(c.respondido_en||c.recibido_en))} · a ${esc(c.para)}</div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />${actualTid?cajaSeguimiento():""}`;
+    if(actualTid) montarSeguimiento();
     return;
   }
   if (c.estado === "respondido"){
-    r.innerHTML = `<h3>✅ Respuesta enviada</h3>${adjuntoHtml(c)}<div class="enviada">${esc(c.respuesta_enviada)}</div>`;
+    r.innerHTML = `<h3>✅&nbsp;Respuesta enviada</h3>${adjuntoHtml(c)}<div class="enviada">${esc(c.respuesta_enviada)}</div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />${actualTid?cajaSeguimiento():""}`;
+    if(actualTid) montarSeguimiento();
     return;
   }
   const ajusteBlock = c.ajuste_pedido
@@ -579,47 +2254,285 @@ function renderResp(c){
          <textarea id="ajusteTxt" placeholder="Ej: 'cóbrale 180mil por baño, no 160mil'. Agrega 'envíalo' para que la IA lo mande sin tu validación."></textarea>
          <button class="btn btn-claude" onclick="pedirAjuste()">Pedir ajuste a la IA</button>
        </div>`;
+  // Si no hay borrador de la IA, la caja parte con la firma (como Gmail).
+  const borradorInicial = (c.respuesta_borrador && c.respuesta_borrador.trim())
+    ? c.respuesta_borrador : FIRMA.replace(/^\n+/,"\n\n");
   const revisarBlock = (c.confianza==="baja" && c.motivo_revision)
     ? `<div class="ajuste-cola" style="background:#fdecea;border-color:#f3b9b0;margin-bottom:10px">⚠️ <b>La IA sugiere que revises:</b> ${esc(c.motivo_revision)}</div>`
     : "";
   r.innerHTML = `
-    <h3>✍️ Respuesta</h3>
+    <h3>✍️&nbsp;Respuesta a ${esc(c.de_nombre||c.de)}</h3>
     ${revisarBlock}
     ${adjuntoHtml(c)}
-    <textarea id="respTxt" placeholder="Borrador del agente (revísalo y edítalo) o escribe tu respuesta…">${esc(c.respuesta_borrador||"")}</textarea>
-    <div class="acciones">
-      <button class="btn btn-guardar" onclick="guardar()">💾 Guardar borrador</button>
-      <button class="btn btn-enviar" onclick="enviar()">📤 Aprobar y enviar</button>
+    <div class="campo" id="filaRespCC" style="display:none;padding:0 0 8px;border:0">
+      <label style="font-size:12.5px;color:var(--gray);min-width:52px">CC</label>
+      <input id="respCC" list="dlContactos" placeholder="copia@correo.cl, otro@correo.cl"
+             style="flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13.5px" />
     </div>
-    <div class="estado-msg" id="respMsg"></div>
+    <textarea id="respTxt" placeholder="Borrador del agente (revísalo y edítalo) o escribe tu respuesta…">${esc(borradorInicial)}</textarea>
+    <div id="adjElegidos" class="adjs"></div>
+    <div class="acciones">
+      <button class="btn btn-enviar" onclick="enviar()">📤 Aprobar y enviar</button>
+      <button class="btn btn-guardar" onclick="elegirArchivos('resp')">📎 Adjuntar</button>
+      <button class="btn btn-guardar solo-angosto" onclick="tomarFoto('resp')">📷 Foto</button>
+      <button class="btn btn-guardar" onclick="toggleRespCC()">👥 CC</button>
+      <button class="btn btn-guardar" onclick="menuPlantillas('resp')">📋 Plantillas</button>
+    </div>
+    <div class="estado-msg" id="respMsg">Se guarda solo mientras escribes · Ctrl+Enter para enviar</div>
     <hr style="border:0;border-top:1px solid var(--line);margin:14px 0" />
     ${ajusteBlock}`;
+  const ta = document.getElementById("respTxt");
+  if(ta){
+    ta.addEventListener("input", programarAutoguardadoResp);
+    ta.addEventListener("keydown", (e)=>{
+      if((e.metaKey||e.ctrlKey) && e.key==="Enter"){ e.preventDefault(); enviar(); }
+    });
+    // Arrastrar archivos sobre la respuesta, o pegar una captura, adjunta al tiro.
+    activarSoltarArchivos(r, "resp");
+    activarPegarImagenes(ta, "resp");
+  }
 }
 
 function msg(t){ const m=document.getElementById("respMsg"); if(m) m.textContent=t; }
 function botones(dis){ document.querySelectorAll(".resp .btn").forEach(b=>b.disabled=dis); }
 
-async function guardar(){
-  botones(true); msg("Guardando…");
+// ============================================================
+// Fase 14 — adjuntar archivos desde el panel (antes había que salirse a Gmail).
+// Sin R2: tope de 4 MB en total, que es lo que aguanta el envío por Resend.
+// ============================================================
+const ADJ_TOPE_TOTAL = 4 * 1024 * 1024;
+let adjResp = [], adjCompose = [];
+function elegirArchivos(destino){
+  const inp=document.createElement("input");
+  inp.type="file"; inp.multiple=true;
+  inp.onchange=()=>agregarArchivos(destino, inp.files);
+  inp.click();
+}
+// Sacar la foto en el momento: en terreno la foto ES la cotización.
+function tomarFoto(destino){
+  const inp=document.createElement("input");
+  inp.type="file"; inp.accept="image/*"; inp.capture="environment";
+  inp.onchange=()=>agregarArchivos(destino, inp.files);
+  inp.click();
+}
+// Las fotos de terreno salen de 4 a 8 MB del teléfono: así no cabe ni una. Se achican
+// ANTES de subir, en el propio teléfono. Bajar de 4000px a 1600 quita ~84% de los píxeles,
+// y para mostrar un sifón tapado esa resolución sobra.
+const FOTO_LADO_MAX = 1600, FOTO_CALIDAD = 0.82;
+async function comprimirFoto(file){
+  if(!/^image\/(jpe?g|png|webp)$/i.test(file.type)) return file;   // solo fotos
+  if(file.size < 400*1024) return file;                             // ya es liviana
   try{
-    const texto=document.getElementById("respTxt").value;
-    const d = await api("/api/borrador",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:actual.id,texto})});
-    msg(d.ok?"Borrador guardado.":"⚠️ "+(d.error||"error"));
-  }catch(e){ msg("⚠️ error: "+e.message); }
-  botones(false);
+    const bitmap = await createImageBitmap(file);
+    const escala = Math.min(1, FOTO_LADO_MAX / Math.max(bitmap.width, bitmap.height));
+    if(escala === 1 && file.size < 1.2*1024*1024) return file;
+    const w = Math.round(bitmap.width*escala), h = Math.round(bitmap.height*escala);
+    const lienzo = document.createElement("canvas");
+    lienzo.width = w; lienzo.height = h;
+    lienzo.getContext("2d").drawImage(bitmap, 0, 0, w, h);
+    bitmap.close && bitmap.close();
+    const blob = await new Promise(r=>lienzo.toBlob(r, "image/jpeg", FOTO_CALIDAD));
+    if(!blob || blob.size >= file.size) return file;                // no mejoró: se deja igual
+    const nombre = (file.name||"foto").replace(/\.(png|webp|jpeg)$/i, ".jpg");
+    return new File([blob], nombre, {type:"image/jpeg"});
+  }catch(e){ return file; }   // si el teléfono no puede, se manda tal cual
 }
 
-async function enviar(){
-  const texto=document.getElementById("respTxt").value.trim();
-  if(!texto){ msg("Escribe o redacta una respuesta primero."); return; }
-  if(!confirm("¿Enviar esta respuesta como contacto@destaperapido.cl a "+actual.de+"?")) return;
+// Una sola puerta de entrada para los archivos: el botón, la cámara, arrastrar y pegar.
+async function agregarArchivos(destino, archivos){
+  const lista = destino==="resp" ? adjResp : adjCompose;
+  let agregados = 0, ahorro = 0;
+  const originales = [...archivos].slice(0,8);
+  if(originales.some(f=>/^image\//i.test(f.type) && f.size > 400*1024))
+    toast("Preparando las fotos…");
+  for(const bruto of originales){
+    const f = await comprimirFoto(bruto);
+    if(f !== bruto) ahorro += (bruto.size - f.size);
+    const yaHay = lista.reduce((s,a)=>s+a.tamano,0);
+    if(yaHay + f.size > ADJ_TOPE_TOTAL){
+      toast(`⚠️ "${f.name}" no cabe: el correo admite 4 MB en total`);
+      continue;
+    }
+    if(lista.some(a=>a.nombre===f.name && a.tamano===f.size)){ continue; }  // ya estaba
+    try{
+      const b64 = await new Promise((ok,err)=>{
+        const fr=new FileReader();
+        fr.onload=()=>ok(String(fr.result).split(",")[1]||"");
+        fr.onerror=()=>err(new Error("no se pudo leer"));
+        fr.readAsDataURL(f);
+      });
+      lista.push({nombre:f.name||"archivo", mime:f.type||"application/octet-stream",
+                  tamano:f.size, b64});
+      agregados++;
+    }catch(e){ toast(`⚠️ No se pudo leer "${f.name}"`); }
+  }
+  pintarAdjElegidos(destino);
+  if(agregados){
+    const base = agregados===1 ? "Archivo adjuntado 📎" : `${agregados} archivos adjuntados 📎`;
+    toast(ahorro > 200*1024 ? `${base} · ${pesoLegible(ahorro)} menos de datos` : base);
+  }
+}
+
+// Arrastrar archivos a la ventana de redactar o a la caja de respuesta.
+function activarSoltarArchivos(zona, destino){
+  if(!zona || zona.dataset.soltar) return;
+  zona.dataset.soltar = "1";
+  const marcar = (on) => zona.classList.toggle("soltando", on);
+  ["dragenter","dragover"].forEach(ev=>zona.addEventListener(ev, e=>{
+    if(!(e.dataTransfer && [...e.dataTransfer.types].includes("Files"))) return;
+    e.preventDefault(); e.stopPropagation(); marcar(true);
+  }));
+  ["dragleave","dragend"].forEach(ev=>zona.addEventListener(ev, e=>{
+    if(e.target===zona) marcar(false);
+  }));
+  zona.addEventListener("drop", e=>{
+    if(!(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length)) return;
+    e.preventDefault(); e.stopPropagation(); marcar(false);
+    agregarArchivos(destino, e.dataTransfer.files);
+  });
+}
+// Pegar una imagen (captura de pantalla, foto del problema) directo en el correo.
+function activarPegarImagenes(campo, destino){
+  if(!campo || campo.dataset.pegar) return;
+  campo.dataset.pegar = "1";
+  campo.addEventListener("paste", e=>{
+    const items = (e.clipboardData && e.clipboardData.items) || [];
+    const archivos = [...items].filter(i=>i.kind==="file").map(i=>i.getAsFile()).filter(Boolean);
+    if(!archivos.length) return;
+    e.preventDefault();
+    // Las capturas llegan sin nombre: se les pone uno legible con la fecha.
+    const conNombre = archivos.map((f,i)=>{
+      if(f.name && f.name!=="image.png") return f;
+      const ext=(f.type.split("/")[1]||"png").replace("jpeg","jpg");
+      return new File([f], `captura-${new Date().toISOString().slice(0,10)}${archivos.length>1?"-"+(i+1):""}.${ext}`, {type:f.type});
+    });
+    agregarArchivos(destino, conNombre);
+  });
+}
+// Aviso de adjunto olvidado: si el texto promete un archivo y no hay ninguno.
+const PROMETE_ADJUNTO = /\b(adjunt|anex|acompa[ñn]o|te env[íi]o el|le env[íi]o el|va el archivo|se adjunta)/i;
+function faltaAdjunto(texto, lista){
+  return PROMETE_ADJUNTO.test(texto||"") && !(lista||[]).length;
+}
+function pintarAdjElegidos(destino){
+  const lista = destino==="resp" ? adjResp : adjCompose;
+  const cont = document.getElementById(destino==="resp" ? "adjElegidos" : "adjComposeElegidos");
+  if(!cont) return;
+  cont.innerHTML = lista.map((a,i)=>
+    `<span class="adj"><span class="ic">${iconoArchivo(a.mime,a.nombre)}</span>
+       <span><span class="n">${esc(a.nombre)}</span><br><span class="t">${pesoLegible(a.tamano)}</span></span>
+       <span class="chip-x" onclick="quitarAdj('${destino}',${i})" title="Quitar">×</span></span>`).join("");
+}
+function quitarAdj(destino, i){
+  (destino==="resp" ? adjResp : adjCompose).splice(i,1);
+  pintarAdjElegidos(destino);
+}
+
+// Enviar un seguimiento (correo nuevo dentro de la misma conversación).
+async function enviarSeguimiento(confirmadoSinAdjunto){
+  const ta=document.getElementById("respTxt");
+  const texto=(ta?ta.value:"").trim();
+  if(!texto){ msg("Escribe el mensaje primero."); return; }
+  if(!actualTid){ msg("⚠️ No hay conversación abierta."); return; }
+  if(!confirmadoSinAdjunto && faltaAdjunto(texto, adjResp)){
+    miniConfirm("¿Falta el archivo?",
+      "Dices que adjuntas algo, pero no hay ningún archivo. ¿Enviar igual?",
+      ()=>enviarSeguimiento(true));
+    return;
+  }
+  const ccEl=document.getElementById("respCC");
   botones(true); msg("Enviando…");
   try{
-    const d = await api("/api/enviar",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:actual.id,texto})});
-    if(d.ok){ msg("✅ Enviado."); actual.estado="respondido"; actual.respuesta_enviada=texto; renderResp(actual); renderBar(actual); cargar(true); refrescarContadores(); }
-    else msg("⚠️ "+(d.error||"no se pudo enviar"));
-  }catch(e){ msg("⚠️ error: "+e.message); }
-  botones(false);
+    const d=await api("/api/responder-hilo",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({thread_id:actualTid, texto, cc:ccEl?ccEl.value.trim():"", adjuntos:adjResp})});
+    if(d.ok){
+      adjResp=[];
+      toast("Enviado 📤");
+      cacheHilos.delete(actualTid);
+      const tid=actualTid;
+      cerrar(); cargar(true); refrescarContadores();
+      setTimeout(()=>verHilo(tid), 250);   // reabrir mostrando el mensaje recién enviado
+    } else { msg("⚠️ "+(d.error||"no se pudo enviar")); botones(false); }
+  }catch(e){ msg(e && e.red ? "📡 Sin conexión: no se envió" : "⚠️ "+(e.message||"error")); botones(false); }
+}
+
+// ---------- Autoguardado del borrador de respuesta (fase 11) ----------
+let respTimer=null, respId=null;
+function programarAutoguardadoResp(){
+  clearTimeout(respTimer);
+  msg("Escribiendo…");
+  respId = actual ? actual.id : null;
+  respTimer = setTimeout(guardarResp, 2000);   // debounce ~2s, como Gmail
+}
+async function guardarResp(){
+  const ta=document.getElementById("respTxt");
+  if(!ta || !respId) return;
+  try{
+    await api("/api/borrador",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({id:respId, texto:ta.value, auto:true})});
+    msg("Guardado ✓");
+  }catch(e){ msg("⚠️ no se pudo guardar"); }
+}
+
+// ---------- Enviar con "Deshacer" (fase 12, patrón Gmail: retrasar el envío) ----------
+let envioPendiente = null;   // {id, texto, timer}
+function toggleRespCC(){
+  const f=document.getElementById("filaRespCC");
+  if(!f) return;
+  const mostrar = f.style.display==="none";
+  f.style.display = mostrar?"flex":"none";
+  if(mostrar){ cargarContactos(""); document.getElementById("respCC").focus(); }
+}
+function enviar(confirmadoSinAdjunto){
+  const ta=document.getElementById("respTxt");
+  const texto=(ta?ta.value:"").trim();
+  if(!texto){ msg("Escribe o redacta una respuesta primero."); return; }
+  // Mismo aviso que en el compositor: prometer un adjunto y no mandarlo cuesta un correo más.
+  const yaHayPdf = !!(actual && actual.adjunto_nombre);
+  const huecos = huecosSinLlenar(texto);
+  if(!confirmadoSinAdjunto && huecos.length){
+    miniConfirm("Faltan datos por completar",
+      `Quedó sin llenar: ${huecos.join(", ")}. ¿Enviar igual?`, ()=>enviar(true));
+    return;
+  }
+  if(!confirmadoSinAdjunto && !yaHayPdf && faltaAdjunto(texto, adjResp)){
+    miniConfirm("¿Falta el archivo?",
+      "En la respuesta dices que adjuntas algo, pero no hay ningún archivo. ¿Enviar igual?",
+      ()=>enviar(true));
+    return;
+  }
+  const ccEl=document.getElementById("respCC");
+  const cc=ccEl?ccEl.value.trim():"";
+  const id=actual.id, para=actual.de;
+  clearTimeout(respTimer);
+  botones(true); msg("Enviando en unos segundos…");
+  const ejecutar = async (keepalive)=>{
+    if(!envioPendiente || envioPendiente.id!==id) return;
+    envioPendiente=null;
+    try{
+      const r = await fetch("/api/enviar",{method:"POST",
+        headers:{"content-type":"application/json","x-panel-pass":pass},
+        body:JSON.stringify({id,texto,cc}), keepalive:!!keepalive});
+      const d = await r.json();
+      if(d.ok){
+        if(actual && actual.id===id){
+          actual.estado="respondido"; actual.respuesta_enviada=texto;
+          renderResp(actual); renderBar(actual);
+        }
+        toast("Enviado 📤"); cargar(true); refrescarContadores();
+      } else { msg("⚠️ "+(d.error||"no se pudo enviar")); botones(false); }
+    }catch(e){ msg("⚠️ error: "+e.message); botones(false); }
+  };
+  envioPendiente = {id, texto, timer:setTimeout(()=>ejecutar(false), 6000)};
+  toastUndo(`Enviando a ${para}${cc?" (+CC)":""}…`, ()=>{
+    if(envioPendiente && envioPendiente.id===id){
+      clearTimeout(envioPendiente.timer); envioPendiente=null;
+      msg("Envío cancelado. El borrador sigue aquí."); botones(false);
+      toast("Envío deshecho ↩️");
+    }
+  }, 6000);
+  // Si el dueño cierra el panel antes de los 6s, el correo IGUAL sale (keepalive).
+  window.addEventListener("pagehide", ()=>{ if(envioPendiente&&envioPendiente.id===id) ejecutar(true); }, {once:true});
 }
 
 async function pedirAjuste(){
@@ -633,7 +2546,441 @@ async function pedirAjuste(){
   }catch(e){ msg("⚠️ error: "+e.message); botones(false); }
 }
 
-function cerrar(){ document.getElementById("overlay").style.display="none"; actual=null; }
+// ============================================================
+// Navegación como Gmail: la conversación es una VISTA, no un modal.
+// Se registra en el historial para que el botón/gesto "atrás" del teléfono
+// vuelva a la bandeja en vez de cerrar la aplicación.
+// ============================================================
+let vistaAbierta = false, cerrandoPorHistorial = false, msgCursor = -1;
+let tidLeyendo = null;
+// Con el panel al costado hay que saber QUÉ fila estás leyendo: se resalta en la lista.
+function marcarFilaLeyendo(tid){
+  tidLeyendo = tid;
+  document.querySelectorAll(".hrow.leyendo").forEach(r=>r.classList.remove("leyendo"));
+  if(!tid) return;
+  const f=document.querySelector(`.hrow[data-tid="${CSS.escape(tid)}"]`);
+  if(f) f.classList.add("leyendo");
+}
+// En escritorio ancho la conversación es un panel al costado (la lista sigue visible);
+// en pantallas chicas ocupa todo. Una sola función decide, mirando el ancho real.
+function panelAlCostado(){ return window.matchMedia("(min-width:1180px)").matches; }
+
+// La cabecera cambia de alto según el tamaño de letra y el ancho: se mide, no se adivina.
+// Si el número queda desfasado, las barras pegajosas se meten debajo y cortan los botones.
+function medirCabecera(){
+  const h = document.querySelector("header");
+  if(!h) return;
+  const alto = Math.round(h.getBoundingClientRect().height);
+  if(alto > 0) document.documentElement.style.setProperty("--alto-cabecera", alto+"px");
+}
+window.addEventListener("resize", medirCabecera);
+window.addEventListener("orientationchange", ()=>setTimeout(medirCabecera,120));
+
+// Sombra + asunto en la barra cuando el contenido pasa por debajo.
+function vigilarScrollVista(){
+  const ov=document.getElementById("overlay"), vbar=document.querySelector(".vbar");
+  if(!ov || !vbar || ov.dataset.vigilado) return;
+  ov.dataset.vigilado="1";
+  ov.addEventListener("scroll", ()=>{
+    const despegada = ov.scrollTop > 12;
+    vbar.classList.toggle("despegada", despegada);
+    if(despegada){
+      const a=document.getElementById("vbarAsunto"), m=document.getElementById("mAsunto");
+      if(a && m && a.textContent!==m.textContent) a.textContent=m.textContent;
+    }
+  }, {passive:true});
+}
+function abrirVista(tid){
+  // Recordar dónde estaba el foco (la fila) para devolverlo al volver a la bandeja.
+  if(!vistaAbierta) focoPrevio = document.activeElement;
+  document.getElementById("overlay").classList.add("abierta");
+  document.body.classList.add("leyendo");
+  // Solo se bloquea el scroll del fondo cuando la vista tapa la pantalla completa.
+  document.body.style.overflow = panelAlCostado() ? "" : "hidden";
+  if(!panelAlCostado()) window.scrollTo(0,0);
+  document.getElementById("overlay").scrollTop = 0;
+  if(!vistaAbierta){
+    try{ history.pushState({hilo:tid||"msg"}, "", "#leer"); }catch(e){}
+    vistaAbierta = true;
+  }
+}
+window.addEventListener("popstate", ()=>{
+  if(vistaAbierta){ cerrandoPorHistorial = true; cerrar(); cerrandoPorHistorial = false; }
+});
+
+let focoPrevio = null;
+function cerrar(){
+  // Si quedó texto sin guardar en la respuesta, guardarlo antes de cerrar (nada se pierde).
+  if(respTimer){ clearTimeout(respTimer); respTimer=null; guardarResp(); }
+  document.getElementById("overlay").classList.remove("abierta");
+  document.body.classList.remove("leyendo");
+  document.body.style.overflow="";
+  actual=null; actualTid=null; hiloUnico=false; entradasActuales=[]; adjResp=[];
+  marcarFilaLeyendo(null);
+  document.getElementById("mBody").className="mbody";
+  // Sacar la entrada del historial (salvo que justamente venga del botón atrás).
+  if(vistaAbierta && !cerrandoPorHistorial){ vistaAbierta=false; try{ history.back(); }catch(e){} }
+  else vistaAbierta=false;
+  if(focoPrevio && document.body.contains(focoPrevio)){ try{ focoPrevio.focus(); }catch(e){} }
+  focoPrevio=null;
+}
+
+// ============================================================
+// Fase 11 — REDACTAR: correo nuevo con formato (editor Squire, MIT).
+// ============================================================
+let squire = null, composeId = null, composeTimer = null, composeSucio = false;
+let firmaSquire = null;
+
+// ============================================================
+// Fase 20 — Ajustes: la firma se configura desde el panel, no está escrita en el código.
+// La usan el compositor, las respuestas y (leyéndola de la base) el agente de IA.
+// ============================================================
+async function abrirAjustes(){
+  cerrarMenu();
+  let a = {};
+  try{ a = (await api("/api/ajustes")).ajustes || {}; }catch(e){ toast("⚠️ "+e.message); return; }
+  miniHtml("Ajustes",
+    `<div style="text-align:left">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;margin-bottom:10px">
+        <input type="checkbox" id="ajFirmaOn" ${a.firma_activa!=="0"?"checked":""} style="width:auto">
+        Agregar mi firma a los correos que escribo
+      </label>
+      <div style="font-size:12.5px;color:var(--gray);margin-bottom:6px">Firma</div>
+      <div id="ajFirma" class="firma-editor"></div>
+      <div class="ctoolbar" style="border:0;padding:8px 0 0">
+        <button type="button" onclick="fmtFirma('bold')" title="Negrita"><b>B</b></button>
+        <button type="button" onclick="fmtFirma('italic')" title="Cursiva"><i>I</i></button>
+        <button type="button" onclick="fmtFirma('link')" title="Enlace">🔗</button>
+        <button type="button" onclick="fmtFirma('clean')" title="Quitar formato">⌫</button>
+      </div>
+      <p style="font-size:12px;color:var(--gray);margin:10px 0 0">
+        Va al final de cada correo. Mantenla corta: nombre, teléfono y sitio web bastan.
+        Nada de imágenes pesadas, que muchos clientes las bloquean.
+      </p>
+    </div>`,
+    (root, cerrarMini)=>{
+      const nodo = root.querySelector("#ajFirma");
+      if(window.Squire){
+        firmaSquire = new Squire(nodo, {blockTag:"div"});
+        firmaSquire.setHTML(a.firma_html || esc(a.firma_texto||"").replace(/\n/g,"<br>"));
+      } else {
+        nodo.contentEditable = "true";
+        nodo.innerHTML = a.firma_html || esc(a.firma_texto||"").replace(/\n/g,"<br>");
+      }
+      const si=document.getElementById("miniSi");
+      si.style.display=""; si.textContent="Guardar";
+      si.onclick=async ()=>{
+        const html = firmaSquire ? firmaSquire.getHTML() : nodo.innerHTML;
+        const activa = root.querySelector("#ajFirmaOn").checked ? "1" : "0";
+        cerrarMini(); firmaSquire=null;
+        try{
+          await api("/api/ajustes",{method:"POST",headers:{"content-type":"application/json"},
+            body:JSON.stringify({firma_html:html, firma_texto:htmlATexto(html), firma_activa:activa})});
+          await cargarAjustes();
+          toast("Ajustes guardados ✓");
+        }catch(e){ toast("⚠️ "+e.message); }
+      };
+    });
+}
+function fmtFirma(accion){
+  if(!firmaSquire) return;
+  if(accion==="bold")   firmaSquire.hasFormat("B") ? firmaSquire.removeBold() : firmaSquire.bold();
+  if(accion==="italic") firmaSquire.hasFormat("I") ? firmaSquire.removeItalic() : firmaSquire.italic();
+  if(accion==="clean")  firmaSquire.removeAllFormatting();
+  if(accion==="link"){
+    miniPrompt("Enlace en la firma","Dirección (https://…)","https://", (url)=>{
+      if(url && /^https?:\/\//i.test(url) && firmaSquire) firmaSquire.makeLink(url);
+    });
+    return;
+  }
+  firmaSquire.focus();
+}
+// La firma vive en la base; el panel la lee al entrar y la deja lista para usar.
+let FIRMA = "", FIRMA_HTML = "", firmaActiva = true;
+async function cargarAjustes(){
+  try{
+    const a = (await api("/api/ajustes")).ajustes || {};
+    FIRMA = a.firma_texto ? "\n\n"+a.firma_texto : "";
+    FIRMA_HTML = a.firma_html || "";
+    firmaActiva = a.firma_activa !== "0";
+  }catch(e){ /* sin firma es mejor que romper el panel */ }
+}
+function composeAbiertoAhora(){ return document.getElementById("overlay2").style.display==="block"; }
+// Minimizar (como Gmail): la ventanita se pliega al título y la bandeja queda libre.
+function minimizarCompose(){
+  const ov=document.getElementById("overlay2");
+  ov.classList.toggle("min");
+  const t=document.getElementById("cTitulo");
+  if(ov.classList.contains("min")){
+    const para=document.getElementById("cPara").value.trim();
+    const asunto=document.getElementById("cAsunto").value.trim();
+    t.textContent = "✏️ " + (asunto || para || "Mensaje nuevo");
+  } else t.textContent = "✏️ Mensaje nuevo";
+}
+// FIRMA vive en la base y se carga al entrar (ver cargarAjustes). Se edita en Ajustes.
+
+// Pasa el HTML del editor a texto plano legible (para el 'text' del correo).
+function htmlATexto(html){
+  const d = document.createElement("div");
+  d.innerHTML = (html||"").replace(/<\/(p|div|li|h[1-6])>/gi,"\n").replace(/<br\s*\/?>/gi,"\n");
+  return (d.textContent||"").replace(/\n{3,}/g,"\n\n").trim();
+}
+function iniciarSquire(){
+  const nodo = document.getElementById("editor");
+  if(squire || !window.Squire || !nodo) return;
+  squire = new Squire(nodo, {blockTag:"div"});
+  squire.addEventListener("input", ()=>{ composeSucio=true; programarAutoguardadoCompose(); });
+  // Soltar archivos en cualquier parte de la ventana de redactar, y pegar capturas.
+  activarSoltarArchivos(document.getElementById("compose"), "compose");
+  activarPegarImagenes(nodo, "compose");
+}
+function fmt(accion){
+  if(!squire) return;
+  if(accion==="bold")   squire.hasFormat("B") ? squire.removeBold() : squire.bold();
+  if(accion==="italic") squire.hasFormat("I") ? squire.removeItalic() : squire.italic();
+  if(accion==="ul")     squire.makeUnorderedList();
+  if(accion==="clean")  squire.removeAllFormatting();
+  if(accion==="link"){
+    miniPrompt("Insertar enlace","Dirección del enlace (https://…)","https://", (url)=>{
+      if(url && /^https?:\/\//i.test(url)) squire.makeLink(url);
+    });
+    return;
+  }
+  squire.focus();
+}
+// Reenviar (fase 13): abre el compositor con la conversación citada, como Gmail.
+function reenviar(){
+  if(!entradasActuales.length){ toast("⚠️ Abre una conversación primero"); return; }
+  const asunto = "Fwd: " + quitarRe(document.getElementById("mAsunto").textContent||"");
+  const cuerpo = entradasActuales.map(e=>{
+    const cuerpoTxt = e.texto ? partirCitas(e.texto).visible
+                     : (e.html ? "(mensaje con formato — ver original)" : "");
+    return `De: ${e.nombre} <${e.email}>\nFecha: ${fechaFull(e.ts)}\n\n${cuerpoTxt}`;
+  }).join("\n\n———————————————\n\n");
+  const adjAviso = entradasActuales.some(e=>(e.adjuntos||[]).some(a=>!a.inline))
+    ? "\n\n(Los archivos adjuntos originales no se reenvían automáticamente.)" : "";
+  cerrar();
+  abrirCompose(null, "", asunto,
+    "\n\n---------- Mensaje reenviado ----------\n\n" + cuerpo + adjAviso);
+}
+
+async function abrirCompose(id, paraPre, asuntoPre, cuerpoPre){
+  document.getElementById("overlay2").style.display="block";
+  document.getElementById("overlay2").classList.remove("min");
+  iniciarSquire();
+  composeId = id || null; composeSucio=false;
+  cargarContactos("");
+  if(id){
+    const c = await api("/api/correo?id="+id);
+    document.getElementById("cPara").value = c.para||"";
+    document.getElementById("cAsunto").value = c.asunto||"";
+    if(squire) squire.setHTML((c.respuesta_borrador||"").replace(/\n/g,"<br>"));
+    estadoCompose("Borrador guardado");
+  } else {
+    document.getElementById("cPara").value = paraPre||"";
+    document.getElementById("cAsunto").value = asuntoPre||"";
+    // Correo nuevo: cuerpo vacío arriba y la firma abajo, con el cursor listo para escribir.
+    if(squire){
+      const cuerpo = cuerpoPre ? esc(cuerpoPre).replace(/\n/g,"<br>") : "<div><br></div>";
+      squire.setHTML(cuerpo + (firmaActiva && FIRMA_HTML ? `<div><br></div>${FIRMA_HTML}` : ""));
+    }
+    estadoCompose("");
+  }
+  adjCompose=[]; pintarAdjElegidos("compose");
+  document.getElementById("cCC").value=""; document.getElementById("cCCO").value="";
+  document.getElementById("filaCC").style.display="none";
+  document.getElementById("filaCCO").style.display="none";
+  setTimeout(()=>document.getElementById(id||paraPre?"cAsunto":"cPara").focus(),50);
+}
+function cerrarCompose(){
+  if(composeSucio) guardarCompose();
+  document.getElementById("overlay2").style.display="none";
+  composeId=null; composeSucio=false;
+  if(filtro==="borradores") cargar(true);
+  refrescarContadores();
+}
+function estadoCompose(t){ const e=document.getElementById("cEstado"); if(e) e.textContent=t||""; }
+// Red de seguridad local: si entra una llamada y el teléfono cierra la pestaña, lo escrito
+// sigue ahí al volver. El servidor guarda cada 2 s; el teléfono, al instante.
+const CLAVE_BORRADOR_LOCAL = "borrador_compose";
+function guardarLocal(){
+  try{
+    localStorage.setItem(CLAVE_BORRADOR_LOCAL, JSON.stringify({
+      id:composeId,
+      para:document.getElementById("cPara").value,
+      cc:document.getElementById("cCC").value,
+      cco:document.getElementById("cCCO").value,
+      asunto:document.getElementById("cAsunto").value,
+      html:squire?squire.getHTML():"",
+      cuando:new Date().toISOString(),
+    }));
+  }catch(e){ /* almacenamiento lleno: no es motivo para romper nada */ }
+}
+function limpiarLocal(){ try{ localStorage.removeItem(CLAVE_BORRADOR_LOCAL); }catch(e){} }
+// Al entrar, si quedó algo a medio escribir, se ofrece recuperarlo (no se impone).
+function ofrecerBorradorLocal(){
+  let g=null;
+  try{ g = JSON.parse(localStorage.getItem(CLAVE_BORRADOR_LOCAL)||"null"); }catch(e){}
+  if(!g) return;
+  const texto = htmlATexto(g.html||"").replace(FIRMA.trim(),"").trim();
+  if(!texto && !g.para && !g.asunto){ limpiarLocal(); return; }
+  miniConfirm("Tenías un correo a medio escribir",
+    `Para ${g.para||"(sin destinatario)"} · ${g.asunto||"sin asunto"}. ¿Lo retomamos?`,
+    async ()=>{
+      await abrirCompose(g.id||null);
+      document.getElementById("cPara").value=g.para||"";
+      document.getElementById("cCC").value=g.cc||"";
+      document.getElementById("cCCO").value=g.cco||"";
+      document.getElementById("cAsunto").value=g.asunto||"";
+      if(squire && g.html) squire.setHTML(g.html);
+      composeSucio=true;
+    });
+  // Si dice que no, se descarta para no volver a preguntar.
+  const no=document.getElementById("miniNo");
+  const antes=no.onclick;
+  no.onclick=(e)=>{ limpiarLocal(); if(antes) antes(e); };
+}
+function programarAutoguardadoCompose(){
+  clearTimeout(composeTimer);
+  guardarLocal();                                     // instantáneo, sin red
+  estadoCompose("Escribiendo…");
+  composeTimer = setTimeout(guardarCompose, 2000);    // al servidor con debounce ~2s
+}
+async function guardarCompose(){
+  const para=document.getElementById("cPara").value.trim();
+  const asunto=document.getElementById("cAsunto").value.trim();
+  const texto=squire?htmlATexto(squire.getHTML()):"";
+  if(!para && !asunto && !texto.replace(FIRMA.trim(),"").trim()) return;  // solo la firma: nada que guardar
+  try{
+    const d=await api("/api/redactar-guardar",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({id:composeId,para,asunto,texto})});
+    if(d.id) composeId=d.id;
+    composeSucio=false; estadoCompose("Guardado ✓");
+    limpiarLocal();          // ya está a salvo en el servidor
+  }catch(e){ estadoCompose("⚠️ no se pudo guardar"); }
+}
+function toggleCC(){
+  const cc=document.getElementById("filaCC"), cco=document.getElementById("filaCCO");
+  const mostrar = cc.style.display==="none";
+  cc.style.display=cco.style.display = mostrar?"flex":"none";
+  if(mostrar) document.getElementById("cCC").focus();
+}
+async function composeEnviar(confirmadoSinAdjunto){
+  const para=document.getElementById("cPara").value.trim();
+  const asunto=document.getElementById("cAsunto").value.trim();
+  const cc=document.getElementById("cCC").value.trim();
+  const cco=document.getElementById("cCCO").value.trim();
+  const html=squire?squire.getHTML():"";
+  const texto=htmlATexto(html);
+  if(!para||!para.includes("@")){ estadoCompose("⚠️ falta el destinatario"); return; }
+  if(!texto){ estadoCompose("⚠️ escribe el mensaje"); return; }
+  // "Te adjunto la cotización"… y sin archivo. Avisar antes de mandar el papelón.
+  const huecosC = huecosSinLlenar(texto);
+  if(!confirmadoSinAdjunto && huecosC.length){
+    miniConfirm("Faltan datos por completar",
+      `Quedó sin llenar: ${huecosC.join(", ")}. ¿Enviar igual?`, ()=>composeEnviar(true));
+    return;
+  }
+  if(!confirmadoSinAdjunto && faltaAdjunto(texto+" "+asunto, adjCompose)){
+    miniConfirm("¿Falta el archivo?",
+      "En el mensaje dices que adjuntas algo, pero no hay ningún archivo. ¿Enviar igual?",
+      ()=>composeEnviar(true));
+    return;
+  }
+  estadoCompose("Enviando…");
+  document.querySelectorAll("#compose .btn").forEach(b=>b.disabled=true);
+  try{
+    const d=await api("/api/redactar-enviar",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({id:composeId,para,asunto,texto,html,cc,cco,adjuntos:adjCompose})});
+    if(d.ok){
+      composeSucio=false; composeId=null; adjCompose=[]; pintarAdjElegidos("compose"); limpiarLocal();
+      document.getElementById("overlay2").style.display="none";
+      if(squire) squire.setHTML("");
+      toast("Enviado 📤"); cargar(true); refrescarContadores();
+    } else estadoCompose("⚠️ "+(d.error||"no se pudo enviar"));
+  }catch(e){ estadoCompose("⚠️ "+e.message); }
+  document.querySelectorAll("#compose .btn").forEach(b=>b.disabled=false);
+}
+function composeDescartar(){
+  miniConfirm("Descartar borrador","Se perderá lo escrito. ¿Continuar?", async ()=>{
+    if(composeId){ try{ await api("/api/descartar-borrador",{method:"POST",
+      headers:{"content-type":"application/json"},body:JSON.stringify({id:composeId})}); }catch(e){} }
+    composeSucio=false; composeId=null; limpiarLocal();
+    if(squire) squire.setHTML("");
+    document.getElementById("overlay2").style.display="none";
+    if(filtro==="borradores") cargar(true);
+    refrescarContadores(); toast("Borrador descartado 🗑️");
+  });
+}
+async function descartarBorrador(id){
+  try{ await api("/api/descartar-borrador",{method:"POST",headers:{"content-type":"application/json"},
+    body:JSON.stringify({id})}); }catch(e){}
+  quitarDeLista(id); refrescarContadores(); toast("Borrador descartado 🗑️");
+}
+// Autocompletado de destinatarios desde la libreta que se alimenta sola.
+async function cargarContactos(q){
+  try{
+    const d = await api("/api/contactos?q="+encodeURIComponent(q||""));
+    const dl = document.getElementById("dlContactos");
+    dl.innerHTML = (d.contactos||[]).map(c=>
+      `<option value="${esc(c.email)}">${esc(c.nombre||c.email)}</option>`).join("");
+  }catch(e){}
+}
+
+// ---------- Plantillas de respuesta (fase 12, idea de Zoho) ----------
+// Dos tipos de hueco en una plantilla:
+//   {cliente} y {fecha} se rellenan solos con lo que ya sabemos;
+//   [PRECIO] queda a propósito para que TÚ lo escribas, y avisa antes de enviar.
+function rellenarVariables(txt){
+  const nombre = (actual && (actual.de_nombre || (actual.de||"").split("@")[0])) || "";
+  const primerNombre = nombre.split(/\s+/)[0] || "";
+  return (txt||"")
+    .replace(/\{cliente\}/gi, nombre || "estimado(a)")
+    .replace(/\{nombre\}/gi, primerNombre || "estimado(a)")
+    .replace(/\{correo\}/gi, (actual && actual.de) || "")
+    .replace(/\{fecha\}/gi, new Date().toLocaleDateString("es-CL",{day:"numeric",month:"long",year:"numeric"}));
+}
+// Antes de enviar: si quedó un [DATO] sin completar, mejor preguntarlo que mandarlo.
+function huecosSinLlenar(texto){
+  const m = (texto||"").match(/\[[A-Za-zÁÉÍÓÚÑáéíóúñ0-9 _-]{2,30}\]/g);
+  return m ? [...new Set(m)] : [];
+}
+async function menuPlantillas(destino){
+  let d={plantillas:[]};
+  try{ d = await api("/api/plantillas"); }catch(e){}
+  const lista = d.plantillas||[];
+  const cuerpoActual = () => destino==="compose"
+    ? (squire?htmlATexto(squire.getHTML()):"")
+    : (document.getElementById("respTxt")?document.getElementById("respTxt").value:"");
+  const opciones = lista.map(p=>`<button class="qa-b" data-id="${p.id}" style="display:block;width:100%;text-align:left;margin-bottom:5px">📋 ${esc(p.nombre)}</button>`).join("")
+    || `<p style="font-size:13px;color:var(--gray)">Aún no tienes plantillas.</p>`;
+  miniHtml("Plantillas", opciones +
+    `<button class="qa-b" id="plNueva" style="display:block;width:100%;text-align:left">➕ Guardar lo escrito como plantilla</button>`,
+    (root, cerrar)=>{
+      root.querySelectorAll("[data-id]").forEach(b=>{
+        b.onclick=()=>{
+          const p = lista.find(x=>String(x.id)===b.dataset.id);
+          if(!p) return;
+          // Las variables se rellenan solas con lo que ya sabemos del cliente.
+          const cuerpo = rellenarVariables(p.cuerpo);
+          if(destino==="compose" && squire){ squire.insertHTML(esc(cuerpo).replace(/\n/g,"<br>")); composeSucio=true; programarAutoguardadoCompose(); }
+          else { const t=document.getElementById("respTxt"); if(t){ t.value = cuerpo + (t.value?"\n\n"+t.value:""); programarAutoguardadoResp(); } }
+          if(/\[[^\]]+\]/.test(cuerpo)) toast("⚠️ Quedan datos por completar entre corchetes");
+          cerrar();
+        };
+      });
+      root.querySelector("#plNueva").onclick=()=>{
+        const cuerpo = cuerpoActual().trim();
+        cerrar();
+        if(!cuerpo){ toast("⚠️ Escribe algo primero"); return; }
+        miniPrompt("Nueva plantilla","¿Cómo se llama?","Ej: Cotización estándar", async (nombre)=>{
+          if(!nombre) return;
+          try{ await api("/api/plantillas",{method:"POST",headers:{"content-type":"application/json"},
+            body:JSON.stringify({nombre,cuerpo})}); toast("Plantilla guardada 📋"); }catch(e){ toast("⚠️ "+e.message); }
+        });
+      };
+    });
+}
 
 // --- PWA / Notificaciones push ---
 function urlB64ToUint8Array(b64){
@@ -680,12 +3027,252 @@ async function asegurarPush(){
 }
 registrarSW();
 
-// Panel vivo: cada 15s refresca contadores; la lista solo si estás en la 1ª página, sin modal y no en Bloqueados.
+// ============================================================
+// Fase 12 — atajos de teclado (los mismos de Gmail)
+// ============================================================
+function filasVisibles(){ return [...document.querySelectorAll(".hrow")]; }
+function moverCursor(paso){
+  const filas=filasVisibles();
+  if(!filas.length) return;
+  cursor = Math.max(0, Math.min(filas.length-1, cursor + paso));
+  filas.forEach(f=>f.classList.remove("activo"));
+  const f=filas[cursor];
+  f.classList.add("activo");
+  f.scrollIntoView({block:"nearest"});
+}
+function tidCursor(){
+  const f=filasVisibles()[cursor];
+  return f ? f.dataset.tid : null;
+}
+document.addEventListener("keydown", (e)=>{
+  const enCampo = /^(INPUT|TEXTAREA)$/.test(e.target.tagName) || e.target.isContentEditable;
+  const modalAbierto = vistaAbierta;
+  const composeAbierto = composeAbiertoAhora();
+  const miniAbierto = document.getElementById("overlay3").style.display==="flex";
+  // Escape cierra lo que esté arriba (incluso dentro de un campo).
+  if(e.key==="Escape"){
+    if(miniAbierto){ miniCerrar(); return; }
+    if(composeAbierto){ cerrarCompose(); return; }
+    if(modalAbierto){ cerrar(); return; }
+    if(busca){ limpiarBusqueda(); return; }
+    return;
+  }
+  if(enCampo || miniAbierto || composeAbierto) return;
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  if(document.getElementById("app").style.display==="none") return;
+  // WCAG 2.1.4: los atajos de UNA sola tecla deben poder apagarse. Gmail hace lo mismo.
+  if(!atajosActivos) return;
+  const k=e.key;
+  if(k==="/"){ e.preventDefault(); document.getElementById("qBusca").focus(); return; }
+  if(k==="c"){ e.preventDefault(); abrirCompose(); return; }
+  if(modalAbierto){
+    if(k==="e" && actualTid){ e.preventDefault(); accArchivarHilo(actualTid); }
+    if(k==="u"){ e.preventDefault(); cerrar(); }
+    if(k==="r"){ const t=document.getElementById("respTxt"); if(t){ e.preventDefault(); t.focus(); } }
+    if(k==="f"){ e.preventDefault(); reenviar(); }
+    if(k==="b" && actualTid){ e.preventDefault(); menuPosponer(actualTid); }
+    if(k==="#" && actualTid){ e.preventDefault(); accEliminarHilo(actualTid); }
+    // Abrir/cerrar todos los mensajes del hilo (atajos oficiales de Gmail).
+    if(k===";"){ e.preventDefault(); entradasActuales.forEach((en,i)=>{
+      const el=document.getElementById("hm-"+en.id);
+      if(el && !el.classList.contains("abierto")){ el.classList.add("abierto"); montarCuerpo(i); } }); }
+    if(k===":"){ e.preventDefault();
+      document.querySelectorAll(".hm.abierto").forEach(el=>el.classList.remove("abierto")); }
+    // Moverse entre mensajes del hilo.
+    if(k==="n"||k==="p"){
+      e.preventDefault();
+      const abiertos=[...document.querySelectorAll(".hm")];
+      if(abiertos.length){
+        msgCursor = Math.max(0, Math.min(abiertos.length-1, msgCursor + (k==="n"?1:-1)));
+        const el=abiertos[msgCursor];
+        if(!el.classList.contains("abierto")){ el.classList.add("abierto"); montarCuerpo(msgCursor); }
+        el.scrollIntoView({block:"center",behavior:"smooth"});
+      }
+    }
+    return;
+  }
+  // Salto de carpeta con dos teclas, como Gmail: g+i, g+s, g+b, g+t, g+d, g+a
+  if(k==="g"){ esperandoG = true; setTimeout(()=>{ esperandoG=false; }, 1200); e.preventDefault(); return; }
+  if(esperandoG){
+    esperandoG = false;
+    const destinos = {i:"recibidos", s:"destacados", b:"pospuestos", t:"enviados",
+                      d:"borradores", a:"archivados"};
+    if(destinos[k]){ e.preventDefault(); setFiltro(destinos[k]); return; }
+  }
+  // Selección múltiple con dos teclas: *a (todos) y *n (ninguno)
+  if(k==="*"){ esperandoAst = true; setTimeout(()=>{ esperandoAst=false; }, 1200); e.preventDefault(); return; }
+  if(esperandoAst){
+    esperandoAst = false;
+    if(k==="a"){ e.preventDefault(); filasVisibles().forEach(f=>{ if(!seleccion.has(f.dataset.tid)) selToggle(f.dataset.tid); }); return; }
+    if(k==="n"){ e.preventDefault(); selLimpiar(); return; }
+  }
+  if(k==="j"){ e.preventDefault(); moverCursor(1); return; }
+  if(k==="k"){ e.preventDefault(); moverCursor(-1); return; }
+  if(k==="Enter"||k==="o"){ const t=tidCursor(); if(t){ e.preventDefault(); verHilo(t); } return; }
+  if(k==="e"){ const t=tidCursor(); if(t){ e.preventDefault(); accArchivarHilo(t); cursor=Math.max(0,cursor-1); } return; }
+  if(k==="#"){ const t=tidCursor(); if(t){ e.preventDefault(); accEliminarHilo(t); } return; }
+  if(k==="!"){ const t=tidCursor(); const it=items.find(x=>x.tid===t);
+    if(it){ e.preventDefault(); accionHilo("/api/eliminar-hilo",t,"Marcado spam 🚫",true,"/api/restaurar-hilo-papelera"); } return; }
+  if(k==="x"){ const t=tidCursor(); if(t){ e.preventDefault(); selToggle(t); } return; }
+  if(k==="s"){ const t=tidCursor(); const it=items.find(x=>x.tid===t);
+    if(it){ e.preventDefault(); destacar(t, it.destacado?0:1); } return; }
+  if(k==="b"){ const t=tidCursor(); if(t){ e.preventDefault(); menuPosponer(t); } return; }
+  if(k==="I"){ const t=tidCursor(); if(t){ e.preventDefault(); marcarLeidoHilo(t,1); } return; }
+  if(k==="U"){ const t=tidCursor(); if(t){ e.preventDefault(); accNoLeidoHilo(t); } return; }
+  if(k==="?"){ e.preventDefault(); mostrarAtajos(); return; }
+});
+let esperandoG = false, esperandoAst = false;
+// Los atajos de una tecla se pueden apagar (requisito de accesibilidad, no capricho).
+let atajosActivos = localStorage.getItem("atajos_off") !== "1";
+function alternarAtajos(){
+  atajosActivos = !atajosActivos;
+  localStorage.setItem("atajos_off", atajosActivos ? "0" : "1");
+  pintarBotonAtajos();
+  toast(atajosActivos ? "Atajos de teclado activados ⌨️" : "Atajos desactivados");
+}
+function pintarBotonAtajos(){
+  const b=document.getElementById("btnAtajos");
+  if(!b) return;
+  b.querySelector(".ic").textContent = atajosActivos ? "⌨️" : "🚫";
+  b.querySelector(".lbl").textContent = atajosActivos ? "Atajos: sí" : "Atajos: no";
+  b.title = atajosActivos ? "Desactivar los atajos de una tecla" : "Activar los atajos de teclado";
+}
+async function marcarLeidoHilo(tid, leido){
+  try{
+    await api("/api/marcar-leido-hilo",{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({thread_id:tid, leido})});
+    const it=items.find(x=>x.tid===tid); if(it){ it.no_leidos = leido?0:1; render(); }
+    refrescarContadores(); toast(leido?"Marcado leído ✓":"Marcado no leído ✉️");
+  }catch(e){ toast("⚠️ "+e.message); }
+}
+// Los mismos atajos de Gmail, para que no haya que reaprender nada.
+function mostrarAtajos(){
+  miniHtml("Atajos de teclado",
+    `<div style="font-size:13px;line-height:1.85">
+      <b>Moverse</b><br>
+      <code>j</code> / <code>k</code> bajar / subir · <code>Enter</code> o <code>o</code> abrir ·
+      <code>u</code> volver · <code>n</code> / <code>p</code> mensaje siguiente / anterior<br>
+      <b>Ir a carpeta</b><br>
+      <code>g</code> luego <code>i</code> Recibidos · <code>s</code> Destacados ·
+      <code>b</code> Pospuestos · <code>t</code> Enviados · <code>d</code> Borradores ·
+      <code>a</code> Archivados<br>
+      <b>Acciones</b><br>
+      <code>e</code> Listo · <code>b</code> posponer · <code>s</code> destacar ·
+      <code>#</code> eliminar · <code>!</code> spam · <code>x</code> seleccionar ·
+      <code>*</code>+<code>a</code> todos · <code>*</code>+<code>n</code> ninguno ·
+      <code>⇧I</code> leído · <code>⇧U</code> no leído<br>
+      <b>Escribir</b><br>
+      <code>c</code> redactar · <code>r</code> responder · <code>f</code> reenviar ·
+      <code>/</code> buscar · <code>Ctrl+Enter</code> enviar<br>
+      <b>En el hilo</b><br>
+      <code>;</code> abrir todos los mensajes · <code>:</code> cerrarlos · <code>Esc</code> salir
+    </div>`);
+}
+
+// ============================================================
+// Fase 12 — deslizar en el teléfono (derecha = Listo, izquierda = Eliminar).
+// Detector propio de ~40 líneas inspirado en swiped-events (MIT), sin dependencia.
+// ============================================================
+(function swipe(){
+  let x0=null, y0=null, fila=null, mueve=false;
+  const UMBRAL=70;
+  document.addEventListener("touchstart",(e)=>{
+    const f=e.target.closest?e.target.closest(".hrow"):null;
+    if(!f || e.touches.length!==1) return;
+    fila=f; x0=e.touches[0].clientX; y0=e.touches[0].clientY; mueve=false;
+    fila.classList.add("swiping");
+  },{passive:true});
+  document.addEventListener("touchmove",(e)=>{
+    if(!fila || x0===null) return;
+    const dx=e.touches[0].clientX-x0, dy=e.touches[0].clientY-y0;
+    if(!mueve && Math.abs(dx)<Math.abs(dy)){ soltar(); return; }   // scroll vertical: no es swipe
+    if(Math.abs(dx)>10){
+      mueve=true;
+      fila.style.transform=`translateX(${dx}px)`;
+      fila.style.background = dx>0 ? "#e3f0ee" : "#fbe7e2";
+    }
+  },{passive:true});
+  document.addEventListener("touchend",(e)=>{
+    if(!fila) return;
+    const dx=(e.changedTouches[0].clientX)-x0;
+    const tid=fila.dataset.tid;
+    const f=fila;
+    if(mueve && Math.abs(dx)>UMBRAL && tid){
+      f.style.transition="transform .15s ease, opacity .15s ease";
+      f.style.transform=`translateX(${dx>0?"100%":"-100%"})`; f.style.opacity="0";
+      setTimeout(()=>{ dx>0 ? accArchivarHilo(tid) : accEliminarHilo(tid); }, 140);
+      fila=null; x0=null; return;
+    }
+    soltar();
+  });
+  function soltar(){
+    if(!fila) return;
+    fila.classList.remove("swiping"); fila.classList.add("swipe-vuelta");
+    fila.style.transform=""; fila.style.background="";
+    const f=fila; setTimeout(()=>f.classList.remove("swipe-vuelta"),200);
+    fila=null; x0=null; y0=null; mueve=false;
+  }
+})();
+
+// ---------- Tirar hacia abajo para actualizar, en el teléfono (fase 12) ----------
+(function tirarParaActualizar(){
+  let y0=null, activo=false;
+  const barra=document.createElement("div");
+  barra.style.cssText="position:fixed;top:0;left:0;right:0;text-align:center;font-size:13px;"+
+    "color:#fff;background:var(--brand);padding:6px;transform:translateY(-100%);transition:transform .2s;z-index:15";
+  barra.textContent="↓ Suelta para actualizar";
+  document.addEventListener("DOMContentLoaded",()=>document.body.appendChild(barra));
+  if(document.body) document.body.appendChild(barra);
+  document.addEventListener("touchstart",(e)=>{
+    if(window.scrollY>0 || e.touches.length!==1) { y0=null; return; }
+    if(vistaAbierta) { y0=null; return; }
+    y0=e.touches[0].clientY;
+  },{passive:true});
+  document.addEventListener("touchmove",(e)=>{
+    if(y0===null) return;
+    const dy=e.touches[0].clientY-y0;
+    if(dy>60 && !activo){ activo=true; barra.style.transform="translateY(0)"; }
+  },{passive:true});
+  document.addEventListener("touchend",async ()=>{
+    if(!activo){ y0=null; return; }
+    barra.textContent="Actualizando…";
+    try{ await cargar(true); await refrescarContadores(); }catch(e){}
+    barra.style.transform="translateY(-100%)";
+    setTimeout(()=>{ barra.textContent="↓ Suelta para actualizar"; },300);
+    activo=false; y0=null;
+  });
+})();
+
+// ---------- Buscador: escribe y busca (debounce corto) ----------
+document.getElementById("qBusca").addEventListener("input", (e)=>{
+  busca = e.target.value.trim();
+  document.getElementById("qLimpiar").style.display = busca?"block":"none";
+  document.getElementById("fchips").classList.toggle("on", !!busca);
+  clearTimeout(buscaTimer);
+  if(!busca){ cargar(true); return; }
+  buscaTimer = setTimeout(()=>{ if(busca.length>=2) buscar(); }, 280);
+});
+// Autocompletado del destinatario mientras escribe (libreta que se alimenta sola).
+document.getElementById("cPara").addEventListener("input", (e)=>{
+  composeSucio=true; programarAutoguardadoCompose(); cargarContactos(e.target.value.trim());
+});
+document.getElementById("cAsunto").addEventListener("input", ()=>{ composeSucio=true; programarAutoguardadoCompose(); });
+document.getElementById("cAsunto").addEventListener("keydown", (e)=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==="Enter"){ e.preventDefault(); composeEnviar(); }
+});
+document.getElementById("editor").addEventListener("keydown", (e)=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==="Enter"){ e.preventDefault(); composeEnviar(); }
+});
+
+// Panel vivo: cada 15s refresca contadores; la lista solo si estás en la 1ª página, sin modal,
+// sin búsqueda ni selección en curso (no pisarle el trabajo al dueño) y no en Bloqueados.
 setInterval(()=>{
   if(!pass || document.getElementById("app").style.display==="none") return;
   refrescarContadores();
-  const modalAbierto = document.getElementById("overlay").style.display==="flex";
-  if(page===1 && !modalAbierto && filtro!=="bloqueados") cargar(true);
+  const modalAbierto = vistaAbierta;
+  const composeAbierto = composeAbiertoAhora();
+  if(page===1 && !modalAbierto && !composeAbierto && !busca && !seleccion.size && filtro!=="bloqueados")
+    cargar(true).catch(()=>{});   // sin conexión: el banner ya avisa, no molestar con toasts
 }, 15000);
 
 if(pass){ document.getElementById("login").style.display="none"; iniciar(); }
