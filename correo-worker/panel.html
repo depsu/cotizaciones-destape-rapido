@@ -9,11 +9,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="{{BRAND_SHORT}}" />
+<meta name="theme-color" content="#F1F4F5" media="(max-width:820px)" />
 <meta name="theme-color" content="{{BRAND_COLOR}}" />
 <style>
   :root{
     --brand:{{BRAND_COLOR}}; --brand-rgb:{{BRAND_RGB}}; --brand-soft:color-mix(in srgb, var(--brand) 8%, #fff); --accent:#E0A82E;
-    --dark:#1E2A2A; --gray:#5F6B6B; --line:#e3e8e8; --bg:#f5f7f7;
+    --dark:#1E2A2A; --gray:#5F6B6B; --line:#E1E3E6; --bg:#F1F4F5;
     /* Segunda capa de neutros: el menú y las barras van un tono más frío que el contenido. */
     --panel:#eef2f2; --superficie:#fff; --linea-suave:#edf1f1;
     /* Escala de profundidad con nombre, para no inventar números sueltos. */
@@ -24,12 +25,27 @@
     /* Alto real de la cabecera. Lo mide el JS al arrancar: si se escribe a mano queda
        desfasado en cuanto cambia el tamaño de letra, y las barras pegajosas se cortan. */
     --alto-cabecera:64px;
+    /* Superficies Material 3 (las de Gmail): el fondo NO es blanco y cada correo va sobre
+       una superficie propia. Deja además el modo oscuro listo para una segunda tanda. */
+    --sup:#fff; --sup-low:#F7F9FA; --sup-c:#F1F4F5; --sup-high:#ECEFF1;
+    --on-sup:#1B1C1E; --on-sup-var:#5F6368; --outline-var:#E1E3E6;
+    /* Escala de radios y elevación con nombre: nada de números sueltos. */
+    --r-xs:4px; --r-s:8px; --r-m:12px; --r-l:16px; --r-xl:28px;
+    --el3:0 1px 3px rgba(0,0,0,.15),0 4px 8px rgba(0,0,0,.10);
   }
-  *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  /* Sin rectángulo gris de iOS al tocar: el feedback lo damos nosotros con :active. */
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:'Google Sans','Google Sans Text',Roboto,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
        background:var(--bg);color:var(--dark)}
+  /* El rebote de la página no debe disparar el pull-to-refresh del navegador: ya tenemos uno. */
+  html,body{overscroll-behavior-y:contain}
+  button,[role="button"],[role="checkbox"],.side-b,.pag{touch-action:manipulation}
+  /* Arrastrar una fila para deslizarla no debe seleccionar su texto; el cuerpo del correo sí. */
+  .hrow{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  .mbody,.hm-body{-webkit-user-select:text;user-select:text}
   header{background:var(--brand);color:#fff;padding:calc(14px + env(safe-area-inset-top,0px)) 18px 14px;display:flex;align-items:center;gap:12px;
-         position:sticky;top:0;z-index:var(--z-cabecera)}
+         position:sticky;top:0;z-index:var(--z-cabecera);
+         transition:transform var(--normal) var(--curva)}
   header h1{font-size:17px;margin:0;font-weight:600;flex:1}
   header button{background:rgba(0,0,0,.16);color:#fff;border:0;border-radius:8px;padding:7px 12px;
                 min-height:44px;min-width:44px;
@@ -194,7 +210,7 @@
   .chip-add:hover{background:#d8ebe8}
   .mbar{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:transparent;
         padding:0;flex:1}
-  .mbar-b{min-height:40px;padding:0 12px;font-size:13.5px;border-radius:9px;border:1px solid var(--line);
+  .mbar-b{min-height:40px;padding:0 12px;font-size:13.5px;border-radius:var(--r-s);border:1px solid var(--line);display:inline-flex;align-items:center;gap:6px;
         background:#f2f5f5;color:var(--dark);flex:0 0 auto;cursor:pointer;white-space:nowrap}
   .mbar-b.primary{border-color:var(--brand);color:var(--brand)}
   .mbar-b.danger{color:#9c3a25}
@@ -203,8 +219,10 @@
      Gmail es casi estático: aparecer/desaparecer sin transición. Aquí se suaviza lo que
      el ojo necesita seguir —abrir un mensaje, entrar a la conversación, el aviso que
      aparece abajo— sin caer en adornos. Todo se apaga si el sistema pide menos movimiento. */
-  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);
-        background:var(--dark);color:#fff;padding:10px 16px;border-radius:10px;font-size:13.5px;
+  .toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));
+        transform:translateX(-50%) translateY(12px);
+        background:var(--dark);color:#fff;padding:10px 16px;border-radius:var(--r-xs);font-size:14px;
+        min-height:48px;align-items:center;box-shadow:var(--el3);max-width:calc(100vw - 32px);
         z-index:var(--z-toast);opacity:0;pointer-events:none;
         transition:opacity .18s ease, transform .22s cubic-bezier(.2,.8,.3,1)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -276,6 +294,7 @@
   .hasunto{flex:1 1 auto;min-width:0;font-size:14px;color:var(--dark);
            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .hasunto .hsnip{color:var(--gray);font-weight:400}
+  .hsnip-l{display:none}   /* tercera línea: solo en teléfono */
   /* Nombres de los adjuntos en la propia fila, como hace Gmail. */
   .hadj{flex:none;display:flex;gap:4px;max-width:230px;overflow:hidden}
   .hadj span{font-size:11px;background:var(--surface2,#eef2f2);border:1px solid var(--line);
@@ -287,7 +306,7 @@
   .hchip-rev{background:#fde0e0;color:#9c3a25}
   .hchip-bor{background:#efe9fb;color:#5b3fbf}
   .hchip-aju{background:#fff6ed;color:#8a591b}
-  .hchip-ok{background:var(--brand-soft);color:var(--brand)}
+  .hchip-ok{background:var(--brand-soft);color:color-mix(in srgb, var(--brand) 70%, #000)}
   .hfecha{flex:none;font-size:12px;color:var(--ink,#1E2A2A);white-space:nowrap;min-width:48px;text-align:right}
   .pag{border:0;background:none;color:var(--gray);cursor:pointer;font-size:15px;padding:2px 8px;
        border-radius:6px;line-height:1;min-width:44px;min-height:44px}
@@ -382,29 +401,95 @@
       justify-content:center;color:#fff;font-weight:700;font-size:13px;text-transform:uppercase;
       user-select:none}
   .hrow .av{width:24px;height:24px;font-size:11.5px}
+  /* Tocar el avatar selecciona la conversación (gesto de Gmail): el ✓ reemplaza la inicial. */
+  .avsel{flex:none;display:flex;cursor:pointer}
+  .hrow.sel .avsel .av{background:var(--brand);color:#fff;font-size:0}
+  .hrow.sel .avsel .av::after{content:"✓";font-size:18px}
 
   /* ===== Fila compacta de dos líneas =====
      Se usa en TODO ancho estrecho: el teléfono y el panel de lectura de escritorio.
      En una línea, el asunto queda en 90px y la fecha se sale de la pantalla. */
   @media (max-width:820px){
-    .hrow{height:auto;min-height:58px;padding:8px 10px;align-items:flex-start;gap:7px;overflow:hidden}
-    .hfila2{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
-    .hquien{flex:none;width:auto;max-width:100%;font-size:13.5px}
-    .hasunto{flex:none;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;
-      -webkit-box-orient:vertical;overflow:hidden;line-height:1.35;font-size:13px}
-    .hestados{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px}
+    /* Ningún campo bajo 16px: si no, iOS hace zoom al enfocarlo y descuadra la pantalla. */
+    input,textarea,select,[contenteditable="true"]{font-size:16px}
+    /* FAB extendido: se contrae a solo icono al bajar, como Gmail. */
+    .fab{display:flex;align-items:center;justify-content:center;gap:12px;position:fixed;
+         right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));height:56px;min-width:56px;
+         padding:0 20px;border:0;border-radius:var(--r-l);
+         background:color-mix(in srgb, var(--brand) 18%, #fff);
+         color:color-mix(in srgb, var(--brand) 75%, #000);
+         font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px;
+         box-shadow:var(--el3);z-index:var(--z-barra);
+         transition:min-width var(--normal) var(--curva),padding var(--normal) var(--curva)}
+    .fab.chico{padding:0;min-width:56px}
+    /* Barra de la conversación: solo iconos, como Gmail (con texto no caben ni cuatro). */
+    .mbar-b{min-width:44px;justify-content:center;padding:0 10px;gap:0}
+    .mb-tx{display:none}
+    /* Conversación: mensajes planos separados por una línea, como Gmail (nada de tarjetas
+       flotando dentro de otra tarjeta). */
+    .hm{border:0;border-radius:0;background:var(--superficie)}
+    .hm.abierto{box-shadow:none;margin:0;border-top:1px solid var(--line)}
+    .mbody{margin:0}
+    .hm-chev{display:none}
+    .resp{border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;
+          margin:0;padding:16px 16px calc(24px + env(safe-area-inset-bottom,0px))}
+    /* Compositor a pantalla completa: el editor crece, la barra vive abajo con área segura. */
+    #editor{max-height:none;flex:1;min-height:120px}
+    #compose .cacciones{padding-bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+    #compose .chead{background:var(--superficie);color:var(--on-sup);border-bottom:1px solid var(--line)}
+    #compose .cclose{background:var(--sup-c);color:var(--on-sup)}
+    /* La cabecera se va al bajar: en una pantalla chica, 72px de chrome son una fila menos. */
+    header.oculta{transform:translateY(-100%)}
+    .fab.chico .fab-lbl{display:none}
+    body.leyendo .fab{display:none}
+    /* Snackbar M3: ancho completo abajo, por encima del FAB y del área segura. */
+    .toast{left:12px;right:12px;max-width:none;transform:translateY(12px);
+           bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+    .toast.show{transform:none}
+    /* ===== Lista a sangre: sin tarjeta contenedora; cada correo es su propio bloque
+       redondeado sobre el fondo gris, como Gmail desde sep-2025. ===== */
+    .hlist{background:transparent;border:0;border-radius:0;overflow:visible}
+    .hrow{height:auto;min-height:88px;padding:12px 16px;align-items:flex-start;gap:16px;
+          overflow:hidden;background:var(--sup);border-bottom:0;border-radius:var(--r-l);
+          margin:0 8px 2px}
+    .hrow.leida,.hrow.noleida{background:var(--sup)}
+    .hlist > .hrow:first-child{border-radius:var(--r-xl) var(--r-xl) var(--r-l) var(--r-l)}
+    .hlist > .hrow:last-child{border-radius:var(--r-l) var(--r-l) var(--r-xl) var(--r-xl)}
+    /* Fila de tres líneas (remitente / asunto / extracto) con avatar de 40, como Gmail. */
+    .hrow .av{width:40px;height:40px;font-size:16px;font-weight:500}
+    .hcheck,.hdot{display:none}          /* seleccionar es tocar el avatar (ver hiloHtml) */
+    .hfila2{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;flex:1;min-width:0}
+    .hquien{grid-column:1;grid-row:1;flex:none;max-width:100%;font-size:16px;line-height:24px;
+            letter-spacing:.5px;font-weight:400;color:var(--on-sup);
+            white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .hrow.noleida .hquien{font-weight:500}
+    .hfecha{grid-column:2;grid-row:1;align-self:start;margin-top:4px;font-size:11px;line-height:16px;
+            letter-spacing:.5px;font-weight:500;color:var(--on-sup-var);min-width:0;
+            font-variant-numeric:tabular-nums}
+    .hasunto{grid-column:1/-1;grid-row:2;flex:none;display:block;white-space:nowrap;
+             -webkit-line-clamp:none;font-size:14px;line-height:20px;letter-spacing:.2px;
+             color:var(--on-sup);overflow:hidden;text-overflow:ellipsis}
+    .hrow.noleida .hasunto{font-weight:500}
+    .hasunto .hsnip{display:none}
+    .hsnip-l{display:block;grid-column:1/-1;grid-row:3;font-size:14px;line-height:20px;
+             color:var(--on-sup-var);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    /* Un solo chip y discreto: en la bandeja de Gmail la fila no lleva medallas. */
+    .hchip{font-size:11px;line-height:16px;font-weight:500;border-radius:var(--r-s);padding:2px 8px}
+    .hestados > *:nth-child(n+2){display:none}
+    .hchip-ok{display:none}
+    .hestados{grid-column:1/-1;grid-row:4;display:flex;gap:4px;margin-top:2px}
     .hestados:empty{display:none}
-    .hfecha{align-self:flex-start;margin-top:2px;font-size:11.5px;min-width:0}
     .hadj{display:none}
-    .hcheck,.hstar,.hdot{margin-top:3px}
-    /* Objetivos táctiles de 44px: con el dedo, y muchas veces con una sola mano. */
-    .hcheck{width:22px;height:22px;padding:11px;margin:-11px -11px -11px 0;box-sizing:content-box}
+    .hstar{order:9;align-self:center;padding:14px;margin:-14px -12px -14px 0;font-size:18px}
+    .hclip{align-self:center}
     /* Blancos táctiles pendientes de la auditoría: nada útil bajo ~44px. */
     .tab{padding:11px 15px}
     .pag{padding:10px 12px;min-width:44px;min-height:44px}
     .vback{padding:10px 12px}
     #compose .cclose{width:38px;height:38px}
-    .selbar button{padding:11px 12px}
+    .selbar{position:sticky;top:0;z-index:var(--z-barra);background:var(--panel);
+            padding:8px 12px;border-bottom:1px solid var(--line);margin:0 0 8px}
+    .selbar button{min-height:44px;padding:0 14px}
     .fchip{padding:10px 12px}
     .chip-add{padding:9px 12px}
     .blq button{padding:10px 12px}
@@ -438,6 +523,16 @@
     .side{position:static;min-height:0;overflow-y:auto;height:100%}
     .principal{overflow-y:auto;height:100%}
   }
+  /* El FAB es solo de teléfono; en escritorio manda el botón Redactar del menú lateral.
+     (La regla va por min-width para no depender del orden con el media de la lista.) */
+  @media (min-width:821px){ .fab{display:none} }
+  /* Fondo que queda "detrás" de la fila mientras se desliza (leave-behind de Gmail). */
+  #swipeBg{position:fixed;display:none;align-items:center;padding:0 24px;color:#fff;
+           font-size:14px;font-weight:500;letter-spacing:.1px;border-radius:var(--r-l);
+           z-index:0;pointer-events:none}
+  /* Campos que antes llevaban el tamaño en el atributo style (pisaba el mínimo de 16px de iOS). */
+  .cc-inline{flex:1;border:1px solid var(--line);border-radius:var(--r-s);padding:7px 10px;font-size:13.5px}
+  .de-sel{flex:1;border:0;outline:0;font-size:14px;background:none;color:inherit}
   .btn-redactar{display:flex;align-items:center;gap:10px;width:140px;height:56px;border:0;
         border-radius:16px;background:var(--brand);color:#fff;font-size:14.5px;font-weight:600;
         cursor:pointer;padding:0 18px;margin:4px 0 14px 8px;box-shadow:0 1px 3px rgba(0,0,0,.16)}
@@ -449,29 +544,41 @@
   .side-b:hover{background:#e9efee}
   .side-b.activo{background:var(--brand-soft);color:var(--brand-ink,#0A5252);font-weight:700}
   .side-b .ic{flex:none;width:18px;text-align:center;font-size:15px}
+  /* Iconos Material: heredan el color del texto, así que sirven en cualquier tema. */
+  .ic24{width:24px;height:24px;fill:currentColor;flex:none;vertical-align:middle}
+  .side-b .ic24{margin-right:0}
   .side-b .lbl{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .side-b .cnt{font-size:11.5px;color:var(--gray);font-weight:600}
   .side-b.activo .cnt{color:var(--brand)}
   .principal{flex:1;min-width:0;padding:12px 14px 40px}
   .burger{display:none;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;
           padding:7px 11px;font-size:15px;cursor:pointer}
-  .velo{display:none;position:fixed;inset:0;background:rgba(20,30,30,.4);z-index:calc(var(--z-cajon) - 1)}
+  .velo{display:block;opacity:0;pointer-events:none;position:fixed;inset:0;
+        background:rgba(20,30,30,.4);z-index:calc(var(--z-cajon) - 1);
+        transition:opacity var(--normal) var(--curva)}
   @media (max-width:820px){
     .burger{display:block}
-    .side{position:fixed;left:0;top:0;bottom:0;width:min(250px, 78vw);background:#fff;z-index:var(--z-cajon);
+    .side{position:fixed;left:0;top:0;bottom:0;width:min(320px, 86vw);background:var(--superficie);
+          z-index:var(--z-cajon);overscroll-behavior:contain;
           transform:translateX(-102%);transition:transform .22s ease;overflow-y:auto;
-          box-shadow:2px 0 16px rgba(0,0,0,.14);padding-top:calc(16px + env(safe-area-inset-top,0px))}
+          box-shadow:2px 0 16px rgba(0,0,0,.14);
+          padding-top:calc(8px + env(safe-area-inset-top,0px));
+          padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+    /* Items en píldora de 56, como el NavigationDrawer de Material 3. */
+    .side-b{min-height:56px;margin:0 12px 2px;padding:0 16px;border-radius:var(--r-xl);
+            font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px}
+    .side-b.activo{background:color-mix(in srgb, var(--brand) 16%, #fff);color:var(--on-sup)}
     .side.abierto{transform:none}
-    .velo.on{display:block}
-    .principal{padding:10px}
+    .velo.on{opacity:1;pointer-events:auto}
+    .principal{padding:0 0 calc(96px + env(safe-area-inset-bottom,0px))}
   }
   .side-tit{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);
             font-weight:700;padding:10px 14px 6px}
 
   .hstar{flex:none;background:none;border:0;cursor:pointer;font-size:14px;line-height:1;
          padding:15px;margin:-15px -13px;box-sizing:content-box;
-         color:#c8d2d1;filter:grayscale(1);opacity:.55}
-  .hstar.on{filter:none;opacity:1}
+         color:#c8d2d1;filter:none;opacity:1}
+  .hstar.on{color:#F9AB00}
   .hstar:hover{opacity:1}
 
   /* ===== Fase 11: buscador + chips ===== */
@@ -489,11 +596,29 @@
         color:rgba(255,255,255,.8);display:none;padding:4px 6px}
   .buscador:focus-within .blimpiar,.buscador:focus-within .bavanz{color:var(--gray)}
   .solo-angosto{display:none}
+  /* Avatar de la cuenta en la cabecera: círculo de 30 (token de Gmail) con blanco táctil de 44. */
+  .av-cuenta{width:44px;height:44px;min-width:44px;padding:0;border:0;background:none;
+             border-radius:50%;align-items:center;justify-content:center}
+  .av-cuenta::before{content:attr(data-ini);width:30px;height:30px;border-radius:50%;
+             background:var(--brand);color:#fff;font-size:13px;font-weight:600;
+             display:flex;align-items:center;justify-content:center}
+  /* TELÉFONO: Gmail no tiene barra de color arriba — el chrome superior ES la píldora de
+     búsqueda (M3 SearchBar: alto 56, radio completo, fondo surface-container-high). */
   @media (max-width:820px){
     header h1{display:none}
-    header{gap:6px;padding:10px 10px}
-    .buscador{margin:0 4px;min-width:0}
-    .solo-ancho{display:none}          /* "Salir" pasa al menú: en la cabecera no cabe */
+    header{background:var(--bg);color:var(--on-sup);box-shadow:none;
+           padding:calc(8px + env(safe-area-inset-top,0px)) 8px 8px;gap:4px}
+    .burger{display:flex;align-items:center;justify-content:center;background:none;
+            color:var(--on-sup);width:48px;height:48px;min-width:48px;padding:0;
+            border-radius:50%;font-size:20px}
+    .buscador{flex:1;height:56px;margin:0;padding:0 6px 0 16px;border-radius:var(--r-xl);
+              background:var(--sup-high);gap:8px;min-width:0}
+    .buscador:focus-within{background:var(--sup-high)}
+    .buscador input{color:var(--on-sup);font-size:16px;line-height:24px;letter-spacing:.5px;padding:0}
+    .buscador input::placeholder{color:var(--on-sup-var)}
+    .buscador:focus-within input{color:var(--on-sup)}
+    .buscador .blimpiar,.buscador .bavanz{color:var(--on-sup-var)}
+    .solo-ancho{display:none}          /* "Salir" y los iconos extra pasan al menú */
     .solo-angosto{display:flex}
   }
   .bavanz{border:0;background:none;font-size:15px;cursor:pointer;color:rgba(255,255,255,.9);
@@ -535,7 +660,9 @@
   #compose .chead span{flex:1}
   #compose .cclose{background:rgba(255,255,255,.16);border:0;color:#fff;width:26px;height:26px;
         border-radius:7px;cursor:pointer;font-size:15px;line-height:1}
-  #compose .cuerpoCompose{display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+  #compose .cuerpoCompose{display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto}
+  #compose .cacciones{flex:none}
+  .btn-descartar{background:none;color:var(--gray);border:1px solid var(--line);margin-left:14px}
   #overlay2.min #compose .cuerpoCompose{display:none}
   #overlay2.min{max-height:none}
   /* En el teléfono ocupa la pantalla completa, como la app de Gmail.
@@ -577,7 +704,9 @@
 
   /* ===== Fase 12: toast con Deshacer + selección múltiple + swipe + atajos ===== */
   .toast.undo{pointer-events:auto;display:flex;gap:12px;align-items:center}
-  .toast .tundo{background:none;border:0;color:#7fd4c8;font-weight:700;font-size:13.5px;cursor:pointer}
+  .toast .tundo{background:none;border:0;color:#7fd4c8;font-weight:700;cursor:pointer;
+        min-height:44px;padding:12px 10px;margin:-12px -4px -12px 0;border-radius:var(--r-s);
+        font-size:14px;letter-spacing:.1px}
   /* En Gmail el cuadrado de selección está SIEMPRE visible, no aparece al pasar el mouse. */
   .hcheck{flex:none;width:16px;height:16px;border:1.5px solid #b9c6c4;border-radius:3px;display:flex;
         align-items:center;justify-content:center;font-size:11px;color:transparent;cursor:pointer;
@@ -591,17 +720,76 @@
   /* El foco de teclado tiene que verse en TODO lo interactivo (accesibilidad básica). */
   button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   [tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .selbar{display:none;max-width:820px;margin:0 auto;padding:8px 16px 0;gap:8px;align-items:center}
+  .selbar{overflow-x:auto;-webkit-overflow-scrolling:touch;display:none;max-width:820px;margin:0 auto;padding:8px 16px 0;gap:8px;align-items:center}
   .selbar.on{display:flex}
   .selbar .scnt{font-size:13px;color:var(--gray);flex:1}
-  .selbar button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;
+  .selbar button{flex:0 0 auto;white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:var(--r-s);padding:6px 12px;
         font-size:13px;cursor:pointer}
   .hrow{touch-action:pan-y}
-  .hrow.swiping{transition:none}
+  .hrow.swiping{position:relative;z-index:1;background:var(--sup);transition:none}
   .hrow.swipe-vuelta{transition:transform .18s ease}
+  /* ===== Ajustes finales de la fila en teléfono =====
+     Van al FINAL a propósito: las reglas base de .hcheck/.hclip aparecen más abajo en el
+     archivo y por orden de cascada ganarían a las del bloque de la lista. */
+  @media (max-width:820px){
+    .hcheck,.hdot{display:none}        /* seleccionar es tocar el avatar, como Gmail */
+    .hclip{display:none}               /* el 📎 robaba ancho al asunto en cada fila */
+    .hrow{padding-right:8px}           /* el texto llega más lejos antes de cortarse */
+    .hstar{margin-right:-8px}
+  }
+
+  @media (max-width:820px){
+    /* Compositor con cabecera clara, como el de Gmail (no una barra oscura de escritorio). */
+    #compose .chead{background:var(--superficie);color:var(--on-sup);border-bottom:1px solid var(--line);
+                    padding:8px 10px 8px 16px;gap:6px}
+    #compose .cclose{background:none;color:var(--on-sup-var);width:44px;height:44px;
+                     display:flex;align-items:center;justify-content:center;font-size:20px}
+    #compose #cTitulo{font-size:16px;font-weight:500}
+    /* Descartar vive arriba: abajo empujaba a Enviar fuera de la pantalla. */
+    .cacciones .btn-descartar{display:none}
+    .cacciones{gap:8px}
+    .cacciones .btn{padding:0 14px;min-height:44px}
+  }
+
+  /* Feedback al tacto: en el teléfono no hay :hover, así que al tocar TIENE que verse algo. */
+  @media (hover:none){
+    .hrow:active{background:var(--sup-c)}
+    button:active,.side-b:active,.mbar-b:active,.btn:active,.qa-b:active,.pag:active,.fab:active{filter:brightness(.94)}
+  }
 </style>
 </head>
 <body>
+
+<!-- Iconos Material (mismos glifos que Gmail), como sprite local: sin CDN y sin emoji
+     multicolor, que en la primera pantalla es lo que más delata que no es una app nativa. -->
+<svg style="display:none" aria-hidden="true">
+  <symbol id="ic-menu" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></symbol>
+  <symbol id="ic-edit" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></symbol>
+  <symbol id="ic-inbox" viewBox="0 0 24 24"><path d="M19 3H4.99c-1.11 0-1.98.89-1.98 2L3 19c0 1.1.88 2 1.99 2H19c1.1 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H4.99V5H19v10z"/></symbol>
+  <symbol id="ic-star" viewBox="0 0 24 24"><path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/></symbol>
+  <symbol id="ic-star-fill" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></symbol>
+  <symbol id="ic-schedule" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></symbol>
+  <symbol id="ic-send" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></symbol>
+  <symbol id="ic-draft" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></symbol>
+  <symbol id="ic-archive" viewBox="0 0 24 24"><path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"/></symbol>
+  <symbol id="ic-forward" viewBox="0 0 24 24"><path d="M12 8V4l8 8-8 8v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z"/></symbol>
+  <symbol id="ic-reply" viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></symbol>
+  <symbol id="ic-mail-unread" viewBox="0 0 24 24"><path d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6zm-2 0l-8 5-8-5h16zm0 12H4V8l8 5 8-5v10z"/></symbol>
+  <symbol id="ic-restore" viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></symbol>
+  <symbol id="ic-language" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2s.07-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></symbol>
+  <symbol id="ic-report" viewBox="0 0 24 24"><path d="M15.73 3H8.27L3 8.27v7.46L8.27 21h7.46L21 15.73V8.27L15.73 3zM12 17.3c-.72 0-1.3-.58-1.3-1.3s.58-1.3 1.3-1.3 1.3.58 1.3 1.3-.58 1.3-1.3 1.3zm1-4.3h-2V7h2v6z"/></symbol>
+  <symbol id="ic-block" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zm8 8c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z"/></symbol>
+  <symbol id="ic-delete" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+  <symbol id="ic-label" viewBox="0 0 24 24"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z"/></symbol>
+  <symbol id="ic-settings" viewBox="0 0 24 24"><path d="M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z"/></symbol>
+  <symbol id="ic-logout" viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></symbol>
+  <symbol id="ic-mail" viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></symbol>
+  <symbol id="ic-bell" viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></symbol>
+  <symbol id="ic-image" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></symbol>
+  <symbol id="ic-keyboard" viewBox="0 0 24 24"><path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></symbol>
+  <symbol id="ic-chat" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></symbol>
+  <symbol id="ic-person" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></symbol>
+</svg>
 
 <div id="login">
   <h2>🔒 Bandeja</h2>
@@ -624,10 +812,14 @@
       <button class="bavanz" onclick="toggleAvanzada()" title="Búsqueda avanzada"
               aria-label="Búsqueda avanzada">⚙</button>
     </div>
-    <button id="btnBuzones" style="display:none" onclick="toggleBuzones()" title="Cambiar de buzón"
-            aria-label="Cambiar de buzón">🔀</button>
-    <button onclick="activarNotis()" title="Activar notificaciones">🔔</button>
-    <button onclick="cargar(true)" title="Actualizar" aria-label="Actualizar bandeja">↻</button>
+    <button id="btnBuzones" class="solo-ancho" style="display:none" onclick="toggleBuzones()"
+            title="Cambiar de buzón" aria-label="Cambiar de buzón">🔀</button>
+    <button class="solo-ancho" onclick="activarNotis()" title="Activar notificaciones">🔔</button>
+    <button class="solo-ancho" id="btnRefrescar" onclick="cargar(true)" title="Actualizar"
+            aria-label="Actualizar bandeja">↻</button>
+    <!-- Teléfono: el avatar de la cuenta cierra la píldora, como en Gmail. -->
+    <button class="av-cuenta solo-angosto" id="avCuenta" onclick="toggleBuzones()"
+            aria-label="Cuenta y buzones"></button>
     <button class="solo-ancho" onclick="salir()">Salir</button>
   </header>
   <div id="menuBuzones"></div>
@@ -656,42 +848,46 @@
     <!-- Carpetas al costado, como Gmail (en el teléfono es un cajón que se desliza) -->
     <nav class="side" id="side" aria-label="Carpetas">
       <button class="btn-redactar" onclick="abrirCompose()" title="Redactar (tecla c)">
-        <span class="ic">✏️</span>Redactar</button>
+        <svg class="ic24"><use href="#ic-edit"/></svg>Redactar</button>
       <div class="side-tit" id="tituloCuentas" style="display:none">Cuentas</div>
       <div id="listaCuentas"></div>
       <button id="tab-recibidos" class="side-b activo" onclick="setFiltro('recibidos')">
-        <span class="ic">📥</span><span class="lbl">Recibidos</span><span class="cnt"></span></button>
+        <svg class="ic24"><use href="#ic-inbox"/></svg><span class="lbl">Recibidos</span><span class="cnt"></span></button>
       <button id="tab-destacados" class="side-b" onclick="setFiltro('destacados')">
-        <span class="ic">⭐</span><span class="lbl">Destacados</span><span class="cnt"></span></button>
+        <svg class="ic24"><use href="#ic-star"/></svg><span class="lbl">Destacados</span><span class="cnt"></span></button>
       <button id="tab-pospuestos" class="side-b" onclick="setFiltro('pospuestos')">
-        <span class="ic">⏰</span><span class="lbl">Pospuestos</span><span class="cnt"></span></button>
+        <svg class="ic24"><use href="#ic-schedule"/></svg><span class="lbl">Pospuestos</span><span class="cnt"></span></button>
       <button id="tab-enviados" class="side-b" onclick="setFiltro('enviados')">
-        <span class="ic">📤</span><span class="lbl">Enviados</span><span class="cnt"></span></button>
+        <svg class="ic24"><use href="#ic-send"/></svg><span class="lbl">Enviados</span><span class="cnt"></span></button>
       <button id="tab-borradores" class="side-b" onclick="setFiltro('borradores')">
-        <span class="ic">📝</span><span class="lbl">Borradores</span><span class="cnt"></span></button>
+        <svg class="ic24"><use href="#ic-draft"/></svg><span class="lbl">Borradores</span><span class="cnt"></span></button>
       <button id="tab-archivados" class="side-b" onclick="setFiltro('archivados')">
-        <span class="ic">🗂️</span><span class="lbl">Archivados</span><span class="cnt"></span></button>
+        <svg class="ic24"><use href="#ic-archive"/></svg><span class="lbl">Archivados</span><span class="cnt"></span></button>
       <div class="side-tit">Filtros</div>
       <button id="tab-spam" class="side-b" onclick="setFiltro('spam')">
-        <span class="ic">🚫</span><span class="lbl">Spam</span><span class="cnt"></span></button>
+        <svg class="ic24"><use href="#ic-report"/></svg><span class="lbl">Spam</span><span class="cnt"></span></button>
       <button id="tab-papelera" class="side-b" onclick="setFiltro('papelera')">
-        <span class="ic">🗑️</span><span class="lbl">Papelera</span><span class="cnt"></span></button>
+        <svg class="ic24"><use href="#ic-delete"/></svg><span class="lbl">Papelera</span><span class="cnt"></span></button>
       <button id="tab-bloqueados" class="side-b" onclick="setFiltro('bloqueados')">
-        <span class="ic">⛔</span><span class="lbl">Bloqueados</span><span class="cnt"></span></button>
+        <svg class="ic24"><use href="#ic-block"/></svg><span class="lbl">Bloqueados</span><span class="cnt"></span></button>
       <div class="side-tit" id="tituloEtiquetas" style="display:none">Mis etiquetas</div>
       <div id="listaEtiquetas"></div>
       <div class="side-tit">Vista</div>
       <button class="side-b" id="btnVista" onclick="alternarVista()">
-        <span class="ic">🧵</span><span class="lbl">Conversaciones</span></button>
+        <svg class="ic24"><use href="#ic-chat"/></svg><span class="lbl">Conversaciones</span></button>
       <button class="side-b" id="btnImgs" onclick="alternarImagenes()">
-        <span class="ic">🖼️</span><span class="lbl">Imágenes</span></button>
+        <svg class="ic24"><use href="#ic-image"/></svg><span class="lbl">Imágenes</span></button>
       <!-- En el teléfono, cerrar sesión vive en el menú: en la cabecera no cabe. -->
       <button class="side-b" id="btnAtajos" onclick="alternarAtajos()">
-        <span class="ic">⌨️</span><span class="lbl">Atajos: sí</span></button>
+        <svg class="ic24"><use href="#ic-keyboard"/></svg><span class="lbl">Atajos: sí</span></button>
+      <button class="side-b solo-angosto" onclick="toggleBuzones()">
+        <svg class="ic24"><use href="#ic-mail"/></svg><span class="lbl">Cambiar de buzón</span></button>
+      <button class="side-b solo-angosto" onclick="activarNotis()">
+        <svg class="ic24"><use href="#ic-bell"/></svg><span class="lbl">Avisos en el celular</span></button>
       <button class="side-b" onclick="abrirAjustes()">
-        <span class="ic">⚙️</span><span class="lbl">Ajustes y firma</span></button>
+        <svg class="ic24"><use href="#ic-settings"/></svg><span class="lbl">Ajustes y firma</span></button>
       <button class="side-b solo-angosto" onclick="salir()">
-        <span class="ic">🚪</span><span class="lbl">Cerrar sesión</span></button>
+        <svg class="ic24"><use href="#ic-logout"/></svg><span class="lbl">Cerrar sesión</span></button>
     </nav>
     <main class="principal">
       <div class="selbar" id="selbar">
@@ -703,6 +899,9 @@
         <button onclick="selLimpiar()">Cancelar</button>
       </div>
       <div id="lista"><div class="vacio">Cargando…</div></div>
+      <!-- Teléfono: la acción principal vive al alcance del pulgar, como el FAB de Gmail. -->
+      <button class="fab" id="fab" onclick="abrirCompose()" aria-label="Redactar">
+        <svg class="ic24"><use href="#ic-edit"/></svg><span class="fab-lbl">Redactar</span></button>
     </main>
     <!-- Lectura: panel al costado en escritorio, pantalla completa en el teléfono -->
     <section id="overlay" aria-label="Conversación">
@@ -729,6 +928,8 @@
   <div id="compose">
     <div class="chead" onclick="if(event.target.classList.contains('chead')||event.target.tagName==='SPAN')minimizarCompose()">
       <span id="cTitulo">✏️ Mensaje nuevo</span>
+      <button class="cclose solo-angosto" onclick="event.stopPropagation();composeDescartar()"
+              title="Descartar" aria-label="Descartar borrador"><svg class="ic24"><use href="#ic-delete"/></svg></button>
       <button class="cclose" onclick="event.stopPropagation();minimizarCompose()" title="Minimizar"
               aria-label="Minimizar">–</button>
       <button class="cclose" onclick="event.stopPropagation();cerrarCompose()" title="Guardar y cerrar"
@@ -736,7 +937,7 @@
     </div>
     <div class="cuerpoCompose">
     <div class="campo" id="filaDe" style="display:none"><label>De</label>
-      <select id="cDe" style="flex:1;border:0;outline:0;font-size:14px;background:none;color:inherit"></select>
+      <select id="cDe" class="de-sel"></select>
     </div>
     <div class="campo"><label>Para</label>
       <input id="cPara" list="dlContactos" placeholder="cliente@correo.cl" autocomplete="off" />
@@ -759,13 +960,14 @@
     </div>
     <div id="editor"></div>
     <div id="adjComposeElegidos" class="adjs" style="padding:0 16px"></div>
+    </div>
+    <!-- Barra de acciones FUERA del área que scrollea: Enviar nunca se va de la pantalla. -->
     <div class="cacciones">
       <button class="btn btn-enviar" onclick="composeEnviar()">📤 Enviar</button>
       <button class="btn btn-guardar" onclick="elegirArchivos('compose')">📎 Adjuntar</button>
       <button class="btn btn-guardar solo-angosto" onclick="tomarFoto('compose')">📷 Foto</button>
-      <button class="btn btn-guardar" onclick="composeDescartar()">🗑️ Descartar</button>
       <span class="cestado" id="cEstado"></span>
-    </div>
+      <button class="btn btn-descartar" onclick="composeDescartar()">🗑️ Descartar</button>
     </div>
   </div>
 </div>
@@ -1230,6 +1432,7 @@ async function iniciar(){
     document.getElementById("app").style.display="block";
     renderCuentas();
     iniciarBuzones();
+    try{ document.getElementById("avCuenta").dataset.ini=(NOSOTROS||"?").charAt(0).toUpperCase(); }catch(e){}
     refrescarContadores();
     cargarEtiquetas();
     cargarAjustes();
@@ -1277,10 +1480,16 @@ function toggleMenu(){
   const abrir = !s.classList.contains("abierto");
   s.classList.toggle("abierto", abrir);
   v.classList.toggle("on", abrir);
+  // Con el cajón abierto, el fondo no debe scrollear detrás (comportamiento de app nativa).
+  document.body.style.overflow = abrir ? "hidden" : "";
+  // El botón atrás del teléfono debe cerrar el cajón, no salir de la app.
+  if(abrir){ try{ history.pushState({capa:"menu"}, "", "#menu"); }catch(e){} }
 }
 function cerrarMenu(){
   document.getElementById("side").classList.remove("abierto");
   document.getElementById("velo").classList.remove("on");
+  document.body.style.overflow = "";
+  if(!cerrandoPorHistorial && location.hash==="#menu"){ try{ history.back(); }catch(e){} }
 }
 
 // ---------- Posponer (fase 15): las opciones rápidas de Gmail ----------
@@ -1321,6 +1530,7 @@ async function posponer(tid, horas){
   }catch(e){ if(copia){ items.splice(idx,0,copia); render(); } toast("⚠️ "+e.message); }
 }
 function setFiltro(f){
+  try{ document.querySelector("header").classList.remove("oculta"); }catch(e){}
   filtro = f; selLimpiar(); cursor=-1; etiquetaActiva="";
   document.querySelectorAll("#listaEtiquetas .side-b").forEach(b=>b.classList.remove("activo"));
   if(busca) limpiarBusqueda(true);
@@ -1348,7 +1558,7 @@ async function cargarEtiquetas(){
     cont.innerHTML = arr.map(e=>
       `<button class="side-b${etiquetaActiva===e.nombre?' activo':''}" data-etq="${esc(e.nombre)}"
                onclick="filtrarEtiqueta('${esc(e.nombre).replace(/'/g,"\\'")}')">
-         <span class="ic">🏷️</span><span class="lbl">${esc(e.nombre)}</span>
+         <svg class="ic24"><use href="#ic-label"/></svg><span class="lbl">${esc(e.nombre)}</span>
          <span class="cnt">${e.n}</span></button>`).join("");
     document.getElementById("dlEtiquetas").innerHTML =
       arr.map(e=>`<option value="${esc(e.nombre)}">`).join("");
@@ -1383,16 +1593,23 @@ function alternarImagenes(){
 function pintarBotonImagenes(){
   const b=document.getElementById("btnImgs");
   if(!b) return;
-  b.querySelector(".ic").textContent = mostrarImagenesSiempre ? "🖼️" : "🔒";
+  ponerIcono(b, mostrarImagenesSiempre ? "ic-image" : "ic-block");
   b.querySelector(".lbl").textContent = mostrarImagenesSiempre ? "Imágenes: sí" : "Imágenes: preguntar";
   b.title = mostrarImagenesSiempre
     ? "Se muestran solas (pasan por nuestro proxy: el remitente no ve tu IP)"
     : "Pide confirmación antes de cargar imágenes";
 }
+// Cambia el icono de un botón del menú (sprite SVG; cae al emoji si el botón es antiguo).
+function ponerIcono(btn, id){
+  const uso = btn.querySelector("svg.ic24 use");
+  if(uso){ uso.setAttribute("href", "#"+id); return; }
+  const ic = btn.querySelector(".ic");
+  if(ic) ic.textContent = "";
+}
 function pintarBotonVista(){
   const b=document.getElementById("btnVista");
   if(!b) return;
-  b.querySelector(".ic").textContent = vistaPorMensaje ? "✉️" : "🧵";
+  ponerIcono(b, vistaPorMensaje ? "ic-mail" : "ic-chat");
   b.querySelector(".lbl").textContent = vistaPorMensaje ? "Mensajes sueltos" : "Conversaciones";
   b.title = vistaPorMensaje ? "Cambiar a vista por conversaciones" : "Cambiar a vista por mensajes";
 }
@@ -1457,6 +1674,7 @@ async function buscar(){
   }catch(e){ toast(e && e.red ? "📡 Sin conexión: no se pudo buscar" : "⚠️ "+(e.message||"error")); }
 }
 function limpiarBusqueda(silencioso){
+  try{ document.querySelector("header").classList.remove("oculta"); }catch(e){}
   busca=""; document.getElementById("qBusca").value="";
   document.getElementById("qLimpiar").style.display="none";
   document.getElementById("fchips").classList.remove("on");
@@ -1628,19 +1846,36 @@ function hiloHtml(h){
             title="Seleccionar" onclick="selToggle(${tid},event)">✓</span>
       <button class="hstar${h.destacado?' on':''}" title="Destacar"
               aria-label="${h.destacado?'Quitar de destacados':'Destacar'}" aria-pressed="${!!h.destacado}"
-              onclick="destacar(${tid},${h.destacado?0:1},event)">${h.destacado?"⭐":"☆"}</button>
+              onclick="destacar(${tid},${h.destacado?0:1},event)"><svg class="ic24"><use href="#ic-star${h.destacado?'-fill':''}"/></svg></button>
       <span class="hdot"></span>
-      ${avatarHtml(h.ult_de==="yo" ? participantesTxt(h) : (h.ult_de||participantesTxt(h)))}
+      <span class="avsel" role="checkbox" aria-checked="${seleccion.has(h.tid)}"
+            aria-label="Seleccionar" onclick="selToggle(${tid},event)"
+            >${avatarHtml(h.ult_de==="yo" ? participantesTxt(h) : (h.ult_de||participantesTxt(h)))}</span>
       <span class="hfila2">
         <span class="hquien">${esc(participantesTxt(h))}${n>1?` <span class="hn">${n}</span>`:""}</span>
         <span class="hasunto">${esc(quitarRe(h.ult_asunto))}${snip?` <span class="hsnip">— ${esc(snip)}</span>`:""}</span>
+        ${snip?`<span class="hsnip-l">${esc(snip)}</span>`:""}
         <span class="hestados">${hiloChips(h)}${avisoEspera(h)}</span>
       </span>
       ${adjNombresHtml(h)}
       ${((h.adjuntos||0)+(h.adj_cliente||0))>0?`<span class="hclip">📎</span>`:""}
-      <span class="hfecha" title="${esc(fechaFullSql(h.ultima))}">${esc(fmtEsperaSql(h.ultima))}</span>
+      <span class="hfecha" title="${esc(fechaFullSql(h.ultima))}">${esc(fmtFechaSql(h.ultima))}</span>
       ${hiloActsHtml(h)}
     </div>`;
+}
+
+// Scroll infinito del teléfono: al asomar el final de la lista, se traen más conversaciones.
+let obsFin = null;
+function observarFinLista(){
+  const fin = document.getElementById("finLista");
+  if(!fin || !("IntersectionObserver" in window)) return;
+  if(!obsFin){
+    obsFin = new IntersectionObserver((entradas)=>{
+      if(entradas.some(e=>e.isIntersecting) && hasMore && !cargando) cargarMas();
+    }, { rootMargin: "400px" });
+  }
+  obsFin.disconnect();
+  obsFin.observe(fin);
 }
 
 // La entrada escalonada solo se usa al cambiar de carpeta o buscar, nunca en el
@@ -1657,8 +1892,9 @@ function render(){
   } else {
     html = items.length ? items.map(c=>cardHtml(c)).join("") : `<div class="vacio">${vacioMsg()}</div>`;
   }
-  // Contador "1–30 de 234" con flechas de página, arriba a la derecha, como Gmail.
-  if(items.length && !busca){
+  // Contador "1–30 de 234" con flechas de página: es de ESCRITORIO. En el teléfono la lista
+  // se alarga sola al llegar al final (ver observador de #finLista, más abajo).
+  if(items.length && !busca && window.innerWidth>820){
     const total = lastTotal||items.length;
     html = `<div style="display:flex;justify-content:flex-end;align-items:center;gap:2px;
               padding:0 4px 8px;font-size:12.5px;color:var(--gray)">
@@ -1669,9 +1905,12 @@ function render(){
             </div>` + html;
   }
   if(hasMore){
-    html += `<button class="cargar-mas" onclick="cargarMas()">⬇️ Cargar más antiguos (${items.length} de ${lastTotal})</button>`;
+    html += window.innerWidth>820
+      ? `<button class="cargar-mas" onclick="cargarMas()">⬇️ Cargar más antiguos (${items.length} de ${lastTotal})</button>`
+      : `<div id="finLista" style="height:1px"></div>`;
   }
   lista.innerHTML = html;
+  observarFinLista();
   if(tidLeyendo){
     const f=lista.querySelector(`.hrow[data-tid="${CSS.escape(tidLeyendo)}"]`);
     if(f) f.classList.add("leyendo");
@@ -1744,7 +1983,7 @@ function toastUndo(t, alDeshacer, ms){
   b.onclick=async ()=>{ clearTimeout(el._t); el.classList.remove("show"); await alDeshacer(); };
   el.appendChild(b);
   clearTimeout(el._t);
-  el._t=setTimeout(()=>{ el.classList.remove("show"); el.className="toast"; }, ms||6000);
+  el._t=setTimeout(()=>{ el.classList.remove("show"); el.className="toast"; }, ms||9000);
 }
 
 // ---------- Mini-modal propio (fase 12) ----------
@@ -2297,51 +2536,57 @@ async function verHiloInterno(tid){
 function barBusy(d){ document.querySelectorAll('#mBar button').forEach(x=>x.disabled=d); }
 function renderBar(c){
   const bar=document.getElementById("mBar"); const e=c.estado;
-  const B=(cls,lbl,fn)=>`<button class="mbar-b ${cls}" onclick="${fn}">${lbl}</button>`;
+  // El rótulo viene como "icono Texto": se parten para poder mostrar solo el icono en el
+  // teléfono (donde 7 botones con texto no caben) sin perder el nombre accesible.
+  // Iconos Material (los mismos del menú) + rótulo: en el teléfono se muestra solo el icono,
+  // pero el nombre accesible viaja siempre en title/aria-label.
+  const B=(cls,ic,tx,fn)=>
+    `<button class="mbar-b ${cls}" onclick="${fn}" title="${esc(tx)}" aria-label="${esc(tx)}"
+      ><svg class="ic24 mb-ic"><use href="#${ic}"/></svg><span class="mb-tx">${esc(tx)}</span></button>`;
   let h="";
   // Modo CONVERSACIÓN (fase 10): las acciones aplican al hilo completo.
   if(actualTid){
     const tid=`'${esc(actualTid).replace(/'/g,"\\'")}'`;
     if(filtro==="archivados"){
-      h = B('primary','📥 Mover a Recibidos','accRestaurarHilo('+tid+')')
-        + B('','🏷️ Etiqueta','agregarEtiqueta('+c.id+')')
-        + B('danger','🗑️ Eliminar','accEliminarHilo('+tid+')');
+      h = B('primary','ic-inbox','Mover a Recibidos','accRestaurarHilo('+tid+')')
+        + B('','ic-label','Etiqueta','agregarEtiqueta('+c.id+')')
+        + B('danger','ic-delete','Eliminar','accEliminarHilo('+tid+')');
     } else {
-      h = B('primary','✓ Listo','accArchivarHilo('+tid+')')
-        + B('','⏰ Posponer','menuPosponer('+tid+')')
-        + B('','↪️ Reenviar','reenviar()')
-        + B('','🏷️ Etiqueta','agregarEtiqueta('+c.id+')')
-        + B('','✉️ No leído','accNoLeidoHilo('+tid+')')
-        + (hiloUnico?B('','🚫 Spam','accSpam('+c.id+')'):"")
-        + B('danger','🗑️ Eliminar','accEliminarHilo('+tid+')');
+      h = B('primary','ic-archive','Listo','accArchivarHilo('+tid+')')
+        + B('','ic-schedule','Posponer','menuPosponer('+tid+')')
+        + B('','ic-forward','Reenviar','reenviar()')
+        + B('','ic-label','Etiqueta','agregarEtiqueta('+c.id+')')
+        + B('','ic-mail-unread','No leído','accNoLeidoHilo('+tid+')')
+        + (hiloUnico?B('','ic-report','Spam','accSpam('+c.id+')'):"")
+        + B('danger','ic-delete','Eliminar','accEliminarHilo('+tid+')');
     }
     bar.innerHTML=h; return;
   }
   if(["nuevo","borrador","ajuste"].includes(e)){
-    h = B('primary','✓ Listo','accArchivar('+c.id+')')
-      + B('','🏷️ Etiqueta','agregarEtiqueta('+c.id+')')
-      + B('','✉️ No leído','accNoLeido('+c.id+')')
-      + B('','🚫 Spam','accSpam('+c.id+')')
-      + B('danger','🗑️ Eliminar','accEliminar('+c.id+')');
+    h = B('primary','ic-archive','Listo','accArchivar('+c.id+')')
+      + B('','ic-label','Etiqueta','agregarEtiqueta('+c.id+')')
+      + B('','ic-mail-unread','No leído','accNoLeido('+c.id+')')
+      + B('','ic-report','Spam','accSpam('+c.id+')')
+      + B('danger','ic-delete','Eliminar','accEliminar('+c.id+')');
   } else if(["respondido","enviado"].includes(e)){
-    h = B('','🏷️ Etiqueta','agregarEtiqueta('+c.id+')')
-      + B('','✉️ No leído','accNoLeido('+c.id+')')
-      + B('danger','🗑️ Eliminar','accEliminar('+c.id+')');
+    h = B('','ic-label','Etiqueta','agregarEtiqueta('+c.id+')')
+      + B('','ic-mail-unread','No leído','accNoLeido('+c.id+')')
+      + B('danger','ic-delete','Eliminar','accEliminar('+c.id+')');
   } else if(e==="spam"){
-    h = B('','↩️ No es spam','noSpam('+c.id+')')
-      + B('','🚫 Bloquear','bloquear('+c.id+",'email')")
-      + B('','🌐 Bloquear dominio','bloquear('+c.id+",'dominio')")
-      + B('danger','🗑️ Eliminar','accEliminar('+c.id+')');
+    h = B('','ic-reply','No es spam','noSpam('+c.id+')')
+      + B('','ic-block','Bloquear','bloquear('+c.id+",'email')")
+      + B('','ic-language','Bloquear dominio','bloquear('+c.id+",'dominio')")
+      + B('danger','ic-delete','Eliminar','accEliminar('+c.id+')');
   } else if(e==="archivado"){
-    h = B('primary','📥 Mover a Recibidos','accRestaurar('+c.id+')')
-      + B('','🏷️ Etiqueta','agregarEtiqueta('+c.id+')')
-      + B('danger','🗑️ Eliminar','accEliminar('+c.id+')');
+    h = B('primary','ic-inbox','Mover a Recibidos','accRestaurar('+c.id+')')
+      + B('','ic-label','Etiqueta','agregarEtiqueta('+c.id+')')
+      + B('danger','ic-delete','Eliminar','accEliminar('+c.id+')');
   } else if(e==="papelera"){
-    h = B('primary','♻️ Restaurar','accRestaurar('+c.id+')')
-      + B('danger','⛔ Eliminar definitivo','accEliminarDef('+c.id+')');
+    h = B('primary','ic-restore','Restaurar','accRestaurar('+c.id+')')
+      + B('danger','ic-delete','Eliminar definitivo','accEliminarDef('+c.id+')');
   } else {
-    h = B('','🏷️ Etiqueta','agregarEtiqueta('+c.id+')')
-      + B('danger','🗑️ Eliminar','accEliminar('+c.id+')');
+    h = B('','ic-label','Etiqueta','agregarEtiqueta('+c.id+')')
+      + B('danger','ic-delete','Eliminar','accEliminar('+c.id+')');
   }
   bar.innerHTML=h;
 }
@@ -2443,7 +2688,7 @@ function cajaSeguimiento(){
     <div class="campo" id="filaRespCC" style="display:none;padding:0 0 8px;border:0">
       <label style="font-size:12.5px;color:var(--gray);min-width:52px">CC</label>
       <input id="respCC" list="dlContactos" placeholder="copia@correo.cl"
-             style="flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13.5px" />
+             class="cc-inline" />
     </div>
     <textarea id="respTxt" placeholder="Hacer seguimiento a esta conversación…">${esc(FIRMA.replace(/^\n+/,"\n\n"))}</textarea>
     <div id="adjElegidos" class="adjs"></div>
@@ -2501,7 +2746,7 @@ function renderResp(c){
     <div class="campo" id="filaRespCC" style="display:none;padding:0 0 8px;border:0">
       <label style="font-size:12.5px;color:var(--gray);min-width:52px">CC</label>
       <input id="respCC" list="dlContactos" placeholder="copia@correo.cl, otro@correo.cl"
-             style="flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13.5px" />
+             class="cc-inline" />
     </div>
     <textarea id="respTxt" placeholder="Borrador del agente (revísalo y edítalo) o escribe tu respuesta…">${esc(borradorInicial)}</textarea>
     <div id="adjElegidos" class="adjs"></div>
@@ -2831,7 +3076,7 @@ function abrirVista(tid){
   document.body.classList.add("leyendo");
   // Solo se bloquea el scroll del fondo cuando la vista tapa la pantalla completa.
   document.body.style.overflow = panelAlCostado() ? "" : "hidden";
-  if(!panelAlCostado()) window.scrollTo(0,0);
+  if(!panelAlCostado()){ scrollLista=window.scrollY; window.scrollTo(0,0); }
   document.getElementById("overlay").scrollTop = 0;
   if(!vistaAbierta){
     try{ history.pushState({hilo:tid||"msg"}, "", "#leer"); }catch(e){}
@@ -2839,10 +3084,18 @@ function abrirVista(tid){
   }
 }
 window.addEventListener("popstate", ()=>{
+  // De arriba hacia abajo: primero el compositor, luego el cajón, luego la conversación.
+  if(composeAbiertoAhora()){ cerrandoPorHistorial=true; cerrarCompose(); cerrandoPorHistorial=false; return; }
+  if(document.getElementById("side").classList.contains("abierto")){
+    cerrandoPorHistorial=true; cerrarMenu(); cerrandoPorHistorial=false; return;
+  }
   if(vistaAbierta){ cerrandoPorHistorial = true; cerrar(); cerrandoPorHistorial = false; }
 });
 
 let focoPrevio = null;
+let scrollLista = 0;      // dónde estaba la lista antes de abrir una conversación
+let ultimoToque = 0;      // para no repintar la lista justo cuando el dedo está encima
+document.addEventListener("touchstart",()=>{ ultimoToque=Date.now(); },{passive:true});
 function cerrar(){
   // Si quedó texto sin guardar en la respuesta, guardarlo antes de cerrar (nada se pierde).
   if(respTimer){ clearTimeout(respTimer); respTimer=null; guardarResp(); }
@@ -2855,7 +3108,9 @@ function cerrar(){
   // Sacar la entrada del historial (salvo que justamente venga del botón atrás).
   if(vistaAbierta && !cerrandoPorHistorial){ vistaAbierta=false; try{ history.back(); }catch(e){} }
   else vistaAbierta=false;
-  if(focoPrevio && document.body.contains(focoPrevio)){ try{ focoPrevio.focus(); }catch(e){} }
+  if(focoPrevio && document.body.contains(focoPrevio)){ try{ focoPrevio.focus({preventScroll:true}); }catch(e){} }
+  // Volver EXACTAMENTE donde estabas en la lista, como cualquier app nativa.
+  if(!panelAlCostado()) requestAnimationFrame(()=>window.scrollTo(0,scrollLista));
   focoPrevio=null;
 }
 
@@ -3400,7 +3655,7 @@ function alternarAtajos(){
 function pintarBotonAtajos(){
   const b=document.getElementById("btnAtajos");
   if(!b) return;
-  b.querySelector(".ic").textContent = atajosActivos ? "⌨️" : "🚫";
+  ponerIcono(b, atajosActivos ? "ic-keyboard" : "ic-block");
   b.querySelector(".lbl").textContent = atajosActivos ? "Atajos: sí" : "Atajos: no";
   b.title = atajosActivos ? "Desactivar los atajos de una tecla" : "Activar los atajos de teclado";
 }
@@ -3441,22 +3696,52 @@ function mostrarAtajos(){
 // Detector propio de ~40 líneas inspirado en swiped-events (MIT), sin dependencia.
 // ============================================================
 (function swipe(){
-  let x0=null, y0=null, fila=null, mueve=false;
+  let x0=null, y0=null, fila=null, mueve=false, avisado=false;
   const UMBRAL=70;
+  // "Leave-behind" de Gmail: al deslizar aparece DEBAJO un fondo de color con la acción escrita,
+  // en vez de teñir la propia fila (que dejaba al usuario adivinando qué iba a pasar).
+  const capa=document.createElement("div");
+  capa.id="swipeBg";
+  document.addEventListener("DOMContentLoaded",()=>document.body.appendChild(capa));
+  // Qué hace cada lado según la carpeta: en Papelera y Bloqueados no se desliza.
+  function accionesDe(){
+    if(filtro==="papelera"||filtro==="bloqueados") return null;
+    if(filtro==="archivados") return {der:{txt:"Restaurar",col:"#1E8E3E",fn:accRestaurarHilo},
+                                      izq:{txt:"Eliminar",col:"#D93025",fn:accEliminarHilo}};
+    return {der:{txt:"Listo",col:"#1E8E3E",fn:accArchivarHilo},
+            izq:{txt:"Eliminar",col:"#D93025",fn:accEliminarHilo}};
+  }
   document.addEventListener("touchstart",(e)=>{
     const f=e.target.closest?e.target.closest(".hrow"):null;
     if(!f || e.touches.length!==1) return;
-    fila=f; x0=e.touches[0].clientX; y0=e.touches[0].clientY; mueve=false;
+    if(window.innerWidth>820) return;               // el swipe es gesto de teléfono
+    const px=e.touches[0].clientX;
+    if(px<28 || px>window.innerWidth-28) return;    // bordes: son del "atrás" del sistema
+    if(!accionesDe()) return;
+    fila=f; x0=px; y0=e.touches[0].clientY; mueve=false; avisado=false;
     fila.classList.add("swiping");
+    const r=f.getBoundingClientRect();
+    capa.style.top=r.top+"px"; capa.style.left=r.left+"px";
+    capa.style.width=r.width+"px"; capa.style.height=r.height+"px";
+    capa.style.display="flex";
   },{passive:true});
   document.addEventListener("touchmove",(e)=>{
     if(!fila || x0===null) return;
     const dx=e.touches[0].clientX-x0, dy=e.touches[0].clientY-y0;
     if(!mueve && Math.abs(dx)<Math.abs(dy)){ soltar(); return; }   // scroll vertical: no es swipe
-    if(Math.abs(dx)>10){
+    if(Math.abs(dx)>12 && Math.abs(dx)>Math.abs(dy)*1.4){
       mueve=true;
-      fila.style.transform=`translateX(${dx}px)`;
-      fila.style.background = dx>0 ? "#e3f0ee" : "#fbe7e2";
+      const acc=accionesDe(); if(!acc){ soltar(); return; }
+      const lado = dx>0 ? acc.der : acc.izq;
+      fila.style.transform=`translateX(${dx*0.65}px)`;             // resistencia, como Gmail
+      capa.style.background=lado.col;
+      capa.style.justifyContent = dx>0 ? "flex-start" : "flex-end";
+      capa.textContent=lado.txt;
+      capa.style.opacity = Math.abs(dx)>=UMBRAL ? "1" : ".65";
+      if(!avisado && Math.abs(dx)>=UMBRAL){        // vibración al cruzar el umbral
+        avisado=true;
+        if(navigator.vibrate){ try{ navigator.vibrate(10); }catch(e){} }
+      }
     }
   },{passive:true});
   document.addEventListener("touchend",(e)=>{
@@ -3464,15 +3749,19 @@ function mostrarAtajos(){
     const dx=(e.changedTouches[0].clientX)-x0;
     const tid=fila.dataset.tid;
     const f=fila;
-    if(mueve && Math.abs(dx)>UMBRAL && tid){
+    const acc=accionesDe();
+    if(mueve && Math.abs(dx)>UMBRAL && tid && acc){
+      const lado = dx>0 ? acc.der : acc.izq;
       f.style.transition="transform .15s ease, opacity .15s ease";
       f.style.transform=`translateX(${dx>0?"100%":"-100%"})`; f.style.opacity="0";
-      setTimeout(()=>{ dx>0 ? accArchivarHilo(tid) : accEliminarHilo(tid); }, 140);
+      setTimeout(()=>{ lado.fn(tid); }, 140);
+      capa.style.display="none";
       fila=null; x0=null; return;
     }
     soltar();
   });
   function soltar(){
+    capa.style.display="none";
     if(!fila) return;
     fila.classList.remove("swiping"); fila.classList.add("swipe-vuelta");
     fila.style.transform=""; fila.style.background="";
@@ -3481,16 +3770,36 @@ function mostrarAtajos(){
   }
 })();
 
+// ---------- El FAB se contrae al bajar y vuelve a extenderse al subir (cambio 7/14) ----------
+(function fabScroll(){
+  let ultY=0;
+  window.addEventListener("scroll",()=>{
+    if(window.innerWidth>820) return;
+    const y=Math.max(0,window.scrollY);
+    const bajando = y>ultY;
+    const fab=document.getElementById("fab");
+    if(fab) fab.classList.toggle("chico", bajando && y>60);
+    // La cabecera se esconde al bajar y vuelve al instante al subir (Gmail hace lo mismo).
+    const h=document.querySelector("header");
+    if(h && !document.body.classList.contains("leyendo")) h.classList.toggle("oculta", bajando && y>80);
+    ultY=y;
+  },{passive:true});
+})();
+
 // ---------- Tirar hacia abajo para actualizar, en el teléfono (fase 12) ----------
 (function tirarParaActualizar(){
   let y0=null, activo=false;
   const barra=document.createElement("div");
   barra.style.cssText="position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;text-align:center;font-size:13px;"+
-    "color:#fff;background:var(--brand);padding:6px;transform:translateY(-100%);transition:transform .2s;z-index:15";
+    "color:var(--on-sup);background:var(--sup-high);padding:6px;transform:translateY(-100%);"+
+    "transition:transform .2s;z-index:calc(var(--z-cajon) - 2)";
   barra.textContent="↓ Suelta para actualizar";
   document.addEventListener("DOMContentLoaded",()=>document.body.appendChild(barra));
   if(document.body) document.body.appendChild(barra);
   document.addEventListener("touchstart",(e)=>{
+    if(window.innerWidth>820){ y0=null; return; }         // gesto de teléfono
+    if(composeAbiertoAhora()){ y0=null; return; }         // escribiendo: no interrumpir
+    if(document.getElementById("side").classList.contains("abierto")){ y0=null; return; }
     if(window.scrollY>0 || e.touches.length!==1) { y0=null; return; }
     if(vistaAbierta) { y0=null; return; }
     y0=e.touches[0].clientY;
@@ -3498,10 +3807,17 @@ function mostrarAtajos(){
   document.addEventListener("touchmove",(e)=>{
     if(y0===null) return;
     const dy=e.touches[0].clientY-y0;
-    if(dy>60 && !activo){ activo=true; barra.style.transform="translateY(0)"; }
+    if(dy<=0) return;
+    // La barra SIGUE al dedo (antes aparecía de golpe a los 60px, sin avisar que faltaba).
+    const prog=Math.max(0,Math.min(dy/90,1));
+    barra.style.transition="none";
+    barra.style.transform="translateY("+(prog*100-100)+"%)";
+    if(prog>=1 && !activo){ activo=true; if(navigator.vibrate){ try{navigator.vibrate(8);}catch(e){} } }
+    if(prog<1) activo=false;
   },{passive:true});
   document.addEventListener("touchend",async ()=>{
-    if(!activo){ y0=null; return; }
+    barra.style.transition="transform .2s";
+    if(!activo){ barra.style.transform="translateY(-100%)"; y0=null; return; }
     barra.textContent="Actualizando…";
     try{ await cargar(true); await refrescarContadores(); }catch(e){}
     barra.style.transform="translateY(-100%)";
@@ -3534,13 +3850,24 @@ document.getElementById("editor").addEventListener("keydown", (e)=>{
 // Panel vivo: cada 15s refresca contadores; la lista solo si estás en la 1ª página, sin modal,
 // sin búsqueda ni selección en curso (no pisarle el trabajo al dueño) y no en Bloqueados.
 setInterval(()=>{
+  if(document.visibilityState!=="visible") return;   // en segundo plano no se gasta batería ni datos
   if(!pass || document.getElementById("app").style.display==="none") return;
   refrescarContadores();
   const modalAbierto = vistaAbierta;
   const composeAbierto = composeAbiertoAhora();
-  if(page===1 && !modalAbierto && !composeAbierto && !busca && !seleccion.size && filtro!=="bloqueados")
+  // En el teléfono, repintar la lista bajo el dedo hace tocar el correo equivocado: solo se
+  // refresca si estás arriba y hace 3 s que no tocas la pantalla.
+  const seguroRepintar = window.innerWidth>820 || (window.scrollY<40 && Date.now()-ultimoToque>3000);
+  if(page===1 && !modalAbierto && !composeAbierto && !busca && !seleccion.size
+     && filtro!=="bloqueados" && seguroRepintar)
     cargar(true).catch(()=>{});   // sin conexión: el banner ya avisa, no molestar con toasts
 }, 15000);
+// Al volver a la app (cambiar de pestaña o desbloquear el teléfono) se refresca al instante.
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible" && pass && !vistaAbierta && !composeAbiertoAhora()){
+    refrescarContadores();
+  }
+});
 
 if(pass){ document.getElementById("login").style.display="none"; iniciar(); }
 document.getElementById("pass").addEventListener("keydown",e=>{ if(e.key==="Enter") entrar(); });
