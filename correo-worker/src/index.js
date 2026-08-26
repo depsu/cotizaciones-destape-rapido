@@ -90,6 +90,20 @@ function cuentasSQL(env) {
   const l = cuentas(env).map((c) => `'${c.replace(/'/g, "''")}'`);
   return l.length ? l.join(",") : "''";
 }
+// Buzones hermanos pre-cargados para el switcher modo agencia ({{BUZONES_JSON}}).
+// CSV en env.BUZONES: "Nombre|https://url,Otro|https://url2". El panel los fusiona con
+// su lista local: el dueño no tiene que agregar nada a mano en ningún dispositivo.
+function buzonesConfig(env) {
+  return (env.BUZONES || "")
+    .split(",")
+    .map((s) => {
+      const [n, u] = s.split("|");
+      const url = (u || "").trim();
+      if (!/^https:\/\//.test(url)) return null;
+      return { nombre: (n || "").trim() || url.replace(/^https:\/\//, "").split(".")[0], url };
+    })
+    .filter(Boolean);
+}
 // La misma lista con etiqueta visible, para el selector del panel ({{CUENTAS_JSON}}).
 function cuentasConEtiqueta(env) {
   return (env.CUENTAS || env.CONTACT_EMAIL || "")
@@ -114,6 +128,7 @@ function renderPanel(env) {
     .replaceAll("{{FROM_NAME}}", env.FROM_NAME || "")
     .replaceAll("\"{{CUENTAS_JSON}}\"", JSON.stringify(cuentasConEtiqueta(env)))
     .replaceAll("{{MODO_AGENCIA}}", env.MODO_AGENCIA === "1" ? "1" : "0")
+    .replaceAll("\"{{BUZONES_JSON}}\"", JSON.stringify(buzonesConfig(env)))
     .replaceAll("{{CONTACT_EMAIL}}", env.CONTACT_EMAIL || "");
 }
 

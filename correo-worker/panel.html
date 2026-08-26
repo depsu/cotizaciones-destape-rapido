@@ -1123,6 +1123,9 @@ function iniciarBuzones(){
   if(!MODO_AGENCIA) return;
   let lista = buzones();
   lista = upsertBuzon(lista, { nombre:"{{BRAND_SHORT}}", url:location.origin });  // el actual se registra solo
+  // Buzones hermanos que ya vienen en la config del Worker: se fusionan solos.
+  const PRECARGADOS = "{{BUZONES_JSON}}";
+  if(Array.isArray(PRECARGADOS)) for(const b of PRECARGADOS.slice(0,20)) lista = upsertBuzon(lista, b);
   if(location.hash.startsWith("#buzones=")){
     try{
       const extra = JSON.parse(decodeURIComponent(location.hash.slice(9)));
