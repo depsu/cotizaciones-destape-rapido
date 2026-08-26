@@ -235,21 +235,16 @@
   #menuBuzones{display:none;position:fixed;top:56px;right:12px;z-index:80;background:#fff;
     border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.16);
     min-width:250px;max-width:min(320px,calc(100vw - 24px));padding:6px}
-  #menuBuzones .buzon-row{display:flex;align-items:center;gap:6px;padding:2px 4px;border-radius:8px}
-  #menuBuzones .buzon-row a{flex:1;display:flex;flex-direction:column;text-decoration:none;color:inherit;
-    padding:8px 6px;min-height:44px;justify-content:center}
-  #menuBuzones .buzon-row a small{color:var(--gray);font-size:11px}
-  #menuBuzones .buzon-row.actual{background:var(--brand-soft)}
-  #menuBuzones .buzon-row.actual span{color:var(--brand);padding:0 8px}
-  #menuBuzones .buzon-row button{border:0;background:none;cursor:pointer;color:var(--gray);
-    min-width:40px;min-height:40px;font-size:14px}
+  #menuBuzones .bz-cta,#menuBuzones .bz-dom{display:flex;align-items:center;gap:8px;width:100%;
+    min-height:44px;padding:6px 12px;border:0;background:none;cursor:pointer;text-decoration:none;
+    color:inherit;font-size:13.5px;text-align:left;border-radius:9px;box-sizing:border-box}
+  #menuBuzones .bz-cta:hover,#menuBuzones .bz-dom:hover{background:var(--brand-soft)}
+  #menuBuzones .bz-cta.on{background:var(--brand-soft);font-weight:700}
+  #menuBuzones .bz-dom{font-weight:700;font-size:14.5px}
+  #menuBuzones .bz-dom span{margin-left:auto;color:var(--brand)}
+  #menuBuzones .bz-sep{border-top:1px solid var(--line);margin:6px 4px}
   #menuBuzones .buzon-add{width:100%;border:0;background:none;color:var(--brand);padding:12px;
     cursor:pointer;font-weight:600;min-height:44px}
-  #menuBuzones .buzon-cuentas{padding:0 6px 6px 18px;display:flex;flex-direction:column}
-  #menuBuzones .buzon-cuentas a,#menuBuzones .buzon-cuentas button{display:flex;align-items:center;
-    gap:6px;min-height:44px;padding:6px 8px;border:0;background:none;cursor:pointer;
-    text-decoration:none;color:inherit;font-size:13px;text-align:left;border-radius:8px}
-  #menuBuzones .buzon-cuentas a:hover,#menuBuzones .buzon-cuentas button:hover{background:var(--brand-soft)}
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
       transition-duration:.01ms !important;scroll-behavior:auto !important}
@@ -1155,20 +1150,26 @@ function iniciarBuzones(){
   // Buzones hermanos que ya vienen en la config del Worker: se fusionan solos.
   const PRECARGADOS = "{{BUZONES_JSON}}";
   if(Array.isArray(PRECARGADOS)) for(const b of PRECARGADOS.slice(0,20)) lista = upsertBuzon(lista, b);
-  let cuentaDestino = "";
+  let cuentaDestino = "", abrirMenuAlLlegar = false;
   if(location.hash.startsWith("#buzones=")){
-    const cruda = location.hash.slice(9);
-    const [parteLista, parteCuenta] = cruda.split("&cuenta=");
+    const partes = {};
+    for(const kv of location.hash.slice(1).split("&")){
+      const i = kv.indexOf("=");
+      if(i>0) partes[kv.slice(0,i)] = kv.slice(i+1);
+    }
     try{
-      const extra = JSON.parse(decodeURIComponent(parteLista));
+      const extra = JSON.parse(decodeURIComponent(partes.buzones || ""));
       if(Array.isArray(extra)) for(const b of extra.slice(0,20)) lista = upsertBuzon(lista, b);
     }catch(e){}
-    if(parteCuenta){ try{ cuentaDestino = decodeURIComponent(parteCuenta); }catch(e){} }
+    if(partes.cuenta){ try{ cuentaDestino = decodeURIComponent(partes.cuenta); }catch(e){} }
+    abrirMenuAlLlegar = partes.menu === "1";
     try{ history.replaceState(null, "", location.pathname); }catch(e){}
   }
   guardarBuzones(lista);
   // Si el salto venía apuntando a una subcuenta ("empresa@ de dixdy"), aterrizar en ella.
   if(cuentaDestino && esCuentaNuestra(cuentaDestino)) setCuenta(cuentaDestino);
+  // Venías de otro dominio y este tiene varias cuentas: el menú se abre solo para elegir.
+  if(abrirMenuAlLlegar && CUENTAS.length > 1) setTimeout(()=>{ try{ toggleBuzones(); }catch(e){} }, 350);
   const btn = document.getElementById("btnBuzones");
   if(btn) btn.style.display = "";
 }
@@ -1177,43 +1178,31 @@ function dominioBuzon(b){
   if((b.nombre||"").includes("@")) return b.nombre.split("@")[1];
   try{ return new URL(b.url).hostname.replace(/^www\./,""); }catch(e){ return b.nombre||""; }
 }
-function abrirCuentasBuzon(i){
-  const el = document.getElementById("bzc-"+i);
-  if(el) el.style.display = el.style.display==="none" ? "block" : "none";
-  return false;
-}
+// Menú minimalista: arriba "Todos" + los correos de ESTE dominio (mezclar solo se puede
+// dentro del dominio); abajo los dominios. Pinchar otro dominio salta a él y, si tiene
+// varias cuentas, al aterrizar el menú se abre solo para elegir el correo.
+// Quitar buzones ya NO va aquí (un toque accidental los borraba): vive en Ajustes.
 function pintarMenuBuzones(){
   const menu = document.getElementById("menuBuzones");
   const lista = buzones();
   const carga = encodeURIComponent(JSON.stringify(lista));
-  menu.innerHTML = lista.map((b,i)=>{
+  let cab = "";
+  if(CUENTAS.length > 1){
+    cab = `<button class="bz-cta${!cuentaActiva?" on":""}" onclick="setCuenta('');toggleBuzones()">👥 Todos</button>`
+      + CUENTAS.map(c=>`<button class="bz-cta${cuentaActiva===c.email?" on":""}"
+          onclick="setCuenta('${esc(c.email)}');toggleBuzones()">👤 ${esc(c.email)}</button>`).join("")
+      + `<div class="bz-sep"></div>`;
+  }
+  const filas = lista.map((b)=>{
     const actual = b.url===location.origin;
     const dom = dominioBuzon(b);
     const etiqueta = dom.split(".")[0] || b.nombre;
-    // Cuentas del buzón: las propias si es el actual; si es remoto, las que viajaron en la lista.
-    const ctas = actual ? (CUENTAS.length>1 ? CUENTAS.map(c=>c.email) : null)
-                        : (Array.isArray(b.cuentas) && b.cuentas.length>1 ? b.cuentas : null);
-    const linkBase = `${esc(b.url)}/#buzones=${carga}`;
-    let principal, sub = "";
-    if(ctas){
-      principal = `<a href="#" onclick="return abrirCuentasBuzon(${i})">${esc(etiqueta)}
-        <small>${esc(dom)} · ${ctas.length} cuentas ▾</small></a>`;
-      sub = `<div class="buzon-cuentas" id="bzc-${i}" style="display:none">`
-        + (actual
-          ? `<button onclick="setCuenta('');toggleBuzones()">👥 Todas</button>`
-            + ctas.map(e=>`<button onclick="setCuenta('${esc(e)}');toggleBuzones()">👤 ${esc(e)}</button>`).join("")
-          : `<a href="${linkBase}">👥 Todas</a>`
-            + ctas.map(e=>`<a href="${linkBase}&cuenta=${encodeURIComponent(e)}">👤 ${esc(e)}</a>`).join(""))
-        + `</div>`;
-    } else {
-      principal = actual
-        ? `<a href="#" onclick="toggleBuzones();return false">${esc(etiqueta)}<small>${esc(dom)}</small></a>`
-        : `<a href="${linkBase}">${esc(etiqueta)}<small>${esc(dom)}</small></a>`;
-    }
-    return `<div class="buzon-row${actual?" actual":""}">${principal}
-      ${actual?"<span>●</span>":`<button onclick="quitarBuzon(${i})" title="Quitar de la lista" aria-label="Quitar">✕</button>`}
-    </div>${sub}`;
-  }).join("") + `<button class="buzon-add" onclick="agregarBuzon()">＋ Agregar buzón</button>`;
+    const abreMenu = (Array.isArray(b.cuentas) && b.cuentas.length>1) ? "&menu=1" : "";
+    return actual
+      ? `<a class="bz-dom" href="#" onclick="toggleBuzones();return false">${esc(etiqueta)}<span>●</span></a>`
+      : `<a class="bz-dom" href="${esc(b.url)}/#buzones=${carga}${abreMenu}">${esc(etiqueta)}</a>`;
+  }).join("");
+  menu.innerHTML = cab + filas + `<button class="buzon-add" onclick="agregarBuzon()">＋ Agregar buzón</button>`;
 }
 function toggleBuzones(){
   const menu = document.getElementById("menuBuzones");
@@ -1221,7 +1210,11 @@ function toggleBuzones(){
   pintarMenuBuzones();
   menu.style.display="block";
 }
-function quitarBuzon(i){ const l=buzones(); l.splice(i,1); guardarBuzones(l); pintarMenuBuzones(); }
+let refrescarAjBuzones = null;   // lo setea el modal de Ajustes mientras está abierto
+function quitarBuzon(i){
+  const l=buzones(); l.splice(i,1); guardarBuzones(l); pintarMenuBuzones();
+  if(refrescarAjBuzones) refrescarAjBuzones();
+}
 function agregarBuzon(){
   miniPrompt("Agregar buzón", "URL del panel (https://…)", "https://correo-cliente.workers.dev", (u)=>{
     const nom = (u||"").replace(/^https?:\/\//,"").split("/")[0].split(".")[0] || "buzon";
@@ -2898,8 +2891,25 @@ async function abrirAjustes(){
         Va al final de cada correo. Mantenla corta: nombre, teléfono y sitio web bastan.
         Nada de imágenes pesadas, que muchos clientes las bloquean.
       </p>
+      ${MODO_AGENCIA ? `<div style="font-size:12.5px;color:var(--gray);margin:16px 0 4px;border-top:1px solid var(--line);padding-top:12px">Buzones del selector 🔀</div>
+      <div id="ajBuzones"></div>
+      <p style="font-size:11.5px;color:var(--gray);margin:6px 0 0">Los buzones que vienen en la configuración del panel vuelven solos al recargar.</p>` : ``}
     </div>`,
     (root, cerrarMini)=>{
+      const contBz = root.querySelector("#ajBuzones");
+      if(contBz){
+        const pintar = ()=>{
+          contBz.innerHTML = buzones().map((b,i)=>`
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;min-height:38px">
+              <span style="flex:1">${esc(dominioBuzon(b))}</span>
+              ${b.url===location.origin
+                ? '<span style="color:var(--gray);font-size:12px">este panel</span>'
+                : `<button class="qa-b" onclick="quitarBuzon(${i})">Quitar</button>`}
+            </div>`).join("") || '<div style="color:var(--gray);font-size:12.5px">Sin buzones.</div>';
+        };
+        refrescarAjBuzones = pintar;
+        pintar();
+      }
       const nodo = root.querySelector("#ajFirma");
       if(window.Squire){
         firmaSquire = new Squire(nodo, {blockTag:"div"});
