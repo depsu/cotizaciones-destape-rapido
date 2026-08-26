@@ -94,13 +94,18 @@ function cuentasSQL(env) {
 // CSV en env.BUZONES: "Nombre|https://url,Otro|https://url2". El panel los fusiona con
 // su lista local: el dueño no tiene que agregar nada a mano en ningún dispositivo.
 function buzonesConfig(env) {
+  // Formato por buzón: "correo|https://url" o "correo|https://url|cta1;cta2;cta3"
+  // (el tercer campo pre-carga las subcuentas para el menú desplegable del switcher).
   return (env.BUZONES || "")
     .split(",")
     .map((s) => {
-      const [n, u] = s.split("|");
+      const [n, u, cs] = s.split("|");
       const url = (u || "").trim();
       if (!/^https:\/\//.test(url)) return null;
-      return { nombre: (n || "").trim() || url.replace(/^https:\/\//, "").split(".")[0], url };
+      const b = { nombre: (n || "").trim() || url.replace(/^https:\/\//, "").split(".")[0], url };
+      const cuentas = (cs || "").split(";").map((x) => x.trim().toLowerCase()).filter((x) => x.includes("@"));
+      if (cuentas.length) b.cuentas = cuentas;
+      return b;
     })
     .filter(Boolean);
 }

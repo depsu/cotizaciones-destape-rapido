@@ -245,6 +245,11 @@
     min-width:40px;min-height:40px;font-size:14px}
   #menuBuzones .buzon-add{width:100%;border:0;background:none;color:var(--brand);padding:12px;
     cursor:pointer;font-weight:600;min-height:44px}
+  #menuBuzones .buzon-cuentas{padding:0 6px 6px 18px;display:flex;flex-direction:column}
+  #menuBuzones .buzon-cuentas a,#menuBuzones .buzon-cuentas button{display:flex;align-items:center;
+    gap:6px;min-height:44px;padding:6px 8px;border:0;background:none;cursor:pointer;
+    text-decoration:none;color:inherit;font-size:13px;text-align:left;border-radius:8px}
+  #menuBuzones .buzon-cuentas a:hover,#menuBuzones .buzon-cuentas button:hover{background:var(--brand-soft)}
   @media (prefers-reduced-motion: reduce){
     *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;
       transition-duration:.01ms !important;scroll-behavior:auto !important}
@@ -1111,12 +1116,20 @@ function normalizarBuzon(b){
   if(!b || typeof b.url!=="string") return null;
   let u; try{ u=new URL(b.url.trim()); }catch(e){ return null; }
   if(u.protocol!=="https:" && u.hostname!=="localhost" && u.hostname!=="127.0.0.1") return null;
-  return { nombre:String(b.nombre||u.hostname).slice(0,40), url:u.origin };
+  const ctas = Array.isArray(b.cuentas)
+    ? b.cuentas.map(x=>String(x).trim().toLowerCase()).filter(x=>x.includes("@")).slice(0,10) : [];
+  const base = { nombre:String(b.nombre||u.hostname).slice(0,40), url:u.origin };
+  if(ctas.length) base.cuentas = ctas;
+  return base;
 }
 function upsertBuzon(lista, b){
   b = normalizarBuzon(b); if(!b) return lista;
   const i = lista.findIndex(x=>x.url===b.url);
-  if(i>=0){ lista[i] = { nombre:b.nombre||lista[i].nombre, url:b.url }; return lista; }
+  if(i>=0){
+    lista[i] = { nombre:b.nombre||lista[i].nombre, url:b.url,
+                 ...( (b.cuentas||lista[i].cuentas) ? {cuentas: b.cuentas||lista[i].cuentas} : {} ) };
+    return lista;
+  }
   // El MISMO buzón puede vivir en dos dominios (workers.dev y el dominio propio): si el
   // nombre es un correo, es su identidad → una sola entrada, prefiriendo el dominio propio.
   if(b.nombre.includes("@")){
@@ -1127,6 +1140,7 @@ function upsertBuzon(lista, b){
         const feo = (u)=>u.includes(".workers.dev");
         if(feo(actual) && !feo(b.url)) lista[j].url = b.url;
       }
+      if(b.cuentas) lista[j].cuentas = b.cuentas;
       return lista;
     }
   }
@@ -1136,31 +1150,70 @@ function upsertBuzon(lista, b){
 function iniciarBuzones(){
   if(!MODO_AGENCIA) return;
   let lista = buzones();
-  lista = upsertBuzon(lista, { nombre:"{{CONTACT_EMAIL}}" || "{{BRAND_SHORT}}", url:location.origin });  // el actual se registra solo, identificado por su correo
+  lista = upsertBuzon(lista, { nombre:"{{CONTACT_EMAIL}}" || "{{BRAND_SHORT}}", url:location.origin,
+    cuentas: CUENTAS.map(c=>c.email) });  // el actual se registra solo: correo + sus cuentas
   // Buzones hermanos que ya vienen en la config del Worker: se fusionan solos.
   const PRECARGADOS = "{{BUZONES_JSON}}";
   if(Array.isArray(PRECARGADOS)) for(const b of PRECARGADOS.slice(0,20)) lista = upsertBuzon(lista, b);
+  let cuentaDestino = "";
   if(location.hash.startsWith("#buzones=")){
+    const cruda = location.hash.slice(9);
+    const [parteLista, parteCuenta] = cruda.split("&cuenta=");
     try{
-      const extra = JSON.parse(decodeURIComponent(location.hash.slice(9)));
+      const extra = JSON.parse(decodeURIComponent(parteLista));
       if(Array.isArray(extra)) for(const b of extra.slice(0,20)) lista = upsertBuzon(lista, b);
     }catch(e){}
+    if(parteCuenta){ try{ cuentaDestino = decodeURIComponent(parteCuenta); }catch(e){} }
     try{ history.replaceState(null, "", location.pathname); }catch(e){}
   }
   guardarBuzones(lista);
+  // Si el salto venía apuntando a una subcuenta ("empresa@ de dixdy"), aterrizar en ella.
+  if(cuentaDestino && esCuentaNuestra(cuentaDestino)) setCuenta(cuentaDestino);
   const btn = document.getElementById("btnBuzones");
   if(btn) btn.style.display = "";
+}
+// El nombre visible del buzón es su DOMINIO ("dixdy", "destaperapido"): menos confusión.
+function dominioBuzon(b){
+  if((b.nombre||"").includes("@")) return b.nombre.split("@")[1];
+  try{ return new URL(b.url).hostname.replace(/^www\./,""); }catch(e){ return b.nombre||""; }
+}
+function abrirCuentasBuzon(i){
+  const el = document.getElementById("bzc-"+i);
+  if(el) el.style.display = el.style.display==="none" ? "block" : "none";
+  return false;
 }
 function pintarMenuBuzones(){
   const menu = document.getElementById("menuBuzones");
   const lista = buzones();
   const carga = encodeURIComponent(JSON.stringify(lista));
-  menu.innerHTML = lista.map((b,i)=>`
-    <div class="buzon-row${b.url===location.origin?" actual":""}">
-      <a href="${esc(b.url)}/#buzones=${carga}">${esc(b.nombre)}<small>${esc(b.url.replace(/^https?:\/\//,""))}</small></a>
-      ${b.url===location.origin?"<span>●</span>":`<button onclick="quitarBuzon(${i})" title="Quitar de la lista" aria-label="Quitar">✕</button>`}
-    </div>`).join("")
-    + `<button class="buzon-add" onclick="agregarBuzon()">＋ Agregar buzón</button>`;
+  menu.innerHTML = lista.map((b,i)=>{
+    const actual = b.url===location.origin;
+    const dom = dominioBuzon(b);
+    const etiqueta = dom.split(".")[0] || b.nombre;
+    // Cuentas del buzón: las propias si es el actual; si es remoto, las que viajaron en la lista.
+    const ctas = actual ? (CUENTAS.length>1 ? CUENTAS.map(c=>c.email) : null)
+                        : (Array.isArray(b.cuentas) && b.cuentas.length>1 ? b.cuentas : null);
+    const linkBase = `${esc(b.url)}/#buzones=${carga}`;
+    let principal, sub = "";
+    if(ctas){
+      principal = `<a href="#" onclick="return abrirCuentasBuzon(${i})">${esc(etiqueta)}
+        <small>${esc(dom)} · ${ctas.length} cuentas ▾</small></a>`;
+      sub = `<div class="buzon-cuentas" id="bzc-${i}" style="display:none">`
+        + (actual
+          ? `<button onclick="setCuenta('');toggleBuzones()">👥 Todas</button>`
+            + ctas.map(e=>`<button onclick="setCuenta('${esc(e)}');toggleBuzones()">👤 ${esc(e)}</button>`).join("")
+          : `<a href="${linkBase}">👥 Todas</a>`
+            + ctas.map(e=>`<a href="${linkBase}&cuenta=${encodeURIComponent(e)}">👤 ${esc(e)}</a>`).join(""))
+        + `</div>`;
+    } else {
+      principal = actual
+        ? `<a href="#" onclick="toggleBuzones();return false">${esc(etiqueta)}<small>${esc(dom)}</small></a>`
+        : `<a href="${linkBase}">${esc(etiqueta)}<small>${esc(dom)}</small></a>`;
+    }
+    return `<div class="buzon-row${actual?" actual":""}">${principal}
+      ${actual?"<span>●</span>":`<button onclick="quitarBuzon(${i})" title="Quitar de la lista" aria-label="Quitar">✕</button>`}
+    </div>${sub}`;
+  }).join("") + `<button class="buzon-add" onclick="agregarBuzon()">＋ Agregar buzón</button>`;
 }
 function toggleBuzones(){
   const menu = document.getElementById("menuBuzones");
