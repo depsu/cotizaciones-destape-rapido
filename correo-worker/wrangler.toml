@@ -27,7 +27,7 @@ BRAND_NAME    = "Cotizaciones — Destape Rápido"
 BRAND_SHORT   = "Cotizaciones"
 BRAND_COLOR   = "#0F6E6E"
 BRAND_RGB     = "15,110,110"
-BUZONES       = "DIXDY|https://correo-dixdy.rivera-ale98.workers.dev"
+BUZONES       = "contacto@dixdy.cl|https://correo-dixdy.rivera-ale98.workers.dev"
 MODO_AGENCIA  = "1"                           # destaperapido es empresa PROPIA: lleva el switcher 🔀
 AUTODRAFT     = "0"                           # IA server-side apagada (activarla = plata → OK aparte)
 WAKE_URL      = ""

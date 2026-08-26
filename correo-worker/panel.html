@@ -1116,13 +1116,27 @@ function normalizarBuzon(b){
 function upsertBuzon(lista, b){
   b = normalizarBuzon(b); if(!b) return lista;
   const i = lista.findIndex(x=>x.url===b.url);
-  if(i>=0) lista[i] = { nombre:b.nombre||lista[i].nombre, url:b.url }; else lista.push(b);
+  if(i>=0){ lista[i] = { nombre:b.nombre||lista[i].nombre, url:b.url }; return lista; }
+  // El MISMO buzón puede vivir en dos dominios (workers.dev y el dominio propio): si el
+  // nombre es un correo, es su identidad → una sola entrada, prefiriendo el dominio propio.
+  if(b.nombre.includes("@")){
+    const j = lista.findIndex(x=>x.nombre===b.nombre);
+    if(j>=0){
+      const actual = lista[j].url;
+      if(actual !== location.origin){
+        const feo = (u)=>u.includes(".workers.dev");
+        if(feo(actual) && !feo(b.url)) lista[j].url = b.url;
+      }
+      return lista;
+    }
+  }
+  lista.push(b);
   return lista;
 }
 function iniciarBuzones(){
   if(!MODO_AGENCIA) return;
   let lista = buzones();
-  lista = upsertBuzon(lista, { nombre:"{{BRAND_SHORT}}", url:location.origin });  // el actual se registra solo
+  lista = upsertBuzon(lista, { nombre:"{{CONTACT_EMAIL}}" || "{{BRAND_SHORT}}", url:location.origin });  // el actual se registra solo, identificado por su correo
   // Buzones hermanos que ya vienen en la config del Worker: se fusionan solos.
   const PRECARGADOS = "{{BUZONES_JSON}}";
   if(Array.isArray(PRECARGADOS)) for(const b of PRECARGADOS.slice(0,20)) lista = upsertBuzon(lista, b);
