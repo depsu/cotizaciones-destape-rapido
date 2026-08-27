@@ -217,6 +217,7 @@ def generar(config: dict, output_path: str) -> None:
     # ----- Estilos -----
     st_body = ParagraphStyle("body", fontName=FONT, fontSize=9, leading=12.5, textColor=DARK)
     st_small = ParagraphStyle("small", parent=st_body, fontSize=8.5, leading=12)
+    st_num = ParagraphStyle("num", parent=st_small, alignment=TA_RIGHT)
     st_lbl = ParagraphStyle("lbl", parent=st_small, fontName=FONT_BOLD, textColor=BRAND)
     st_title = ParagraphStyle("title", fontName=FONT_HEAVY, fontSize=25, leading=28,
                               textColor=BRAND, alignment=TA_LEFT, spaceAfter=2)
@@ -226,7 +227,7 @@ def generar(config: dict, output_path: str) -> None:
     st_white_center = ParagraphStyle("whitec", parent=st_white, alignment=TA_CENTER)
     st_total_lbl = ParagraphStyle("totlbl", fontName=FONT_BOLD, fontSize=10,
                                   textColor=colors.white, alignment=TA_RIGHT)
-    st_total_val = ParagraphStyle("totval", fontName=FONT_HEAVY, fontSize=12.5,
+    st_total_val = ParagraphStyle("totval", fontName=FONT_HEAVY, fontSize=13.5, splitLongWords=0, wordWrap=None,
                                   textColor=colors.white, alignment=TA_RIGHT)
     st_bullet = ParagraphStyle("bullet", parent=st_body, leftIndent=13,
                                bulletIndent=0, spaceAfter=3)
@@ -341,9 +342,9 @@ def generar(config: dict, output_path: str) -> None:
         rows.append([
             Paragraph(str(i), st_small),
             Paragraph(desc_html, st_small),
-            Paragraph(str(cant), st_small),
-            Paragraph(clp(valor_unit), st_small),
-            Paragraph(clp(subtotal), st_small),
+            Paragraph(str(cant), st_num),
+            Paragraph(clp(valor_unit), st_num),
+            Paragraph(clp(subtotal), st_num),
         ])
 
     detalle_tbl = Table(rows, colWidths=[13 * mm, 88 * mm, 15 * mm, 27 * mm, 27 * mm])
@@ -352,13 +353,13 @@ def generar(config: dict, output_path: str) -> None:
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ("VALIGN", (0, 0), (-1, 0), "MIDDLE"),
         ("ALIGN", (0, 1), (0, -1), "CENTER"),
-        ("ALIGN", (2, 0), (4, -1), "CENTER"),
-        ("ALIGN", (3, 1), (4, -1), "RIGHT"),
+        ("ALIGN", (2, 0), (4, 0), "CENTER"),
+        ("ALIGN", (2, 1), (4, -1), "RIGHT"),
         ("LINEBELOW", (0, 1), (-1, -1), 0.4, LINE),
         ("LEFTPADDING", (0, 0), (-1, -1), 8),
         ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
     ]))
     story.append(detalle_tbl)
 
@@ -366,7 +367,7 @@ def generar(config: dict, output_path: str) -> None:
     if solo_neto:
         tot_data = [["", Paragraph("TOTAL NETO", st_total_lbl),
                      Paragraph(clp(total_neto), st_total_val)]]
-        tot_tbl = Table(tot_data, colWidths=[108 * mm, 31 * mm, 31 * mm])
+        tot_tbl = Table(tot_data, colWidths=[86 * mm, 42 * mm, 42 * mm])
         tot_tbl.setStyle(TableStyle([
             ("BACKGROUND", (1, 0), (2, 0), BRAND),
             ("ALIGN", (1, 0), (2, 0), "RIGHT"),
@@ -380,12 +381,12 @@ def generar(config: dict, output_path: str) -> None:
         iva = round(total_neto * 0.19)
         total = total_neto + iva
         tot_data = [
-            ["", Paragraph("Valor neto", st_small), Paragraph(clp(total_neto), st_small)],
-            ["", Paragraph("IVA (19%)", st_small), Paragraph(clp(iva), st_small)],
+            ["", Paragraph("Valor neto", st_small), Paragraph(clp(total_neto), st_num)],
+            ["", Paragraph("IVA (19%)", st_small), Paragraph(clp(iva), st_num)],
             ["", Paragraph("TOTAL · IVA incluido", st_total_lbl),
              Paragraph(clp(total), st_total_val)],
         ]
-        tot_tbl = Table(tot_data, colWidths=[108 * mm, 31 * mm, 31 * mm])
+        tot_tbl = Table(tot_data, colWidths=[86 * mm, 42 * mm, 42 * mm])
         tot_tbl.setStyle(TableStyle([
             ("BACKGROUND", (1, 0), (2, 1), BRAND_SOFT),
             ("BACKGROUND", (1, 2), (2, 2), BRAND),
@@ -399,7 +400,9 @@ def generar(config: dict, output_path: str) -> None:
             ("TOPPADDING", (1, 2), (2, 2), 10),
             ("BOTTOMPADDING", (1, 2), (2, 2), 10),
         ]))
-    story.append(tot_tbl)
+    # el bloque de totales viaja ENTERO a la página siguiente si no cabe: partir
+    # «Valor neto» del «TOTAL» deja la cifra que el cliente busca huérfana arriba
+    story.append(KeepTogether(tot_tbl))
 
     # ----- Condiciones comerciales -----
     story += section_heading("CONDICIONES COMERCIALES")
