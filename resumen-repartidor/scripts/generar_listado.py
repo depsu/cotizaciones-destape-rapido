@@ -307,10 +307,18 @@ def tarjeta(e: dict) -> str:
         res_txt = f"{n_banos} Baño" + ("s" if n_banos != 1 else "")
         # el extra del servicio también va en el resumen corto (31-ago, caso Carlos
         # Argomedo: «1 Baño · 1 mes» escondía la ducha — el repartidor carga el camión
-        # mirando esta línea)
+        # mirando esta línea). CORTO y con su emoji («que solo diga ducha, más simple»).
         serv = str(e.get("servicio") or "")
         if " + " in serv:
-            res_txt += " + " + serv.split(" + ", 1)[1]
+            extra = serv.split(" + ", 1)[1].strip()
+            el = extra.lower()
+            if "ducha" in el:
+                extra = "🚿 ducha"
+            elif "limpieza" in el or "aseo" in el:
+                extra = "🧽 limpieza"
+            elif "lavamanos" in el:
+                extra = "🧼 lavamanos"
+            res_txt += f" + {extra}"
         plazo = plazo_de(e)
         if plazo:
             res_txt += f" · {plazo}"
