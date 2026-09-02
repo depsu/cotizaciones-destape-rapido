@@ -565,6 +565,13 @@ ESTILOS_EXTRA = """
   body.modo-completadas main { padding-bottom:140px; }
   /* Gestión ARRIBA de la card */
   .card-wrap { margin-bottom:10px; }
+  /* Llegar con ancla (#8582 o el id entero): la tarjeta pedida PULSA unos segundos
+     para que el ojo la encuentre sola — el link llega por WhatsApp desde el panel. */
+  @keyframes pulso-ancla {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(217,164,65,0); }
+    35% { box-shadow: 0 0 0 6px rgba(217,164,65,.55); }
+  }
+  .card-wrap.resalta { animation: pulso-ancla 1.3s ease-in-out 3; border-radius:14px; }
   .gestion-top { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 12px;
     background:#fff; border:1px solid var(--linea); border-bottom:none; border-radius:14px 14px 0 0; }
   .card-wrap > .card { margin-bottom:0; border-top:none; border-radius:0 0 14px 14px; }
@@ -2142,8 +2149,28 @@ SCRIPT_ESTADO = r"""<script>
     wire();
   }
 
+  // El ancla del link de WhatsApp: #8582 (cola del id) o el id completo. Corre DESPUÉS
+  // del render (las cards vienen de Supabase); expande el día si estaba colapsado,
+  // centra la tarjeta y la hace pulsar unos segundos.
+  function irAlAncla() {
+    var h = decodeURIComponent((location.hash || '').replace(/^#/, '')).trim();
+    if (!h) { return; }
+    var cards = Array.prototype.slice.call(document.querySelectorAll('.card-wrap[data-id]'));
+    var card = null;
+    for (var i = 0; i < cards.length; i++) {
+      var id = cards[i].getAttribute('data-id') || '';
+      if (id === h || id.slice(-h.length) === h) { card = cards[i]; break; }
+    }
+    if (!card) { return; }
+    var sec = card.closest('section');
+    if (sec) { sec.classList.remove('colapsada-dia'); }
+    card.scrollIntoView({ block: 'center' });
+    card.classList.add('resalta');
+    setTimeout(function () { card.classList.remove('resalta'); }, 5000);
+  }
+
   function load() {
-    var done = function () { pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); renderComision(); revelar(); };
+    var done = function () { pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); renderComision(); revelar(); irAlAncla(); };
     if (!SUPA.url || !SUPA.key) { done(); return; }
     // Estado mutable (entregado/cobrado/…): puebla el mapa `estado`.
     var pEstado = fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })

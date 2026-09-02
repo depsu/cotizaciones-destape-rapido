@@ -1339,6 +1339,103 @@
       ],
       "notas": "ENTREGA HOY (14/07) — el cliente la necesita URGENTE. El Monte queda a ~25 min del centro de Talagante (por eso el valor). Con factura: total $230.000 IVA incluido. Representante legal: Emilio Andrés Soto Gómez, RUT 16.564.451-4. Facturación: Nuevas Urbanizaciones SpA, RUT 78.310.627-2, Vicuña Mackenna Poniente N° 6100, Depto 1302, La Florida. Limpiezas extra se coordinan y se acuerda el valor. El chat vino bajo 'Limpia Fosas y Destape', pero el emisor es Destape Rápido.",
       "estado": "pendiente"
+    },
+    {
+      "id": "2026-08-11-coni-la-porteria",
+      "cliente": "Coni — obra La Portería (Las Condes)",
+      "telefono": "+56 9 9133 0894",
+      "direccion": "La Portería 11847, Las Condes, Región Metropolitana",
+      "fecha": "2026-08-11",
+      "hora": "",
+      "servicio": "1 baño químico — arriendo 3 semanas",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": {
+        "monto": 140000,
+        "nota": "$140.000 total por las 3 semanas, SIN factura (sin IVA). Pago al entregar, efectivo o transferencia. OJO: se acordó descontarle el día de atraso (la entrega prometida del lunes 10 no llegó)."
+      },
+      "detalle": [
+        "Instalar 1 baño químico.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "limpiezas": [
+        {
+          "fecha": "2026-08-18",
+          "etiqueta": "Aseo 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, 7 a 10 días)."
+        },
+        {
+          "fecha": "2026-08-27",
+          "etiqueta": "Aseo 2",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, 7 a 10 días)."
+        }
+      ],
+      "retiro": {
+        "fecha": "2026-09-01",
+        "nota": "Fin de las 3 semanas (contadas desde la entrega real)."
+      },
+      "notas": "🚨 URGENTE — ENTREGAR HOY (martes 11). Estaba prometida para AYER lunes 10 y no se hizo; la clienta quedó esperando en la obra y está molesta. Avisarle la hora de llegada antes de ir. Correo: Picpaz23@gmail.com. El chat vino bajo 'Limpia Fosas y Destape', pero el emisor es Destape Rápido.",
+      "estado": "pendiente"
+    },
+    {
+      "id": "2026-08-11-constructora-danilo-bocaz",
+      "cliente": "Constructora Danilo Bocaz — obra Valle Escondido (Lo Barnechea)",
+      "telefono": "+56 9 3130 4438",
+      "direccion": "Obra Valle Escondido, Lo Barnechea, Región Metropolitana (punto GPS exacto)",
+      "coordenadas": "-33.3606384,-70.4917504",
+      "fecha": "2026-08-11",
+      "hora": "",
+      "servicio": "1 baño químico con lavamanos — arriendo mensual (obra, 3-4 trabajadores)",
+      "cantidad": 1,
+      "aseo": "",
+      "pago": {
+        "monto": 226100,
+        "nota": "$190.000 neto + IVA = $226.100 (con factura). Transferencia (el cliente ya tiene los datos de la cuenta) o pago al entregar."
+      },
+      "factura": {
+        "requiere": true,
+        "razon_social": "Constructora Danilo Bocaz Gandarillas EIRL",
+        "rut": "76.930.209-3",
+        "direccion": "La Capitanía 80, Las Condes",
+        "email": "danilo@cierreparcela.cl"
+      },
+      "detalle": [
+        "Instalar 1 baño químico con lavamanos.",
+        "Dejar insumos: papel higiénico y desodorizante."
+      ],
+      "limpiezas": [
+        {
+          "fecha": "2026-08-18",
+          "etiqueta": "Aseo 1",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, 7 a 10 días)."
+        },
+        {
+          "fecha": "2026-08-28",
+          "etiqueta": "Aseo 2",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, 7 a 10 días)."
+        },
+        {
+          "fecha": "2026-09-07",
+          "etiqueta": "Aseo 3",
+          "tipo": "incluida",
+          "estado": "pendiente",
+          "nota": "Aseo incluido en el arriendo (semanal, 7 a 10 días)."
+        }
+      ],
+      "retiro": {
+        "fecha": "2026-09-11",
+        "nota": "Fin del primer mes (renovable si la obra sigue)."
+      },
+      "notas": "ENTREGAR HOY (martes 11) — el cliente preguntó a qué hora llegan: coordinar con el contacto en obra (+56 9 3130 4438). Supervisor en obra: Javier Oyarce; administrador de obra: Danilo Bocaz. Quien cotizó: R. Pérez +56 9 8591 7418 (rperez@cierreparcela.cl). La recarga del agua del lavamanos la hace el cliente (puede ser con bidón). El chat vino bajo 'Limpia Fosas y Destape', pero el emisor es Destape Rápido.",
+      "estado": "pendiente"
     }
   ],
   "comprobantes": {
