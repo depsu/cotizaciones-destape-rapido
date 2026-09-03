@@ -46,8 +46,33 @@ bash resumen-repartidor/publicar.sh "mensaje del commit"         # regenera + si
 - **Orden (2026-07-17):** agrupado por día; los días en **orden CRONOLÓGICO** (atrasado → hoy → futuro, el orden en que se trabaja), y dentro de cada día lo **más recientemente informado primero** (`informado_at` desc). Una entrega nueva (informado = `now()`) queda arriba de su día.
 - **Geo en VIVO (2026-07-17):** `aplicarEntregas` recomputa también `GEO` desde el `data` de cada fila (`geoDeData`, puerto JS de `derivar_geo`+`maps_query`; tabla `comunas_geo` en `window.__APP__`). Antes una entrega informada después de hornear caía a "Sin comuna" en el Reparto de hoy. El `APP.geo` horneado queda de respaldo.
 - **"✨ Nuevo" (2026-07-17):** las entregas que ESTE dispositivo no había visto se destacan (borde/sombra azul + chip), con memoria en `localStorage` (`entregas_vistas_v1`) — por persona, no choca entre quienes miran el panel. Primera visita solo siembra la memoria, sin marcar.
-- Al cargar hay un "velo" (`main` opacity) que evita el parpadeo mientras llegan los datos.
+- **Carga sin parpadeo (2026-09-02):** el respaldo horneado puede estar VIEJO (entregas.json se
+  edita a mano y las entregas nuevas entran por el bot), así que la página ya NO lo revela a los
+  1.5 s: muestra un **esqueleto** (`#skel` + cabecera con placeholders) hasta que llegan los datos
+  vivos, y recién ahí pinta el contador de pendientes, el «ganado» y la hora real de
+  actualización (`#hdr-act`). Si Supabase no responde, usa el **caché de la última visita**
+  (`localStorage`: `entregas_cache_v1`, `estado_cache_v1`, `publicidad_cache_v1`) con aviso «lo
+  último guardado»; y solo si tampoco hay caché cae al respaldo horneado con aviso «respaldo
+  ANTIGUO». Fallback CSS a los 10 s por si el JS muere. Probar los tres caminos con
+  `page.route(/supabase\.co/, r => r.abort())` en Playwright.
 - **Consistencia:** las entregas nuevas entran por `resumen_repartidor.py --enviar` (upsert con `informado_at = now()`); `publicar.sh` re-sincroniza todo `entregas.json` (preservando `informado_at`) para que respaldo horneado y Supabase queden iguales.
+
+### Publicidad: la parte que paga el repartidor (2026-09-02)
+
+Alejandro paga los avisos (Google Ads / Meta) y al repartidor le toca una parte (hoy la mitad).
+Cada rendición la arma `scripts/rendir-publicidad.py` del maestro DIXDY (carpeta con
+`resumen.json` + `cobro.png`); **`scripts/publicar_cobro_publicidad.py --rendicion <carpeta>
+--fraccion 0.5`** copia la imagen a `publicidad/<id>.png` (+ `.mini.png`) y sube la fila a la
+tabla **`cobro_publicidad`** (DDL en `supabase/cobro_publicidad.sql`). Luego `publicar.sh` (o un
+commit + push) para que GitHub Pages sirva la imagen. `--listar` muestra lo publicado.
+
+En la página: **cabecera** → a la derecha, miniatura del desglose + monto pendiente (o «Al día ✓»);
+tocarla abre el modal 📣 Publicidad con cada rendición (total gastado, entraron/contactaron/costo
+por contacto, «Tu parte», la imagen completa y «Pagar mi parte»). **Vista 💰 Comisión** → sección
+«📣 Publicidad · pendiente por pagar» con checkbox, sumada a «Te deben»; se paga con el MISMO flujo
+que las comisiones (en la selección viaja como `pub:<id>`; `montoSel`/`labelSel` resuelven monto y
+etiqueta; `upsertPub` hace PATCH a la tabla) y la publicidad pagada entra al «Pago N» de su
+`pagada_at`, con «Revocar».
 
 ### Supabase
 
@@ -57,6 +82,7 @@ bash resumen-repartidor/publicar.sh "mensaje del commit"         # regenera + si
   - **`entrega`** (CONTENIDO — es lo que la página LEE para mostrar): `id` (= id de la entrega), `fecha`, `informado_at` (timestamptz, orden "más reciente arriba"), `data` (jsonb = objeto completo de la entrega, misma forma que en `entregas.json`), `card_html` (tarjeta ya renderizada por `tarjeta()`), `eliminado`, `updated_at`. DDL: `supabase/entrega.sql`.
   - **`entrega_estado`** (ESTADO mutable): `id` (= id de la entrega), `estado`, `fecha` (override reagendado), `comision_pagada`, `pagada_at`, `contactado`, `reagendar_avisado`, `eliminado` (oculta la entrega y la saca de conteos/comisión), `nota`, `updated_at`.
   - **`tarea_estado`**: `id` (= `"<entrega_id>::lim::<idx>"` o `"<entrega_id>::retiro"`), `contactado`, `realizada`, `realizada_at`, `updated_at`.
+  - **`cobro_publicidad`**: `id` (carpeta de la rendición), `campana`, `plataforma`, `desde`, `hasta`, `gasto_total`, `fraccion`, `monto` (lo que le toca), `imagen`, `miniatura`, `detalle` (jsonb), `nota`, `pagado`, `pagada_at`, `eliminado`. DDL: `supabase/cobro_publicidad.sql`.
 
 ### Aplicar migraciones / correr SQL (sin CLI ni psql)
 

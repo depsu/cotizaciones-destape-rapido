@@ -99,12 +99,60 @@
   /* El atributo hidden siempre oculta (varios contenedores usan display:flex/block
      que de otro modo le ganarían al hidden). */
   [hidden] { display: none !important; }
-  /* Velo de carga: evita que parpadeen las completadas antes de ocultarlas.
-     El contenido aparece (con fade) cuando el JS ya aplicó el estado. La animación
-     'velo-fallback' lo revela igual a los 2.2s aunque algo falle. */
-  main { opacity:0; transition:opacity .3s ease; animation:velo-fallback 0s linear 2.2s forwards; }
+  /* Velo de carga (2026-09-02): el HTML trae un respaldo horneado que puede estar
+     VIEJO (clientes de hace semanas). Antes se revelaba a los 1.5-2.2 s aunque
+     Supabase no hubiera respondido, y por unos instantes se veían entregas antiguas
+     y un contador de pendientes falso. Ahora: esqueleto mientras carga, y se revela
+     recién cuando llegan los datos vivos (o el caché de la última visita). El
+     fallback CSS a los 10 s existe solo por si el JS muere. */
+  main { opacity:0; transition:opacity .3s ease; animation:velo-fallback 0s linear 10s forwards; }
   main.listo { opacity:1; }
   @keyframes velo-fallback { to { opacity:1; } }
+  body.listo #skel { display:none; }
+  #skel { max-width:560px; margin:0 auto; padding:14px 12px 0; }
+  .skel-tabs { display:flex; gap:8px; margin-bottom:14px; }
+  .skel-tab { flex:1 1 0; height:46px; border-radius:11px; }
+  .skel-tit { height:14px; width:42%; margin:16px 4px 10px; border-radius:7px; }
+  .skel-card { height:118px; border-radius:14px; margin-bottom:10px; }
+  .skel, .skel-tab, .skel-tit, .skel-card { background:linear-gradient(90deg,#E2E8F0 25%,#EDF2F7 45%,#E2E8F0 65%);
+    background-size:400% 100%; animation:skel-shimmer 1.3s ease-in-out infinite; }
+  header .skel { display:inline-block; vertical-align:middle; height:11px; width:64px; border-radius:6px;
+    background:linear-gradient(90deg,rgba(255,255,255,.28) 25%,rgba(255,255,255,.5) 45%,rgba(255,255,255,.28) 65%);
+    background-size:400% 100%; }
+  header .skel.skel-n { width:16px; }
+  header .skel.skel-w { width:150px; height:13px; }
+  @keyframes skel-shimmer { 0% { background-position:100% 0; } 100% { background-position:0 0; } }
+  @media (prefers-reduced-motion: reduce) { .skel, .skel-tab, .skel-tit, .skel-card { animation:none; } }
+  /* Cabecera: texto a la izquierda, publicidad (miniatura del desglose) a la derecha. */
+  .hdr-row { display:flex; align-items:center; gap:12px; }
+  .hdr-txt { flex:1 1 auto; min-width:0; }
+  .hdr-pub { flex:none; display:flex; flex-direction:column; align-items:center; gap:3px; padding:0;
+    border:none; background:none; color:#fff; font-family:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .hdr-pub:active { opacity:.85; }
+  .hdr-row:has(.hdr-pub:not([hidden])) h1 { font-size:17px; }
+  .hdr-row:has(.hdr-pub:not([hidden])) .ganado { white-space:normal; overflow:visible; text-overflow:clip; line-height:1.3; }
+  .hdr-pub-img { width:40px; height:52px; object-fit:cover; object-position:top; border-radius:7px;
+    border:2px solid rgba(255,255,255,.85); background:#fff; box-shadow:0 2px 6px rgba(15,23,42,.25); }
+  .hdr-pub-lbl { font-size:9.5px; font-weight:700; letter-spacing:.3px; text-transform:uppercase; opacity:.9; }
+  .hdr-pub-monto { font-size:11.5px; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap;
+    background:#FCD34D; color:#78350F; border-radius:8px; padding:1px 7px; }
+  .hdr-pub-monto.al-dia { background:#BBF7D0; color:#14532D; }
+  /* Publicidad dentro de la vista 💰 Comisión y en su modal */
+  .com-card.pub-card { background:#EFF6FF; border-color:#93C5FD; }
+  .pub-card .com-monto { color:#1E40AF; }
+  .pub-card.com-pagada { background:#F0FDF4; border-color:#BBF7D0; }
+  .pub-mini { width:38px; height:50px; object-fit:cover; object-position:top; border-radius:6px; border:1px solid #BFDBFE; flex:none; background:#fff; }
+  .pub-bloque { border:1px solid var(--linea); border-radius:14px; padding:12px; margin-top:12px; background:#F8FAFC; }
+  .pub-bloque-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .pub-bloque-tit { font-weight:800; font-size:15px; }
+  .pub-bloque-per { color:var(--gris); font-size:13px; margin-top:2px; }
+  .pub-chip { font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; white-space:nowrap; text-transform:uppercase; letter-spacing:.4px; flex:none; }
+  .pub-chip.pend { color:#92400E; background:#FEF3C7; }
+  .pub-chip.pag { color:#166534; background:#DCFCE7; }
+  .pub-img { display:block; width:100%; margin-top:10px; border-radius:10px; border:1px solid var(--linea); background:#fff; }
+  .pub-ir { width:100%; margin-top:10px; padding:11px; border-radius:9px; font-family:inherit; font-weight:700;
+    font-size:14px; cursor:pointer; background:#16A34A; color:#fff; border:none; min-height:44px; }
+  .pub-ir:active { filter:brightness(.96); }
   /* Barra de progreso de entregas del día (🚚 en la punta). */
   .prog { flex:1 1 auto; min-width:0; display:flex; align-items:center; gap:8px; }
   .prog-bar { position:relative; flex:1 1 auto; min-width:48px; height:16px;
@@ -462,10 +510,26 @@
 </head>
 <body>
   <header>
-    <h1>🚚 Entregas — Destape Rápido</h1>
-    <div class="sub"><span id="pend-count">32</span> pendiente(s) · Actualizado 02/09/2026</div>
-    <div class="sub ganado" id="ganado-total"></div>
+    <div class="hdr-row">
+      <div class="hdr-txt">
+        <h1>🚚 Entregas — Destape Rápido</h1>
+        <div class="sub"><span id="pend-count"><span class="skel skel-n"></span></span> pendiente(s) · <span id="hdr-act">Cargando…</span></div>
+        <div class="sub ganado" id="ganado-total">💰 <span class="skel skel-w"></span></div>
+      </div>
+      <button type="button" id="hdr-pub" class="hdr-pub" hidden aria-label="Ver el desglose de la publicidad">
+        <img class="hdr-pub-img" alt="">
+        <span class="hdr-pub-lbl">📣 Publicidad</span>
+        <span class="hdr-pub-monto"></span>
+      </button>
+    </div>
   </header>
+  <div id="skel" aria-hidden="true">
+    <div class="skel-tabs"><div class="skel-tab"></div><div class="skel-tab"></div></div>
+    <div class="skel-tit"></div>
+    <div class="skel-card"></div><div class="skel-card"></div>
+    <div class="skel-tit"></div>
+    <div class="skel-card"></div>
+  </div>
   <main>
     <div id="estado-online" class="estado-online" hidden></div><div class="vistas"><button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button><button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button></div><div class="vista" data-vista="entregas"><div id="recomendacion-hoy" class="reco" hidden></div><div id="modo-titulo" class="modo-titulo" hidden></div><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><section data-fecha="2026-06-23"><h2 class="fecha-titulo">Martes 23 de junio<span class="prog"><span class="prog-bar"><span class="prog-fill"><span class="prog-truck">🚚</span></span></span><span class="prog-num"></span></span><span class="sec-chevron">▾</span></h2>
     <div class="card-wrap" data-id="2026-06-23-don-daniel" data-fecha="2026-06-23" data-estado-orig="pendiente">
@@ -1900,6 +1964,43 @@
   // pagar entra marcada por defecto, incluso las que llegan luego desde Supabase.
   var comDesel = null; // Set de ids que el usuario destildó
   var comPorPagar = []; // ids cobrados sin pagar (se recalcula en renderComision)
+  // Publicidad (tabla cobro_publicidad): Alejandro paga los avisos y al repartidor
+  // le toca una parte. Se cobra por el MISMO flujo que las comisiones; en la
+  // selección viajan como 'pub:<id>' para no chocar con los ids de entregas.
+  var PUB = {};          // id -> fila de cobro_publicidad
+  var pubPorPagar = [];  // 'pub:<id>' pendientes (se recalcula en renderComision)
+  var CARGADO = false;   // true cuando llegaron los datos vivos (o el caché): recién ahí se pintan cifras en la cabecera
+  var CACHE_ENT = 'entregas_cache_v1', CACHE_EST = 'estado_cache_v1', CACHE_PUB = 'publicidad_cache_v1';
+  function cacheGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  function cacheSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin espacio o modo privado */ } }
+  function esPub(id) { return String(id).indexOf('pub:') === 0; }
+  function pubIdDe(id) { return String(id).slice(4); }
+  function pubActivos() {
+    return Object.keys(PUB).filter(function (id) { return !PUB[id].eliminado; })
+      .sort(function (a, b) { return String(PUB[b].hasta || '').localeCompare(String(PUB[a].hasta || '')); });
+  }
+  function pubPendientes() { return pubActivos().filter(function (id) { return !PUB[id].pagado; }); }
+  function pubPeriodo(pb) {
+    var d = String(pb.desde || ''), h = String(pb.hasta || '');
+    return (d && h) ? (fechaLarga(d) + ' al ' + fechaLarga(h)) : (h || d);
+  }
+  function pubPeriodoCorto(pb) {
+    var d = String(pb.desde || ''), h = String(pb.hasta || '');
+    if (!d || !h) { return h || d; }
+    var fd = fechaLarga(d), fh = fechaLarga(h);
+    if (d.slice(0, 4) === h.slice(0, 4)) { fd = fd.replace(/\s*\d{4}$/, ''); }
+    return fd + ' al ' + fh;
+  }
+  function pubPorc(pb) { var f = Number(pb.fraccion); return isFinite(f) && f > 0 ? Math.round(f * 100) + '%' : 'tu parte'; }
+  // Monto y etiqueta de un ítem seleccionable (comisión de entrega o publicidad).
+  function montoSel(id) {
+    if (esPub(id)) { var pb = PUB[pubIdDe(id)]; return pb ? (Number(pb.monto) || 0) : 0; }
+    return META[id] ? META[id].comision : 0;
+  }
+  function labelSel(id) {
+    if (esPub(id)) { var pb = PUB[pubIdDe(id)] || {}; return 'Publicidad ' + (pb.campana || '') + ' (' + pubPorc(pb) + ')'; }
+    return (META[id] || {}).cliente || id;
+  }
   var SEL_KEY = 'comision_desel_v1';
 
   // Etiqueta + colores del badge según estado.
@@ -2781,7 +2882,7 @@
   // ====================== VISTA COMISIÓN (flujo de pago) ======================
   function loadSel() { try { return JSON.parse(localStorage.getItem(SEL_KEY)); } catch (e) { return null; } }
   function saveSel() { try { localStorage.setItem(SEL_KEY, JSON.stringify(Array.from(comDesel))); } catch (e) {} }
-  function seleccionadas() { return comPorPagar.filter(function (id) { return !comDesel.has(id); }); }
+  function seleccionadas() { return comPorPagar.concat(pubPorPagar).filter(function (id) { return !comDesel.has(id); }); }
 
   function comisionables() {
     var ids = Object.keys(META).filter(function (id) {
@@ -2803,11 +2904,112 @@
       if (cobradoDe(id)) { llevan += mm; }
       if (estadoDe(id) !== 'cobrado') { pend++; }
     });
+    // Mientras no lleguen los datos vivos, la cabecera muestra el esqueleto: las cifras
+    // horneadas pueden ser de hace semanas (33 pendientes que ya no existen).
+    if (!CARGADO) { setHeaderH(); return; }
     var el = document.getElementById('ganado-total');
     if (el) { el.innerHTML = '💰 <b>' + clp(llevan) + '</b> <span class="proy">/ ' + clp(total) + ' si se cobra todo</span>'; }
     var pc = document.getElementById('pend-count');
     if (pc) { pc.textContent = pend; }
     setHeaderH(); // el alto del header cambia con la línea de "ganado"
+  }
+
+  function setActualizado(txt) { var a = document.getElementById('hdr-act'); if (a) { a.textContent = txt; } }
+  function horaCorta(d) { var h = d.getHours(), m = d.getMinutes(); return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }
+
+  // ====================== PUBLICIDAD (cobro_publicidad) ======================
+  function upsertPub(id, patch) {
+    var prev = PUB[id] || {};
+    var row = {};
+    for (var k in prev) { row[k] = prev[k]; }
+    for (var q in patch) { row[q] = patch[q]; }
+    PUB[id] = row;
+    renderHeaderPub(); renderComision();
+    if (!SUPA.url || !SUPA.key) return Promise.resolve(true);
+    return fetch(SUPA.url + '/rest/v1/cobro_publicidad?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+      body: JSON.stringify(patch)
+    }).then(function (r) {
+      if (!r.ok) { throw new Error('HTTP ' + r.status); }
+      bannerOnline(true); return true;
+    }).catch(function (e) { console.warn('No se pudo guardar publicidad', e); bannerOnline(false); return false; });
+  }
+
+  // Miniatura + monto pendiente a la derecha de la cabecera. Sin cobros, no aparece.
+  function renderHeaderPub() {
+    var btn = document.getElementById('hdr-pub');
+    if (!btn) { return; }
+    var ids = pubActivos();
+    if (!ids.length) { btn.hidden = true; setHeaderH(); return; }
+    var pend = pubPendientes();
+    var muestra = PUB[pend[0] || ids[0]];
+    var img = btn.querySelector('.hdr-pub-img');
+    var src = muestra.miniatura || muestra.imagen || '';
+    if (img && src && img.getAttribute('src') !== src) {
+      img.src = src;
+      img.onerror = function () { if (muestra.imagen && img.src.indexOf(muestra.imagen) === -1) { img.src = muestra.imagen; } };
+    }
+    var total = pend.reduce(function (t, id) { return t + (Number(PUB[id].monto) || 0); }, 0);
+    var m = btn.querySelector('.hdr-pub-monto');
+    if (m) {
+      if (pend.length) { m.textContent = clp(total); m.classList.remove('al-dia'); }
+      else { m.textContent = 'Al día ✓'; m.classList.add('al-dia'); }
+    }
+    btn.hidden = false;
+    setHeaderH();
+  }
+
+  function irAVista(v) {
+    var b = document.querySelector('.vista-btn[data-vista="' + v + '"]');
+    if (b) { b.click(); }
+  }
+
+  function bloquePub(id, conBoton) {
+    var pb = PUB[id] || {};
+    var det = pb.detalle || {};
+    var lineas = '';
+    if (det.clics != null) { lineas += '<div class="bank-row"><span>Personas que entraron al aviso</span><b>' + escapeHtml(String(det.clics)) + '</b></div>'; }
+    if (det.contactos != null) { lineas += '<div class="bank-row"><span>Personas que contactaron</span><b>' + escapeHtml(String(det.contactos)) + '</b></div>'; }
+    if (det.costo_por_contacto) { lineas += '<div class="bank-row"><span>Costo por cada contacto</span><b>' + clp(det.costo_por_contacto) + '</b></div>'; }
+    var chip = pb.pagado
+      ? '<span class="pub-chip pag">✓ Pagada' + (pb.pagada_at ? ' · ' + fechaLarga(String(pb.pagada_at).split('T')[0]) : '') + '</span>'
+      : '<span class="pub-chip pend">Pendiente</span>';
+    var imgHtml = pb.imagen ? '<img class="pub-img" loading="lazy" alt="Desglose de la publicidad ' + escapeHtml(pb.campana || '') + '" src="' + escapeHtml(pb.imagen) + '">' : '';
+    var boton = (conBoton && !pb.pagado) ? '<button type="button" class="pub-ir" data-id="' + escapeHtml(id) + '">💰 Pagar mi parte</button>' : '';
+    return '<div class="pub-bloque">'
+      + '<div class="pub-bloque-head"><div><div class="pub-bloque-tit">📣 ' + escapeHtml(pb.campana || 'Publicidad') + '</div>'
+      + '<div class="pub-bloque-per">' + escapeHtml(pb.plataforma || '') + ' · ' + escapeHtml(pubPeriodo(pb)) + '</div></div>' + chip + '</div>'
+      + '<div class="bank"><div class="bank-row"><span>Total gastado en publicidad</span><b>' + clp(pb.gasto_total) + '</b></div>'
+      + lineas
+      + '<div class="bank-row bank-total"><span>Tu parte (' + escapeHtml(pubPorc(pb)) + ')</span><b>' + clp(pb.monto) + '</b></div></div>'
+      + (pb.nota ? '<p class="modal-sub">' + escapeHtml(pb.nota) + '</p>' : '')
+      + boton + imgHtml + '</div>';
+  }
+
+  // Modal con el desglose de la publicidad (todas las rendiciones, la más nueva arriba).
+  function abrirModalPublicidad() {
+    var ids = pubActivos();
+    if (!ids.length) { return; }
+    var pend = pubPendientes();
+    var tot = pend.reduce(function (t, id) { return t + (Number(PUB[id].monto) || 0); }, 0);
+    var bg = document.createElement('div');
+    bg.className = 'modal-bg';
+    bg.innerHTML = '<div class="modal"><h3>📣 Publicidad</h3>'
+      + '<p class="modal-sub">Alejandro paga los avisos que traen clientes; a ti te toca una parte. '
+      + (pend.length ? 'Pendiente por pagar: <b>' + clp(tot) + '</b>.' : 'Estás al día. ✓') + '</p>'
+      + ids.map(function (id) { return bloquePub(id, true); }).join('')
+      + '<div class="modal-acciones"><button type="button" class="btn-modal cancelar">Cerrar</button></div></div>';
+    document.body.appendChild(bg);
+    function cerrar() { if (document.body.contains(bg)) { document.body.removeChild(bg); } }
+    bg.addEventListener('click', function (ev) { if (ev.target === bg) { cerrar(); } });
+    bg.querySelector('.cancelar').addEventListener('click', cerrar);
+    bg.querySelectorAll('.pub-ir').forEach(function (b) {
+      b.addEventListener('click', function () {
+        comDesel.delete('pub:' + b.getAttribute('data-id')); saveSel();
+        cerrar(); irAVista('comision'); renderComision();
+      });
+    });
   }
 
   // Modal con TODA la info del cliente/entrega (reusa el detalle de su card).
@@ -2866,9 +3068,31 @@
 
     if (comDesel === null) { comDesel = new Set(loadSel() || []); }
     comPorPagar = porPagar; // por defecto todas marcadas, salvo las destildadas
+    var pubPend = pubPendientes(), pubPag = pubActivos().filter(function (id) { return PUB[id].pagado; });
+    pubPorPagar = pubPend.map(function (id) { return 'pub:' + id; });
 
-    var deuda = porPagar.reduce(function (s, id) { return s + META[id].comision; }, 0);
-    var yaPagada = pagadas.reduce(function (s, id) { return s + META[id].comision; }, 0);
+    var deudaCom = porPagar.reduce(function (s, id) { return s + META[id].comision; }, 0);
+    var deudaPub = pubPend.reduce(function (s, id) { return s + (Number(PUB[id].monto) || 0); }, 0);
+    var deuda = deudaCom + deudaPub;
+    var yaPagada = pagadas.reduce(function (s, id) { return s + META[id].comision; }, 0)
+      + pubPag.reduce(function (s, id) { return s + (Number(PUB[id].monto) || 0); }, 0);
+
+    // Tarjeta de un cobro de publicidad (misma silueta que la comisión: check, texto, monto).
+    function cardPub(id, paid) {
+      var pb = PUB[id] || {}, sid = 'pub:' + id;
+      var check = paid
+        ? '<span class="com-pagada-tag">✓ Pagada</span>'
+        : '<input type="checkbox" class="com-check" data-id="' + escapeHtml(sid) + '"' + (comDesel.has(sid) ? '' : ' checked') + '>';
+      var rev = paid ? '<button type="button" class="com-revocar" data-id="' + escapeHtml(sid) + '">Revocar</button>' : '';
+      var mini = (pb.miniatura || pb.imagen) ? '<img class="pub-mini" alt="" src="' + escapeHtml(pb.miniatura || pb.imagen) + '">' : '';
+      return '<div class="com-card pub-card' + (paid ? ' com-pagada' : '') + '">'
+        + '<div class="com-top">' + check + mini
+        + '<div class="com-main"><div class="com-cli">📣 Publicidad · ' + escapeHtml(pb.campana || '') + '</div>'
+        + '<div class="com-dir">' + escapeHtml(pubPeriodoCorto(pb)) + ' · ' + (Number(pb.fraccion) === 0.5 ? 'la mitad de ' : escapeHtml(pubPorc(pb)) + ' de ') + clp(pb.gasto_total) + '</div></div>'
+        + '<div class="com-monto">' + clp(pb.monto) + '</div>' + rev + '</div>'
+        + '<div class="com-acciones"><button type="button" class="com-info pub-info" data-id="' + escapeHtml(id) + '">🧾 Ver el desglose</button></div>'
+        + '</div>';
+    }
 
     function card(id, paid) {
       var m = META[id];
@@ -2887,32 +3111,43 @@
         + '</div>';
     }
 
+    var deudaTxt = (pubPend.length && porPagar.length) ? 'Te deben (comisiones + publicidad)'
+      : (pubPend.length ? 'Te deben (publicidad)' : 'Te deben (cobradas sin pagar)');
     var html = '<div class="cp-head"><span class="cp-titulo">💰 Comisión a pagar</span></div>'
-      + '<div class="com-deuda"><span>Te deben (cobradas sin pagar)</span><b>' + clp(deuda) + '</b></div>';
+      + '<div class="com-deuda"><span>' + deudaTxt + '</span><b>' + clp(deuda) + '</b></div>';
+    if (pubPend.length) {
+      html += '<div class="com-sec-tit">📣 Publicidad · pendiente por pagar</div>'
+        + pubPend.map(function (id) { return cardPub(id, false); }).join('');
+    }
     if (porPagar.length) {
-      html += '<div class="com-sec-tit">Selecciona las que vas a pagar</div>'
+      html += '<div class="com-sec-tit">' + (pubPend.length ? 'Comisiones · selecciona las que vas a pagar' : 'Selecciona las que vas a pagar') + '</div>'
         + porPagar.map(function (id) { return card(id, false); }).join('');
-    } else {
+    } else if (!pubPend.length) {
       html += '<p class="cp-vacio">No hay comisiones pendientes de pago. 🎉</p>';
     }
-    if (pagadas.length) {
+    if (pagadas.length || pubPag.length) {
       // Agrupar por momento de pago: cada grupo es un "Pago N" con su comprobante.
+      // La publicidad pagada entra al grupo de su pagada_at (mismo pago, misma foto).
       var grupos = {};
       pagadas.forEach(function (id) {
         var k = pagadaAtDe(id) || 'sin-fecha';
         (grupos[k] = grupos[k] || []).push(id);
       });
+      pubPag.forEach(function (id) {
+        var k = PUB[id].pagada_at || 'sin-fecha';
+        (grupos[k] = grupos[k] || []).push('pub:' + id);
+      });
       var claves = Object.keys(grupos).sort();
       html += '<div class="com-sec-tit">Mis pagos recibidos · ' + clp(yaPagada) + '</div>';
       claves.forEach(function (k, i) {
         var idsg = grupos[k];
-        var tot = idsg.reduce(function (s, id) { return s + META[id].comision; }, 0);
+        var tot = idsg.reduce(function (s, id) { return s + montoSel(id); }, 0);
         var fechaTxt = (k === 'sin-fecha') ? 'sin fecha' : fechaLarga(k.split('T')[0]);
         html += '<div class="pago-grupo"><div class="pago-head">'
           + '<span class="pago-tit">Pago ' + (i + 1) + ' · ' + fechaTxt + '</span>'
           + '<span class="pago-tot">' + clp(tot) + '</span></div>'
           + '<button type="button" class="com-ver-transf" data-key="' + escapeHtml(k) + '">📷 Ver transferencia</button>'
-          + idsg.map(function (id) { return card(id, true); }).join('')
+          + idsg.map(function (id) { return esPub(id) ? cardPub(pubIdDe(id), true) : card(id, true); }).join('')
           + '</div>';
       });
     }
@@ -2927,10 +3162,20 @@
     });
     cont.querySelectorAll('.com-revocar').forEach(function (b) {
       b.addEventListener('click', function () {
+        var rid = b.getAttribute('data-id');
+        if (esPub(rid)) {
+          if (confirm('¿Revocar el pago de esta publicidad? Volverá a quedar como pendiente.')) {
+            upsertPub(pubIdDe(rid), { pagado: false, pagada_at: null });
+          }
+          return;
+        }
         if (confirm('¿Revocar el pago de esta comisión? Volverá a quedar como pendiente.')) {
-          upsert(b.getAttribute('data-id'), { comision_pagada: false, pagada_at: null });
+          upsert(rid, { comision_pagada: false, pagada_at: null });
         }
       });
+    });
+    cont.querySelectorAll('.pub-info').forEach(function (b) {
+      b.addEventListener('click', function () { abrirModalPublicidad(); });
     });
     cont.querySelectorAll('.com-wa').forEach(function (b) {
       b.addEventListener('click', function () {
@@ -2948,7 +3193,7 @@
   }
 
   function seleccionTotal() {
-    return seleccionadas().reduce(function (t, id) { return t + (META[id] ? META[id].comision : 0); }, 0);
+    return seleccionadas().reduce(function (t, id) { return t + montoSel(id); }, 0);
   }
   function updateBarra() {
     var barra = document.getElementById('barra-pagar');
@@ -2966,11 +3211,13 @@
     var seleccion = seleccionadas();
     if (!seleccion.length) return;
     var total = seleccionTotal();
-    var detalle = seleccion.map(function (id) { return '<div class="bank-row"><span>' + escapeHtml(META[id].cliente) + '</span><b>' + clp(META[id].comision) + '</b></div>'; }).join('');
+    var detalle = seleccion.map(function (id) { return '<div class="bank-row"><span>' + escapeHtml(labelSel(id)) + '</span><b>' + clp(montoSel(id)) + '</b></div>'; }).join('');
+    var hayPub = seleccion.some(esPub), hayCom = seleccion.some(function (id) { return !esPub(id); });
+    var titulo = hayPub && hayCom ? 'Pagar comisión y publicidad' : (hayPub ? 'Pagar publicidad' : 'Pagar comisión');
     var bg = document.createElement('div');
     bg.className = 'modal-bg';
     bg.innerHTML =
-      '<div class="modal"><h3>Pagar comisión</h3>'
+      '<div class="modal"><h3>' + titulo + '</h3>'
       + '<p class="modal-sub">Transfiere el total y mándame el comprobante por WhatsApp. Queda registrada la hora del pago.</p>'
       + '<div class="bank">' + detalle + '<div class="bank-row bank-total"><span>Total</span><b>' + clp(total) + '</b></div></div>'
       + '<div class="bank"><div class="bank-row"><span>Titular</span><b>' + escapeHtml(BANCO.titular || '') + '</b></div>'
@@ -2994,21 +3241,27 @@
       var btn = bg.querySelector('.confirmar');
       btn.disabled = true; btn.textContent = 'Guardando…';
       var ahora = new Date().toISOString();
-      Promise.all(seleccion.map(function (id) { return upsert(id, { comision_pagada: true, pagada_at: ahora }); }))
+      Promise.all(seleccion.map(function (id) {
+          return esPub(id) ? upsertPub(pubIdDe(id), { pagado: true, pagada_at: ahora })
+                           : upsert(id, { comision_pagada: true, pagada_at: ahora });
+        }))
         .then(function (oks) {
           // Si algún guardado falló, revertir el optimismo y NO dar por pagado.
           var fallo = false;
           oks.forEach(function (ok, i) {
-            if (!ok) { fallo = true; var id = seleccion[i]; if (estado[id]) { estado[id].comision_pagada = false; estado[id].pagada_at = null; } }
+            if (ok) { return; }
+            fallo = true; var id = seleccion[i];
+            if (esPub(id)) { var pb = PUB[pubIdDe(id)]; if (pb) { pb.pagado = false; pb.pagada_at = null; } }
+            else if (estado[id]) { estado[id].comision_pagada = false; estado[id].pagada_at = null; }
           });
           if (fallo) {
-            renderComision();
+            renderHeaderPub(); renderComision();
             btn.disabled = false; btn.textContent = 'Marcar pagadas y abrir WhatsApp';
             alert('No se pudo registrar el pago (sin conexión). Reintenta cuando tengas señal.');
             return;
           }
-          var lineas = seleccion.map(function (id) { return '• ' + META[id].cliente + ': ' + clp(META[id].comision); });
-          var texto = 'Hola Alejandro, te transfiero la comisión:\n' + lineas.join('\n')
+          var lineas = seleccion.map(function (id) { return '• ' + labelSel(id) + ': ' + clp(montoSel(id)); });
+          var texto = 'Hola Alejandro, te transfiero ' + (hayPub && hayCom ? 'la comisión y la publicidad' : (hayPub ? 'mi parte de la publicidad' : 'la comisión')) + ':\n' + lineas.join('\n')
             + '\nTotal: ' + clp(total) + '\nFecha: ' + new Date().toLocaleString('es-CL')
             + '\n(Te envío el comprobante de la transferencia.)';
           if (document.body.contains(bg)) document.body.removeChild(bg);
@@ -3192,23 +3445,46 @@
   }
 
   function load() {
-    var done = function () { pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); renderComision(); revelar(); irAlAncla(); };
-    if (!SUPA.url || !SUPA.key) { done(); return; }
-    // Estado mutable (entregado/cobrado/…): puebla el mapa `estado`.
+    var done = function () { CARGADO = true; pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); renderHeaderPub(); renderComision(); revelar(); irAlAncla(); };
+    if (!SUPA.url || !SUPA.key) { setActualizado('sin conexión a la base'); done(); return; }
+    // Estado mutable (entregado/cobrado/…): puebla el mapa `estado`. null = no llegó.
     var pEstado = fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })
-      .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (rows) { rows.forEach(function (row) { estado[row.id] = row; }); })
-      .catch(function (e) { console.warn(e); });
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function (e) { console.warn(e); return null; });
     // Contenido de entregas (card_html) ordenado por informado_at DESC.
     var pEntrega = fetch(SUPA.url + '/rest/v1/entrega?select=id,fecha,informado_at,data,card_html&eliminado=eq.false&order=informado_at.desc', { headers: headers() })
       .then(function (r) { return r.ok ? r.json() : null; })
       .catch(function (e) { console.warn(e); return null; });
-    Promise.all([pEstado, pEntrega]).then(function (res) {
-      var rows = res[1];
+    // Cobros de publicidad (la parte que le toca al repartidor). Si falla, simplemente no se muestra.
+    var pPub = fetch(SUPA.url + '/rest/v1/cobro_publicidad?select=*&eliminado=eq.false&order=hasta.desc', { headers: headers() })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function (e) { console.warn(e); return null; });
+    Promise.all([pEstado, pEntrega, pPub]).then(function (res) {
+      var est = res[0], rows = res[1], pubs = res[2];
+      var vivo = true, horneado = false;
+      // Estado: vivo → guarda caché; si no llegó, usa el de la última visita (si hay).
+      if (est) { cacheSet(CACHE_EST, est); }
+      else { vivo = false; est = cacheGet(CACHE_EST) || []; }
+      est.forEach(function (row) { estado[row.id] = row; });
+      // Entregas: vivo → guarda caché; si no llegó, el caché de la última visita; y si
+      // tampoco hay, quedan las horneadas del HTML (respaldo de último recurso).
+      if (rows && rows.length) { cacheSet(CACHE_ENT, rows); }
+      else { vivo = false; rows = cacheGet(CACHE_ENT); if (!rows || !rows.length) { horneado = true; } }
       if (rows && rows.length) {
-        // Si algo falla al inyectar, dejamos las horneadas (respaldo).
         try { aplicarEntregas(rows); }
-        catch (e) { console.warn('No se pudo aplicar entregas de Supabase, uso las horneadas:', e); }
+        catch (e) { console.warn('No se pudo aplicar entregas de Supabase, uso las horneadas:', e); horneado = true; }
+      }
+      if (pubs) { cacheSet(CACHE_PUB, pubs); } else { pubs = cacheGet(CACHE_PUB) || []; }
+      pubs.forEach(function (pb) { if (pb && pb.id) { PUB[pb.id] = pb; } });
+      setActualizado(vivo ? 'Actualizado ' + horaCorta(new Date()) : (horneado ? 'Sin conexión · respaldo antiguo' : 'Sin conexión · lo último guardado'));
+      if (!vivo) {
+        var p = document.getElementById('estado-online');
+        if (p) {
+          p.hidden = false;
+          p.textContent = horneado
+            ? '⚠ Sin conexión con la base: estás viendo un respaldo ANTIGUO. Cuando vuelva la señal, recarga.'
+            : '⚠ Sin conexión con la base: estás viendo lo último guardado en este teléfono.';
+        }
       }
       done();
     });
@@ -3374,7 +3650,12 @@
     });
   }
 
-  function revelar() { var m = document.querySelector('main'); if (m) { m.classList.add('listo'); } }
+  function revelar() {
+    var m = document.querySelector('main'); if (m) { m.classList.add('listo'); }
+    document.body.classList.add('listo');
+    var sk = document.getElementById('skel'); if (sk) { sk.hidden = true; }
+    setHeaderH();
+  }
 
   setHeaderH();
   window.addEventListener('resize', setHeaderH);
@@ -3382,7 +3663,9 @@
   // revele ya esté lo más correcto posible. El velo se levanta en done() tras el fetch.
   pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); renderComision();
   pintarTareas(); aplicarTareas();
-  setTimeout(revelar, 1500); // fallback si la red tarda demasiado
+  setTimeout(function () { if (!CARGADO) { setActualizado('La base no responde…'); } revelar(); }, 10000); // fallback si la red no responde
+  var hp = document.getElementById('hdr-pub');
+  if (hp) { hp.addEventListener('click', abrirModalPublicidad); }
   wireVistas();
   wire();
   wireTareas();
