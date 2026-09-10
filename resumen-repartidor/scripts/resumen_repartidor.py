@@ -223,8 +223,10 @@ def construir_resumen(e: dict) -> str:
     carga = f"{n} baño{'s' if n != 1 else ''} químico{'s' if n != 1 else ''}"
     for x in equipos:
         carga += f" + {x}"
+    # sin acuerdo especial va la unidad estándar del tarifario (con lavamanos adentro):
+    # «pendiente de confirmar» hacía dudar de algo que no está en duda (10-sep)
     carga += f" · equipo: {marcas['EQUIPO']}" if marcas.get("EQUIPO") \
-        else " · equipo: pendiente de confirmar"
+        else " · equipo: estándar con lavamanos"
     lineas.append("")
     lineas.append(f"{icono_banos(n)} CARGAR: {carga}")
     if marcas.get("EQUIPO"):
