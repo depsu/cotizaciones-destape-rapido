@@ -411,13 +411,27 @@ def generar(config: dict, output_path: str) -> None:
         if solo_neto
         else "Valores netos; se les suma IVA (19%) al total."
     )
+    # LAS CONDICIONES NO SON SIEMPRE LAS MISMAS (9-sep, A08 · A09 · A10). Iban fijas en
+    # TODA cotización y contradecían el pedido: prometían "24 a 48 horas hábiles" para un
+    # evento de octubre, ofrecían solo transferencia cuando el negocio cobra contra entrega
+    # (también en efectivo, sin adelanto) y anunciaban "Facturación electrónica" hasta en
+    # una cotización sin factura. Quien SÍ sabe eso es el conector que arma el pedido: cada
+    # fila se puede reemplazar por "condiciones_textos" y el resto queda como estaba.
+    txt = config.get("condiciones_textos") or {}
     condiciones_default = [
-        ("Forma de pago", "Transferencia electrónica o depósito bancario."),
-        ("Facturación", "Electrónica, a la razón social que indique el cliente."),
-        ("Entrega", "Coordinada dentro de 24 a 48 horas hábiles tras la aceptación."),
-        ("Mantención", "Incluida según servicio contratado."),
-        ("Cobertura", "Región Metropolitana. Zonas de difícil acceso pueden implicar recargo."),
-        ("Valores", valores_txt),
+        ("Forma de pago", txt.get(
+            "pago",
+            "Pago contra entrega, en efectivo o transferencia. "
+            "No se solicita adelanto para reservar.")),
+        ("Facturación", txt.get(
+            "facturacion", "Electrónica, a la razón social que indique el cliente.")),
+        ("Entrega", txt.get(
+            "entrega", "Fecha y horario de entrega pendientes de coordinación.")),
+        ("Mantención", txt.get("mantencion", "Incluida según servicio contratado.")),
+        ("Cobertura", txt.get(
+            "cobertura",
+            "Región Metropolitana. Zonas de difícil acceso pueden implicar recargo.")),
+        ("Valores", txt.get("valores", valores_txt)),
     ]
     if "condiciones" in config:
         condiciones = list(config["condiciones"])
@@ -485,13 +499,16 @@ def generar(config: dict, output_path: str) -> None:
     story.append(Spacer(1, 16))
     st_conf_title = ParagraphStyle("conf_title", parent=st_body,
         fontName=FONT_BOLD, fontSize=10.5, textColor=BRAND_DARK, spaceAfter=3)
+    # EL MISMO PDF SALE A VECES SOLO POR WHATSAPP (9-sep, A22): este recuadro mandaba a
+    # "responder este correo" aunque no hubiera correo alguno. El texto por defecto ya no
+    # supone el canal, y el conector puede pasar el suyo con "aceptacion_texto".
+    aceptacion_txt = config.get("aceptacion_texto") or (
+        "Para aceptar, <b>responda por el correo o el WhatsApp por el que recibió esta "
+        "cotización</b>, indicando su conformidad. No es necesario firmar ni imprimir el "
+        "documento. Apenas tengamos su confirmación, coordinamos la entrega.")
     conf_tbl = Table([
         [Paragraph("¿Cómo aceptar esta cotización?", st_conf_title)],
-        [Paragraph(
-            "Para confirmar el servicio basta con <b>responder este correo</b> "
-            "indicando su conformidad, o bien <b>si ya lo coordinamos por WhatsApp</b>, "
-            "queda igualmente confirmado. No es necesario firmar ni imprimir el documento. "
-            "Apenas tengamos su confirmación, coordinamos la entrega.", st_small)],
+        [Paragraph(aceptacion_txt, st_small)],
     ], colWidths=[170 * mm])
     conf_tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), ACCENT_SOFT),

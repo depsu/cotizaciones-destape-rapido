@@ -2520,15 +2520,21 @@ SCRIPT_ESTADO = r"""<script>
           var tel = (META[id] && META[id].tel) || '';
           // Pendiente reagendar: mensaje para reagendar; se activa una sola vez.
           if (pendienteReagendar(id)) {
-            var msgR = 'Hola 👋, le escribo de Destape Rápido. No alcanzamos a entregar su baño el día previsto. '
-              + '¿Lo reagendamos? ¿Qué día le acomoda mejor? ¡Gracias!';
+            // Una sola pregunta y la disculpa primero (9-sep): proponer fecha nueva antes
+            // de saber si todavía quiere el servicio adelanta un paso que no corresponde.
+            // Sin emoji ni exclamación: es un mensaje al cliente.
+            var msgR = 'Hola, le escribo de Destape Rápido. No cumplimos con la entrega prevista '
+              + 'y le pido disculpas. ¿Todavía necesita el servicio?';
             upsert(id, { reagendar_avisado: true });
             if (tel) { window.location.href = 'whatsapp://send?phone=' + tel + '&text=' + encodeURIComponent(msgR); }
             return;
           }
           if (cbtn.disabled || contactadoDe(id)) return;
-          var msg = 'Hola 👋, le escribo de Destape Rápido. Le aviso que voy a entregar su baño químico '
-            + diaRelativo(fechaDe(id)) + '. ¿Me confirma disponibilidad y la dirección? ¡Gracias!';
+          // Se presenta quien llega y pregunta UNA cosa (9-sep): «disponibilidad y la
+          // dirección» juntas obligaban al cliente a contestar dos veces, y la dirección
+          // ya viene en la tarjeta. Sin emoji ni exclamación.
+          var msg = 'Hola, le escribo de Destape Rápido, soy el repartidor. Voy a entregar su '
+            + 'baño químico ' + diaRelativo(fechaDe(id)) + '. ¿Me confirma que puede recibirlo?';
           upsert(id, { contactado: true });
           if (tel) { window.location.href = 'whatsapp://send?phone=' + tel + '&text=' + encodeURIComponent(msg); }
         });
