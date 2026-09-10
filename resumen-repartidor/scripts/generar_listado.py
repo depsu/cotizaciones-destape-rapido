@@ -73,8 +73,95 @@ MESES = [
 ]
 DIAS = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
 
-# Frecuencia de aseo por defecto si la entrega no especifica otra.
-ASEO_DEFAULT = "Aseo semanal (cada 7 a 10 días)"
+# ── EL ASEO SEGÚN EL PLAZO (10-sep) ────────────────────────────────────────────────
+# La tarjeta web caía a «Aseo semanal (cada 7 a 10 días)» SIEMPRE que la entrega no
+# trajera aseo, incluso en un evento de un día donde el baño se retira antes de que
+# toque la primera limpieza. El WhatsApp del repartidor ya no lo hacía; la tarjeta sí.
+# Ahora las dos leen la MISMA función (`texto_aseo`), que vive acá porque este módulo
+# es el único que no importa a nadie (sync y resumen sí lo importan a él).
+ASEO_LARGO = "Incluido cada 7 a 10 días"
+ASEO_SIN_DATO = "Pendiente de confirmar con la oficina"
+
+# Datos que el conector del cliente manda DENTRO de `notas` como «CLAVE: valor»
+# separados por « · » (EQUIPO, ACCESO, RECIBE…): no son plazo, y hay que sacarlos antes
+# de buscar en las notas si el arriendo es largo.
+CLAVES_NOTA = ("EQUIPO", "ACCESO", "RECIBE", "PAGA", "PAGO", "RETIRO")
+RE_MARCA_NOTA = re.compile(r"^([A-ZÁÉÍÓÚÑ]{4,7})\s*:\s*.+$")
+# Un arriendo LARGO (mensual o más): ahí el aseo periódico corre de verdad.
+RE_LARGO = re.compile(r"mensual|indefinid|permanente|\bmes(?:es)?\b", re.IGNORECASE)
+# Un plazo CORTO escrito en días o noches: el baño se retira antes del primer ciclo.
+RE_CORTO = re.compile(r"\b(\d{1,2})\s*(?:d[ií]as?|noches?)\b", re.IGNORECASE)
+
+
+# Cómo se pinta cada marca en la tarjeta web (el WhatsApp ya las pinta en su sitio).
+ETIQUETA_MARCA = {
+    "EQUIPO": "🚽 Equipo acordado",
+    "ACCESO": "🚪 Cómo se entra",
+    "RECIBE": "🙋 Recibe en terreno",
+    "PAGA": "💵 Le cobra a",
+    "PAGO": "💳 Forma de pago",
+    "RETIRO": "↩️ Retiro acordado",
+}
+
+
+def partir_notas(notas) -> tuple[dict, str]:
+    """Parte las notas en {CLAVE: valor} conocidas y el resto en texto.
+
+    Mismo criterio que `resumen_repartidor.separar_notas`: el conector manda acceso,
+    quién recibe, quién paga y el retiro DENTRO de `notas` porque el objeto entrega no
+    tiene campo para ellos.
+    """
+    marcas: dict[str, str] = {}
+    resto: list[str] = []
+    for parte in [p.strip() for p in str(notas or "").split("·")]:
+        if not parte:
+            continue
+        clave = parte.split(":", 1)[0].strip()
+        if RE_MARCA_NOTA.match(parte) and clave in CLAVES_NOTA:
+            marcas.setdefault(clave, parte.split(":", 1)[1].strip())
+        else:
+            resto.append(parte)
+    return marcas, " · ".join(resto)
+
+
+def notas_sin_marcas(notas) -> str:
+    """Las notas sin las marcas «CLAVE: valor» del conector."""
+    return partir_notas(notas)[1]
+
+
+def texto_aseo(e: dict) -> str:
+    """Qué decir en «Aseo», con la misma regla en el WhatsApp y en la tarjeta web.
+
+    1. Lo que diga la ficha, si lo dice.
+    2. Arriendo LARGO (mensual+) o con una limpieza incluida ya agendada → el ciclo
+       estándar de 7 a 10 días.
+    3. Plazo CORTO conocido (hasta 7 días) → no hay aseo periódico y se dice por qué:
+       prometer un ciclo semanal en un evento de tres días es prometer una visita que
+       nadie va a hacer, porque el baño ya no está.
+    4. Sin saber cuánto dura → pendiente. Nunca se rellena con el estándar mensual.
+    """
+    dicho = str(e.get("aseo") or "").strip()
+    if dicho:
+        return dicho
+    periodo = str(e.get("periodo") or "").strip()
+    resto = notas_sin_marcas(e.get("notas"))
+    # El SERVICIO también cuenta (mismo respaldo que usa `plazo_de`): las entregas
+    # cargadas a mano no traen `periodo` y escriben el plazo ahí («1 baño químico —
+    # arriendo mensual renovable»). Sin mirarlo, dos arriendos mensuales reales caían
+    # en «pendiente» (metalcort-canoas y cristian-ulloa, entregas de julio).
+    donde = f"{periodo} {resto} {e.get('servicio') or ''}"
+    # Un aseo INCLUIDO ya agendado (limpiezas sin `tipo: extra`) prueba por sí solo que
+    # el arriendo lleva ciclo periódico, aunque el plazo no venga escrito.
+    aseo_agendado = any(isinstance(x, dict) and str(x.get("tipo") or "") != "extra"
+                        for x in (e.get("limpiezas") or []))
+    if RE_LARGO.search(donde) or aseo_agendado:
+        return ASEO_LARGO
+    m = RE_CORTO.search(donde)
+    if m is not None and 1 <= int(m.group(1)) <= 7:
+        dias = int(m.group(1))
+        return (f"Sin aseo periódico ({dias} día{'' if dias == 1 else 's'}): "
+                "el baño se retira antes del primer ciclo")
+    return ASEO_SIN_DATO
 
 ESTADOS = {
     "pendiente": ("Pendiente", "#B45309", "#FEF3C7"),
@@ -358,7 +445,13 @@ def tarjeta(e: dict) -> str:
     if monto is not None:
         # Desglose breve de cómo se llega al monto (baño + extras + IVA), si viene.
         desglose_pago = f'<span class="cobro-nota">{esc(pago.get("desglose"))}</span>' if pago.get("desglose") else ""
-        nota_pago = f'<span class="cobro-nota">{esc(pago.get("nota"))}</span>' if pago.get("nota") else ""
+        # La nota del pago es, en el flujo del bot, LA MISMA cadena que las Notas de más
+        # abajo (integracion.js escribe las dos con `notas.join(" · ")`): la tarjeta la
+        # imprimía dos veces, palabra por palabra. Se muestra solo si dice algo distinto,
+        # igual que el resumen de WhatsApp (resumen_repartidor).
+        misma_nota = str(pago.get("nota") or "").strip() == str(e.get("notas") or "").strip()
+        nota_pago = (f'<span class="cobro-nota">{esc(pago.get("nota"))}</span>'
+                     if pago.get("nota") and not misma_nota else "")
         # Botón de pago adelantado: va DENTRO del detalle (hay que abrir "Ver toda la
         # información") para que no se apriete sin querer. Delega en el botón "Cobrado"
         # de la barra de arriba, así el estado sigue un solo camino.
@@ -369,8 +462,8 @@ def tarjeta(e: dict) -> str:
             f'</div>'
         )
 
-    # Aseo: lo indicado o el valor por defecto.
-    aseo = esc(e.get("aseo") or ASEO_DEFAULT)
+    # Aseo: lo indicado o lo que corresponda al plazo (misma regla que el WhatsApp).
+    aseo = esc(texto_aseo(e))
 
     # Limpiezas (incluidas + extras), si la entrega las define.
     limpiezas_bloque = limpiezas_html(e)
@@ -405,9 +498,25 @@ def tarjeta(e: dict) -> str:
             f'<p>{" · ".join(partes)}</p></div>'
         )
 
+    # LAS MARCAS DE LA FICHA, EN SU LUGAR (10-sep): el conector manda «EQUIPO: … ·
+    # ACCESO: … · RECIBE: … · PAGA: … · PAGO: … · RETIRO: …» dentro de las notas porque
+    # la entrega no tiene campo para ellas. El WhatsApp del repartidor ya las pintaba
+    # separadas; la tarjeta web le mostraba el bloque crudo, con los nombres en mayúscula
+    # y todo en una línea. Ahora cada una tiene su fila, y en «Notas» queda lo que de
+    # verdad es una nota.
+    marcas_ficha, notas_limpias = partir_notas(notas)
+    marcas_html = ""
+    if marcas_ficha:
+        filas_marcas = [f"<li><b>{ETIQUETA_MARCA.get(k, k)}:</b> {esc(v)}</li>"
+                        for k, v in marcas_ficha.items() if k in ETIQUETA_MARCA]
+        if filas_marcas:
+            marcas_html = ('<div class="bloque"><span class="etq">Acordado con el cliente</span>'
+                           f'<ul>{"".join(filas_marcas)}</ul></div>')
+
     notas_html = ""
-    if notas:
-        notas_html = f'<div class="bloque"><span class="etq">Notas</span><p>{esc(notas)}</p></div>'
+    if notas_limpias:
+        notas_html = (f'<div class="bloque"><span class="etq">Notas</span>'
+                      f'<p>{esc(notas_limpias)}</p></div>')
 
     # Contacto de respaldo opcional (jefe, portería): a quién llamar si no contesta el cliente.
     respaldo_html = ""
@@ -477,6 +586,7 @@ def tarjeta(e: dict) -> str:
           {respaldo_html}
           {factura_html}
           {horario_html}
+          {marcas_html}
           {notas_html}
           {botones_html}
           <div class="detalle-danger">
@@ -1747,9 +1857,14 @@ SCRIPT_ESTADO = r"""<script>
           ev.preventDefault();
           if (cb.disabled || tContactadoDe(id)) return;
           var dia = diaRelativo(t.fecha);
+          // Se presenta quien llega y pregunta UNA cosa (10-sep, misma corrección que el
+          // botón de contacto de la entrega): antes prometía «le confirmo el horario»
+          // —una promesa que nadie cumple después— y no preguntaba nada, así que el
+          // repartidor llegaba sin saber si podía entrar. Los iconos se quedan: son los
+          // que Alejandro prefiere en lo que ve el cliente.
           var msg = (t.tipo === 'retiro')
-            ? 'Hola 👋, le escribo de Destape Rápido. Le aviso que vamos a retirar el baño ' + dia + '. Le confirmo el horario en que pasaremos. ¡Gracias!'
-            : 'Hola 👋, le escribo de Destape Rápido. Le aviso que vamos a hacer el aseo de su baño ' + dia + '. Le confirmo el horario en que pasaremos. ¡Gracias!';
+            ? 'Hola 👋, le escribo de Destape Rápido, soy el repartidor. Voy a retirar su baño ' + dia + '. ¿Me confirma que puedo pasar? ¡Gracias! 🙌'
+            : 'Hola 👋, le escribo de Destape Rápido, soy el repartidor. Voy a hacer el aseo de su baño ' + dia + '. ¿Me confirma que puedo pasar? ¡Gracias! 🙌';
           tUpsert(id, { contactado: true });
           if (t.tel) { window.location.href = 'whatsapp://send?phone=' + t.tel + '&text=' + encodeURIComponent(msg); }
         });

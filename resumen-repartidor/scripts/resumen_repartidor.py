@@ -29,6 +29,9 @@ from urllib.parse import quote
 # del repartidor (sin regenerar ni publicar el HTML). Ver sync_entregas_supabase.py.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sync_entregas_supabase as sync  # noqa: E402
+# El generador de la tarjeta web: comparte con este resumen la regla del aseo, para que
+# el WhatsApp del repartidor y su tarjeta no digan cosas distintas del mismo arriendo.
+import generar_listado as gl  # noqa: E402
 
 DATA_PATH = Path(__file__).resolve().parent.parent / "entregas.json"
 
@@ -99,8 +102,10 @@ def fecha_legible(iso: str) -> str:
 # En plazos cortos NO se rellena con esto (9-sep, B5/A02): un ciclo de 7 a 10 días en un
 # evento de tres días es una promesa que nadie va a cumplir, el baño ya se retiró. Y si
 # no se sabe cuánto dura el arriendo, se dice «pendiente», nunca la cadencia mensual.
-ASEO_DEFAULT = "Incluido cada 7 a 10 días"
-ASEO_SIN_DATO = "Pendiente de confirmar con la oficina"
+# Los textos y la regla viven en generar_listado (`texto_aseo`) desde el 10-sep: la
+# tarjeta web decía «Aseo semanal» donde el WhatsApp decía «pendiente». Una sola fuente.
+ASEO_DEFAULT = gl.ASEO_LARGO
+ASEO_SIN_DATO = gl.ASEO_SIN_DATO
 
 # Datos que el conector del cliente manda DENTRO de `notas`, como «CLAVE: valor»
 # separados por « · », porque el objeto entrega no tiene un campo propio para ellos.
@@ -235,10 +240,16 @@ def construir_resumen(e: dict) -> str:
         lineas.append("   Esa configuración es la acordada: si no hay, avisar antes de salir.")
 
     # 2 · DÓNDE se instala (con la comuna, que antes no se imprimía nunca) y cómo se entra.
-    direccion = str(e.get("direccion") or "—")
+    direccion = str(e.get("direccion") or "").strip()
     comuna = str(e.get("comuna") or "").strip()
-    if comuna and comuna.lower() not in direccion.lower():
+    if direccion and comuna and comuna.lower() not in direccion.lower():
         direccion = f"{direccion}, {comuna}"
+    elif not direccion:
+        # SIN CALLE, PERO CON PIN (10-sep): el cliente mandó su ubicación por Maps/Waze y
+        # nunca dictó la calle. Antes salía «📍 Instalación: —, San Bernardo», que se lee
+        # como un dato perdido; ahora se dice qué pasó y el pin va justo abajo.
+        direccion = (f"{comuna} — sin calle: el cliente mandó el pin del mapa (abajo)"
+                     if e.get("maps_url") else (comuna or "—"))
     lineas.append(f"📍 Instalación: {direccion}")
     if e.get("maps_url"):
         # Pin exacto que mandó el cliente (plus de la dirección; clave en condominios).
@@ -296,12 +307,9 @@ def construir_resumen(e: dict) -> str:
         lineas.append(f"⏳ Uso: {uso}")
         lineas.append(f"↩️ Retiro acordado: {marcas['RETIRO']}" if marcas.get("RETIRO")
                       else "↩️ Retiro: pendiente de coordinar")
-    # Un aseo INCLUIDO ya agendado (limpiezas sin `tipo: extra`) prueba por sí solo que
-    # el arriendo lleva ciclo periódico, aunque el plazo no venga escrito.
-    aseo_agendado = any(isinstance(x, dict) and str(x.get("tipo") or "") != "extra"
-                        for x in (e.get("limpiezas") or []))
-    lineas.append("🧽 Aseo: " + str(e.get("aseo")
-                  or (ASEO_DEFAULT if (largo or aseo_agendado) else ASEO_SIN_DATO)))
+    # La regla del aseo (ficha → largo → plazo corto → pendiente) es la MISMA que pinta
+    # la tarjeta web: vive en generar_listado.texto_aseo y las dos la llaman igual.
+    lineas.append(f"🧽 Aseo: {gl.texto_aseo(e)}")
     # Visitas de limpieza con fecha: el repartidor las ve el día que le tocan, con su
     # valor y si ya se cobraron (así no las cobra dos veces).
     agendadas = []
