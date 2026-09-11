@@ -199,6 +199,42 @@ def make_draw_header_footer(emisor: dict):
     return draw
 
 
+def correlativo_del_dia(hoy: date, output_path: str) -> str:
+    """El folio de la cotización: N° AAAA-MMDD-NNN.
+
+    El «001» estaba FIJO, así que dos cotizaciones emitidas el mismo día salían con el
+    MISMO número (pasó el 11-sep con dos clientes distintos) y el cliente que responde
+    «acepto la 2026-0911-001» no dice cuál.
+
+    El número que se entrega es el primero LIBRE del día: se leen los folios que ya
+    quedaron congelados en los JSON hermanos (main los escribe al emitir) y se toma el
+    siguiente que nadie usa. Así una cotización nueva jamás pisa el número de una que ya
+    se le mandó a un cliente, y regenerar una vieja no mueve nada porque su folio ya está
+    escrito en su propio archivo.
+    """
+    dia = f"{hoy.year}-{hoy.month:02d}{hoy.day:02d}"
+    salida = Path(output_path)
+    prefijo = f"cotizacion-{hoy.year}{hoy.month:02d}{hoy.day:02d}-"
+
+    tomados = set()
+    for hermana in salida.parent.glob(f"{prefijo}*.json"):
+        if hermana.stem == salida.stem:
+            continue                       # el propio archivo no se estorba a sí mismo
+        try:
+            with open(hermana, "r", encoding="utf-8") as f:
+                folio = (json.load(f) or {}).get("numero_cotizacion") or ""
+        except (OSError, json.JSONDecodeError):
+            continue                       # un JSON roto no debe impedir emitir
+        if folio.startswith(f"N° {dia}-"):
+            tomados.add(folio)
+
+    for n in range(1, 1000):
+        candidato = f"N° {dia}-{n:03d}"
+        if candidato not in tomados:
+            return candidato
+    return f"N° {dia}-999"
+
+
 # ============================================================
 # GENERADOR PRINCIPAL
 # ============================================================
@@ -212,8 +248,8 @@ def generar(config: dict, output_path: str) -> None:
     # corta: una cotización que "vence" después del evento no sirve de nada (11-sep).
     validez_str = fecha_larga(hoy + timedelta(days=int(config.get("dias_validez", 15))))
 
-    num_cot = config.get("numero_cotizacion") or \
-        f"N° {hoy.year}-{hoy.month:02d}{hoy.day:02d}-001"
+    num_cot = config.get("numero_cotizacion") or correlativo_del_dia(hoy, output_path)
+    config["_folio_usado"] = num_cot   # main lo congela en el JSON al emitir
     subtitulo = config.get("subtitulo", "Servicios sanitarios y baños químicos")
 
     # ----- Estilos -----
@@ -574,6 +610,23 @@ def main():
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     generar(config, str(output_path))
+
+    # EL FOLIO SE CONGELA AL EMITIR. El correlativo se deduce de los archivos del día, así
+    # que una cotización nueva del mismo día podría correr el número de una que YA se le
+    # mandó al cliente. Una vez emitida, el número queda escrito en su propio JSON y no
+    # vuelve a moverse: es lo que hace cualquier libreta de folios.
+    folio = config.pop("_folio_usado", None)
+    # Solo se congela en una EMISIÓN de verdad, o sea cuando el PDF queda junto a su JSON.
+    # Generando a un temporal (una prueba, una vista previa) el archivo no se toca: una
+    # corrida de prueba llegó a escribirle a 54 cotizaciones viejas un folio con la fecha
+    # de hoy, y hubo que limpiarlas a mano.
+    emision_real = output_path.resolve().parent == config_path.resolve().parent
+    if folio and emision_real and not config.get("numero_cotizacion"):
+        config["numero_cotizacion"] = folio
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+        print(f"    folio {folio} anotado en {config_path.name}")
     print(f"OK: {output_path}")
 
 
