@@ -208,7 +208,9 @@ def generar(config: dict, output_path: str) -> None:
 
     hoy = date.fromisoformat(config["fecha_emision"]) if config.get("fecha_emision") else date.today()
     fecha_str = fecha_larga(hoy)
-    validez_str = fecha_larga(hoy + timedelta(days=15))
+    # 15 días es el default, pero un servicio con fecha corta necesita una validez
+    # corta: una cotización que "vence" después del evento no sirve de nada (11-sep).
+    validez_str = fecha_larga(hoy + timedelta(days=int(config.get("dias_validez", 15))))
 
     num_cot = config.get("numero_cotizacion") or \
         f"N° {hoy.year}-{hoy.month:02d}{hoy.day:02d}-001"
@@ -436,7 +438,23 @@ def generar(config: dict, output_path: str) -> None:
     if "condiciones" in config:
         condiciones = list(config["condiciones"])
     else:
-        condiciones = condiciones_default + list(config.get("condiciones_extra", []))
+        # Una extra con la misma etiqueta que una fija la REEMPLAZA en su lugar, no se
+        # suma: si no, la cotización dice dos cosas distintas sobre lo mismo (pasó con
+        # "Entrega": arriba "pendiente de coordinación", abajo "lunes 14"). Comparamos
+        # sin mayúsculas ni tildes accidentales para que no se escape por un detalle.
+        extras = list(config.get("condiciones_extra", []))
+        por_clave = {str(k).strip().lower(): v for k, v in extras}
+        usadas: set[str] = set()
+        condiciones = []
+        for k, v in condiciones_default:          # la fija conserva SU lugar en la tabla
+            clave = str(k).strip().lower()
+            if clave in por_clave:
+                usadas.add(clave)
+                condiciones.append((k, por_clave[clave]))
+            else:
+                condiciones.append((k, v))
+        condiciones += [(k, v) for k, v in extras   # las que no pisan nada van al final
+                        if str(k).strip().lower() not in usadas]
 
     cond_data = [
         [Paragraph(f'<font name="{FONT_BOLD}" color="{HX_BRAND}">{k}</font>', st_small),
