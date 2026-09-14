@@ -154,9 +154,15 @@ def texto_aseo(e: dict) -> str:
     # el arriendo lleva ciclo periódico, aunque el plazo no venga escrito.
     aseo_agendado = any(isinstance(x, dict) and str(x.get("tipo") or "") != "extra"
                         for x in (e.get("limpiezas") or []))
+    m = RE_CORTO.search(donde)
+    # UN PLAZO EN DÍAS TAMBIÉN PUEDE SER LARGO (14-sep). Entre «7 días» y «1 mes» no había
+    # ninguna regla: un arriendo de «51 días corridos» caía en «pendiente de confirmar con
+    # la oficina» aunque el ciclo de 7 a 10 días alcanza a correr seis veces. Desde 8 días
+    # el aseo periódico corre igual que en un mensual, y se dice.
+    if m is not None and int(m.group(1)) >= 8:
+        return ASEO_LARGO
     if RE_LARGO.search(donde) or aseo_agendado:
         return ASEO_LARGO
-    m = RE_CORTO.search(donde)
     if m is not None and 1 <= int(m.group(1)) <= 7:
         dias = int(m.group(1))
         return (f"Sin aseo periódico ({dias} día{'' if dias == 1 else 's'}): "
