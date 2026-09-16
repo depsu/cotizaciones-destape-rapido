@@ -418,17 +418,27 @@ def generar(config: dict, output_path: str) -> None:
     else:
         iva = round(total_neto * 0.19)
         total = total_neto + iva
+        # UN DESCUENTO NEGOCIADO SE MUESTRA, no se esconde bajando un precio unitario
+        # (14-sep): el cliente tiene que ver que el valor de lista es uno y que le
+        # rebajaron otro. Se aplica DESPUÉS del IVA porque así se negocia en el chat
+        # («50 mil menos en el total»), y el descuento va en su propia fila.
+        desc = config.get("descuento") or {}
+        monto_desc = int(desc.get("monto") or 0)
         tot_data = [
             ["", Paragraph("Valor neto", st_small), Paragraph(clp(total_neto), st_num)],
             ["", Paragraph("IVA (19%)", st_small), Paragraph(clp(iva), st_num)],
-            ["", Paragraph("TOTAL · IVA incluido", st_total_lbl),
-             Paragraph(clp(total), st_total_val)],
         ]
+        if monto_desc > 0:
+            total -= monto_desc
+            tot_data.append(["", Paragraph(desc.get("etiqueta") or "Descuento", st_small),
+                             Paragraph(f"-{clp(monto_desc)}", st_num)])
+        tot_data.append(["", Paragraph("TOTAL · IVA incluido", st_total_lbl),
+                         Paragraph(clp(total), st_total_val)])
         tot_tbl = Table(tot_data, colWidths=[86 * mm, 42 * mm, 42 * mm])
         tot_tbl.setStyle(TableStyle([
-            ("BACKGROUND", (1, 0), (2, 1), BRAND_SOFT),
-            ("BACKGROUND", (1, 2), (2, 2), BRAND),
-            ("LINEBELOW", (1, 0), (2, 1), 0.4, LINE),
+            ("BACKGROUND", (1, 0), (2, -2), BRAND_SOFT),
+            ("BACKGROUND", (1, -1), (2, -1), BRAND),
+            ("LINEBELOW", (1, 0), (2, -2), 0.4, LINE),
             ("ALIGN", (1, 0), (2, -1), "RIGHT"),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("LEFTPADDING", (0, 0), (-1, -1), 8),
@@ -515,7 +525,7 @@ def generar(config: dict, output_path: str) -> None:
     if datos_tx == "__DEFAULT__":
         datos_tx = DATOS_TRANSFERENCIA_DEFAULT
     if datos_tx:
-        story += section_heading("DATOS PARA TRANSFERENCIA")
+        encabezado_tx = section_heading("DATOS PARA TRANSFERENCIA")
         tx_data = [
             [Paragraph(f'<font name="{FONT_BOLD}" color="{HX_BRAND}">{k}</font>', st_small),
              Paragraph(v, st_small)]
@@ -532,10 +542,13 @@ def generar(config: dict, output_path: str) -> None:
             ("TOPPADDING", (0, 0), (-1, -1), 6),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
         ]))
-        story.append(KeepTogether(tx_tbl))
+        story.append(KeepTogether(encabezado_tx + [tx_tbl]))
 
     # ----- Observaciones -----
     story += section_heading("OBSERVACIONES")
+    def _clave_obs(t: str) -> str:
+        return " ".join(str(t).lower().split()).strip(" .")
+
     observaciones_default = [
         "El cliente deberá asegurar un lugar estable y accesible para posicionar el baño químico.",
         "Daños por uso indebido, vandalismo o fuerza mayor se cobran aparte según evaluación.",
@@ -545,7 +558,10 @@ def generar(config: dict, output_path: str) -> None:
     if "observaciones" in config:
         observaciones = list(config["observaciones"])
     else:
-        observaciones = observaciones_default + list(config.get("observaciones_extra", []))
+        observaciones = observaciones_default + [
+            o for o in config.get("observaciones_extra", [])
+            if _clave_obs(o) not in {_clave_obs(d) for d in observaciones_default}
+        ]
     for o in observaciones:
         story.append(Paragraph(f'<font color="{HX_ACCENT}">●</font>&nbsp; {o}', st_bullet))
 
