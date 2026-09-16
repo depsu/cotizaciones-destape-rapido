@@ -226,9 +226,20 @@ def comisiona(e: dict) -> bool:
 
 
 def comision_de(e: dict) -> int:
-    """Comisión de Alejandro para la entrega: 20% del neto (0 si no comisiona)."""
+    """Comisión de Alejandro para la entrega.
+
+    Por defecto el 20% del neto, pero `comision` acepta un MONTO FIJO cuando el trato se
+    negoció así (16-sep): en pegas grandes la comisión se cierra en una cifra conversada,
+    no en un porcentaje, y calcular el 20% igual daría un número que nadie acordó.
+      · comision: false        → no comisiona
+      · comision: 1060000      → esa cifra exacta
+      · sin campo              → 20% del neto, como siempre
+    """
     if not comisiona(e):
         return 0
+    fija = e.get("comision")
+    if isinstance(fija, (int, float)) and not isinstance(fija, bool):
+        return int(round(fija))
     return int(round((neto_de(e) or 0) * TASA_COMISION))
 
 
