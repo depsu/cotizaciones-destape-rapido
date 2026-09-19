@@ -100,14 +100,21 @@ def traer(tabla: str, select: str) -> list[dict]:
 def datos_del_mes(mes: str) -> list[dict]:
     """Las entregas del mes con su estado, ordenadas por día. `mes` = 'AAAA-MM'."""
     entregas = [f for f in traer("entrega", "id,fecha,eliminado,data") if not f.get("eliminado")]
-    estados = {f["id"]: (f.get("estado") or "pendiente")
-               for f in traer("entrega_estado", "id,estado,eliminado") if not f.get("eliminado")}
+    vivos = {f["id"]: f for f in traer("entrega_estado", "id,estado,fecha,eliminado")
+             if not f.get("eliminado")}
+    estados = {i: (v.get("estado") or "pendiente") for i, v in vivos.items()}
+
+    def fecha_vigente(f: dict) -> str:
+        """La fecha que manda es la del estado: ahí queda el reagendado del repartidor."""
+        return (vivos.get(f["id"], {}) or {}).get("fecha") or f["fecha"]
+
     filas = []
-    for f in sorted((x for x in entregas if x["fecha"].startswith(mes)), key=lambda x: x["fecha"]):
+    for f in sorted((x for x in entregas if fecha_vigente(x).startswith(mes)),
+                    key=lambda x: fecha_vigente(x)):
         e = f["data"] or {}
         st = estados.get(f["id"], "pendiente")
         filas.append({
-            "dia": f["fecha"][8:],
+            "dia": fecha_vigente(f)[8:],
             "cliente": str(e.get("cliente") or "sin nombre"),
             "banos": e.get("cantidad") if isinstance(e.get("cantidad"), int) else 0,
             "monto": (e.get("pago") or {}).get("monto") or 0,

@@ -456,7 +456,14 @@
   .mes-f .et { flex:none; font-size:11px; font-weight:700; color:var(--gris); width:74px; text-align:right; }
   .mes-f.pend .et { color:#92600A; }
   .mes-tit { font-size:13px; font-weight:800; color:var(--gris); text-transform:uppercase;
-    letter-spacing:.4px; margin:18px 0 8px; }
+    letter-spacing:.4px; margin:18px 0 8px; display:flex; justify-content:space-between;
+    align-items:center; gap:10px; }
+  .mes-filtro { display:flex; gap:6px; margin:0 0 10px; }
+  .mes-filtro button { flex:1 1 0; padding:9px 8px; border:1px solid var(--linea); background:#fff;
+    color:var(--gris); font-family:inherit; font-size:13px; font-weight:700; border-radius:9px;
+    cursor:pointer; min-height:40px; }
+  .mes-filtro button.on { background:var(--azul); color:#fff; border-color:var(--azul); }
+  .mes-filtro button.on.falta { background:#B45309; border-color:#B45309; }
   .mes-vacio { color:var(--gris); font-size:14px; padding:18px 14px; text-align:center; }
   /* Secciones agregadas (limpiezas / retiros) */
   .agregado { margin-top:22px; }
@@ -2973,6 +2980,7 @@
   // acá, al mes desglosado. Se calcula del mismo META y los mismos estados vivos que
   // pintan las tarjetas, así que nunca puede decir algo distinto de lo que se ve arriba.
   var mesElegido = null;   // 'AAAA-MM'; null = el mes con la entrega más reciente
+  var mesFiltro = 'todas'; // 'todas' | 'falta'
 
   function mesesConEntregas() {
     var set = {};
@@ -3016,14 +3024,29 @@
       if (cobradoDe(id)) { cobrado += mto; } else { pendientes.push(id); }
     });
 
+    // Una sola lista con filtro, no dos: antes lo pendiente salía dos veces (marcado en
+    // ámbar arriba y repetido abajo en «lo que falta cobrar»), y leyendo el panel parecía
+    // que había el doble de entregas por cobrar de las que hay.
+    var verSoloFalta = (mesFiltro === 'falta') && pendientes.length > 0;
+    var mostrar = verSoloFalta ? pendientes : ids;
+
     var html = '<div class="mes-cifras">'
       + '<div class="mes-c total"><div class="r">Total del mes</div><div class="v">' + clp(total) + '</div></div>'
       + '<div class="mes-c ok"><div class="r">Ya cobrado</div><div class="v">' + clp(cobrado) + '</div></div>'
       + '<div class="mes-c falta"><div class="r">Por cobrar</div><div class="v">' + clp(total - cobrado) + '</div></div>'
-      + '</div>'
-      + '<div class="mes-tit">' + ids.length + ' entregas · ' + banos + ' baños</div>'
+      + '</div>';
+    if (pendientes.length) {
+      html += '<div class="mes-filtro">'
+        + '<button type="button" data-filtro="todas"' + (verSoloFalta ? '' : ' class="on"') + '>'
+        + 'Todas · ' + ids.length + '</button>'
+        + '<button type="button" data-filtro="falta"' + (verSoloFalta ? ' class="on falta"' : '') + '>'
+        + 'Por cobrar · ' + pendientes.length + '</button>'
+        + '</div>';
+    }
+    html += '<div class="mes-tit"><span>' + mostrar.length + ' entregas</span>'
+      + '<span>' + banos + ' baños en el mes</span></div>'
       + '<div class="mes-lista">';
-    ids.forEach(function (id) {
+    mostrar.forEach(function (id) {
       var m = META[id], pend = !cobradoDe(id);
       var f = (fechaDe(id) || '');
       html += '<div class="mes-f' + (pend ? ' pend' : '') + '">'
@@ -3033,21 +3056,16 @@
         + '<span class="et">' + (pend ? 'por cobrar' : 'cobrado') + '</span>'
         + '</div>';
     });
+    if (!mostrar.length) { html += '<p class="mes-vacio">No hay entregas en este mes.</p>'; }
     html += '</div>';
-
-    if (pendientes.length) {
-      html += '<div class="mes-tit">Lo que falta cobrar</div><div class="mes-lista">';
-      pendientes.forEach(function (id) {
-        var m = META[id];
-        html += '<div class="mes-f pend">'
-          + '<span class="d">' + escapeHtml((fechaDe(id) || '').slice(8) || '—') + '</span>'
-          + '<span class="cli">' + escapeHtml(m.cliente || id) + '</span>'
-          + '<span class="mto">' + clp(m.monto || 0) + '</span>'
-          + '</div>';
-      });
-      html += '</div>';
-    }
     cont.innerHTML = html;
+
+    cont.querySelectorAll('.mes-filtro button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        mesFiltro = b.getAttribute('data-filtro');
+        renderMes();
+      });
+    });
   }
 
   // Total recaudado: lo que LLEVAN (cobrado) y el total si se concreta TODO.
