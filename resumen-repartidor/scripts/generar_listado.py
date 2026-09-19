@@ -947,6 +947,38 @@ ESTILOS_EXTRA = """
   .vista-btn:active { filter:brightness(.96); }
   .vista-btn.activo { background:var(--azul); color:#fff; border-color:var(--azul); }
   .vista[hidden] { display:none; }
+  /* Vista MES: el resumen del mes, al que se llega tocando la ganancia de la cabecera */
+  header .ganado { cursor:pointer; }
+  header .ganado::after { content:' ›'; opacity:.6; font-weight:600; }
+  .mes-sel { display:flex; gap:8px; align-items:center; margin:0 0 12px; }
+  .mes-sel select { flex:1 1 auto; padding:10px 12px; border:1px solid var(--linea); border-radius:10px;
+    background:#fff; color:var(--tinta); font-family:inherit; font-size:15px; font-weight:700;
+    min-height:44px; }
+  .mes-cifras { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 0 14px; }
+  .mes-c { background:#fff; border:1px solid var(--linea); border-radius:12px; padding:12px 14px; }
+  .mes-c .r { font-size:11px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; color:var(--gris); }
+  .mes-c .v { font-size:21px; font-weight:800; font-variant-numeric:tabular-nums; margin-top:2px;
+    line-height:1.15; }
+  .mes-c.total { grid-column:1 / -1; background:var(--azul); border-color:var(--azul); }
+  .mes-c.total .r, .mes-c.total .v { color:#fff; }
+  .mes-c.total .v { font-size:26px; }
+  .mes-c.ok .v { color:#15803D; }
+  .mes-c.falta { background:#FFFBEB; border-color:#FCD34D; }
+  .mes-c.falta .v { color:#92600A; }
+  .mes-lista { background:#fff; border:1px solid var(--linea); border-radius:12px; overflow:hidden; }
+  .mes-f { display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid var(--linea);
+    font-size:14px; }
+  .mes-f:last-child { border-bottom:none; }
+  .mes-f .d { flex:none; width:22px; color:var(--gris); font-variant-numeric:tabular-nums; font-size:13px; }
+  .mes-f .cli { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .mes-f .mto { flex:none; font-variant-numeric:tabular-nums; font-weight:700; }
+  .mes-f.pend { background:#FFFBEB; }
+  .mes-f.pend .mto { color:#92600A; }
+  .mes-f .et { flex:none; font-size:11px; font-weight:700; color:var(--gris); width:74px; text-align:right; }
+  .mes-f.pend .et { color:#92600A; }
+  .mes-tit { font-size:13px; font-weight:800; color:var(--gris); text-transform:uppercase;
+    letter-spacing:.4px; margin:18px 0 8px; }
+  .mes-vacio { color:var(--gris); font-size:14px; padding:18px 14px; text-align:center; }
   /* Secciones agregadas (limpiezas / retiros) */
   .agregado { margin-top:22px; }
   .ag-lista { list-style:none; margin:8px 0 0; padding:0; }
@@ -1987,6 +2019,89 @@ SCRIPT_ESTADO = r"""<script>
     return ids;
   }
 
+  // ====================== VISTA MES ======================
+  // La cabecera muestra «llevo X / Y si se cobra todo» y esa cifra no se podía abrir:
+  // para saber de dónde salía había que sumar las tarjetas a mano. Tocarla ahora lleva
+  // acá, al mes desglosado. Se calcula del mismo META y los mismos estados vivos que
+  // pintan las tarjetas, así que nunca puede decir algo distinto de lo que se ve arriba.
+  var mesElegido = null;   // 'AAAA-MM'; null = el mes con la entrega más reciente
+
+  function mesesConEntregas() {
+    var set = {};
+    Object.keys(META).forEach(function (id) {
+      if (eliminadoDe(id)) return;
+      var f = fechaDe(id);
+      if (f && f.length >= 7) { set[f.slice(0, 7)] = true; }
+    });
+    return Object.keys(set).sort().reverse();
+  }
+
+  function nombreMes(m) {
+    var p = (m || '').split('-');
+    if (p.length !== 2) return m;
+    return (MESES[parseInt(p[1], 10) - 1] || m) + ' ' + p[0];
+  }
+
+  function renderMes() {
+    var cont = document.getElementById('mes-panel');
+    var sel = document.getElementById('mes-select');
+    if (!cont || !sel) return;
+
+    var meses = mesesConEntregas();
+    if (!meses.length) { sel.innerHTML = ''; cont.innerHTML = '<p class="mes-vacio">Todavía no hay entregas cargadas.</p>'; return; }
+    if (!mesElegido || meses.indexOf(mesElegido) === -1) { mesElegido = meses[0]; }
+    sel.innerHTML = meses.map(function (m) {
+      return '<option value="' + m + '"' + (m === mesElegido ? ' selected' : '') + '>'
+        + escapeHtml(nombreMes(m).charAt(0).toUpperCase() + nombreMes(m).slice(1)) + '</option>';
+    }).join('');
+
+    var ids = Object.keys(META).filter(function (id) {
+      return !eliminadoDe(id) && (fechaDe(id) || '').slice(0, 7) === mesElegido;
+    });
+    ids.sort(function (a, b) { return (fechaDe(a) || '').localeCompare(fechaDe(b) || ''); });
+
+    var total = 0, cobrado = 0, banos = 0, pendientes = [];
+    ids.forEach(function (id) {
+      var m = META[id], mto = m.monto || 0;
+      total += mto;
+      if (m.tipo === 'bano') { banos += (m.banos || 0); }
+      if (cobradoDe(id)) { cobrado += mto; } else { pendientes.push(id); }
+    });
+
+    var html = '<div class="mes-cifras">'
+      + '<div class="mes-c total"><div class="r">Total del mes</div><div class="v">' + clp(total) + '</div></div>'
+      + '<div class="mes-c ok"><div class="r">Ya cobrado</div><div class="v">' + clp(cobrado) + '</div></div>'
+      + '<div class="mes-c falta"><div class="r">Por cobrar</div><div class="v">' + clp(total - cobrado) + '</div></div>'
+      + '</div>'
+      + '<div class="mes-tit">' + ids.length + ' entregas · ' + banos + ' baños</div>'
+      + '<div class="mes-lista">';
+    ids.forEach(function (id) {
+      var m = META[id], pend = !cobradoDe(id);
+      var f = (fechaDe(id) || '');
+      html += '<div class="mes-f' + (pend ? ' pend' : '') + '">'
+        + '<span class="d">' + escapeHtml(f.slice(8) || '—') + '</span>'
+        + '<span class="cli">' + escapeHtml(m.cliente || id) + '</span>'
+        + '<span class="mto">' + clp(m.monto || 0) + '</span>'
+        + '<span class="et">' + (pend ? 'por cobrar' : 'cobrado') + '</span>'
+        + '</div>';
+    });
+    html += '</div>';
+
+    if (pendientes.length) {
+      html += '<div class="mes-tit">Lo que falta cobrar</div><div class="mes-lista">';
+      pendientes.forEach(function (id) {
+        var m = META[id];
+        html += '<div class="mes-f pend">'
+          + '<span class="d">' + escapeHtml((fechaDe(id) || '').slice(8) || '—') + '</span>'
+          + '<span class="cli">' + escapeHtml(m.cliente || id) + '</span>'
+          + '<span class="mto">' + clp(m.monto || 0) + '</span>'
+          + '</div>';
+      });
+      html += '</div>';
+    }
+    cont.innerHTML = html;
+  }
+
   // Total recaudado: lo que LLEVAN (cobrado) y el total si se concreta TODO.
   // También actualiza el contador de pendientes (no completadas) en vivo.
   function actualizarGanado() {
@@ -2006,6 +2121,7 @@ SCRIPT_ESTADO = r"""<script>
     var pc = document.getElementById('pend-count');
     if (pc) { pc.textContent = pend; }
     setHeaderH(); // el alto del header cambia con la línea de "ganado"
+    renderMes();  // la vista del mes sale del mismo cálculo: se repinta junto con él
   }
 
   function setActualizado(txt) { var a = document.getElementById('hdr-act'); if (a) { a.textContent = txt; } }
@@ -2735,19 +2851,37 @@ SCRIPT_ESTADO = r"""<script>
     if (bp) { bp.querySelector('.btn-pagar').addEventListener('click', abrirModalPago); }
   }
 
-  function wireVistas() {
+  function irAVista(v) {
     var btns = document.querySelectorAll('.vista-btn');
-    btns.forEach(function (b) {
-      b.addEventListener('click', function () {
-        var v = b.getAttribute('data-vista');
-        btns.forEach(function (x) { x.classList.toggle('activo', x === b); });
-        document.querySelectorAll('.vista').forEach(function (sec) {
-          sec.hidden = (sec.getAttribute('data-vista') !== v);
-        });
-        document.body.classList.toggle('vista-comision', v === 'comision');
-        window.scrollTo(0, 0);
-      });
+    btns.forEach(function (x) { x.classList.toggle('activo', x.getAttribute('data-vista') === v); });
+    document.querySelectorAll('.vista').forEach(function (sec) {
+      sec.hidden = (sec.getAttribute('data-vista') !== v);
     });
+    document.body.classList.toggle('vista-comision', v === 'comision');
+    if (v === 'mes') { renderMes(); }
+    window.scrollTo(0, 0);
+  }
+
+  function wireVistas() {
+    document.querySelectorAll('.vista-btn').forEach(function (b) {
+      b.addEventListener('click', function () { irAVista(b.getAttribute('data-vista')); });
+    });
+    // La ganancia de la cabecera abre el mes: es la cifra que uno quiere desarmar cuando
+    // la mira, y hasta ahora no llevaba a ninguna parte.
+    var g = document.getElementById('ganado-total');
+    if (g) {
+      g.setAttribute('role', 'button');
+      g.setAttribute('tabindex', '0');
+      g.setAttribute('title', 'Ver el detalle del mes');
+      g.addEventListener('click', function () { irAVista('mes'); });
+      g.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); irAVista('mes'); }
+      });
+    }
+    var sel = document.getElementById('mes-select');
+    if (sel) {
+      sel.addEventListener('change', function () { mesElegido = sel.value; renderMes(); });
+    }
   }
 
   function revelar() {
@@ -3148,6 +3282,7 @@ def construir_html(data: dict) -> str:
         '<div class="vistas">'
         '<button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button>'
         '<button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button>'
+        '<button type="button" class="vista-btn" data-vista="mes">📊 Mes</button>'
         '</div>'
         f'<div class="vista" data-vista="entregas">{vista_entregas}</div>'
         '<div class="vista" data-vista="comision" hidden>'
@@ -3155,6 +3290,10 @@ def construir_html(data: dict) -> str:
         '<div id="barra-pagar" class="barra-pagar" hidden>'
         '<button type="button" class="btn-pagar" disabled>Selecciona comisiones</button>'
         '</div>'
+        '</div>'
+        '<div class="vista" data-vista="mes" hidden>'
+        '<div class="mes-sel"><select id="mes-select" aria-label="Mes"></select></div>'
+        '<div id="mes-panel"></div>'
         '</div>'
     )
 

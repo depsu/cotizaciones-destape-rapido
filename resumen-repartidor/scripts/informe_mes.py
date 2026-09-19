@@ -70,7 +70,12 @@ def _fuentes() -> None:
 
 MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
          "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
-LISTO = {"entregado", "cobrado", "pagado-pendiente"}
+# ENTREGADO NO ES COBRADO (19-sep). El informe contaba «entregado» como plata en el
+# bolsillo, y entregado solo significa que el baño se instaló: el panel del repartidor
+# distingue las dos cosas desde siempre (`entregadoDe` vs `cobradoDe`). Con American
+# Container marcada entregada, el informe daba $19,9 millones cobrados contra los
+# $9,5 reales, una diferencia de $10.422.000 que todavía no llega.
+COBRADO = {"cobrado", "pagado-pendiente"}
 ROTULO = {"pendiente": "por entregar", "en-camino": "en camino", "entregado": "entregado",
           "cobrado": "cobrado", "pagado-pendiente": "cobrado"}
 
@@ -108,7 +113,7 @@ def datos_del_mes(mes: str) -> list[dict]:
             "monto": (e.get("pago") or {}).get("monto") or 0,
             "comision": gl.comision_de(e),
             "estado": ROTULO.get(st, st),
-            "cobrado": st in LISTO,
+            "cobrado": st in COBRADO,
         })
     return filas
 
