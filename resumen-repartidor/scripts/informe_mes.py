@@ -163,8 +163,8 @@ def generar(mes: str, salida: str) -> dict:
     story.append(Spacer(1, 16))
 
     # ── Los cuatro números ────────────────────────────────────────────────────────
-    HUECO = 5
-    anchos = [(ANCHO - 3 * HUECO) * r for r in (0.28, 0.24, 0.24, 0.24)]
+    HUECO = 6
+    anchos = [(ANCHO - 2 * HUECO) * r for r in (0.38, 0.31, 0.31)]
 
     def tarjeta(rotulo: str, valor: str, fondo, tinta: str, ancho: float, grande=False) -> Table:
         t = Table([[Paragraph(f'<font size="7.5" color="{tinta}">{rotulo.upper()}</font>', st_small)],
@@ -180,10 +180,10 @@ def generar(mes: str, salida: str) -> dict:
         return t
 
     hero = Table([[tarjeta("Facturado", clp(total), BRAND, "#FFFFFF", anchos[0], grande=True),
-                   tarjeta("Ya cobrado", clp(cobrado), BRAND_SOFT, HX_BRAND, anchos[1]),
-                   tarjeta("Por cobrar", clp(total - cobrado), ACCENT_SOFT, "#8A6314", anchos[2]),
-                   tarjeta("Comisión", clp(comision), GRAY_SOFT, HX_GRAY, anchos[3])]],
-                 colWidths=[a + HUECO for a in anchos[:3]] + [anchos[3]])
+                   tarjeta("Ya cobrado", clp(cobrado), BRAND_SOFT, HX_BRAND, anchos[1], grande=True),
+                   tarjeta("Por cobrar", clp(total - cobrado), ACCENT_SOFT, "#8A6314", anchos[2],
+                           grande=True)]],
+                 colWidths=[a + HUECO for a in anchos[:2]] + [anchos[2]])
     hero.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"),
                               ("LEFTPADDING", (0, 0), (-1, -1), 0),
                               ("RIGHTPADDING", (0, 0), (-1, -1), 6),
@@ -282,7 +282,7 @@ def main() -> None:
     print(f"OK: {salida}")
     print(f"   {r['entregas']} entregas · {r['banos']} baños")
     print(f"   facturado {clp(r['total'])} · cobrado {clp(r['cobrado'])} · "
-          f"por cobrar {clp(r['por_cobrar'])} · comisión {clp(r['comision'])}")
+          f"por cobrar {clp(r['por_cobrar'])}")
 
 
 if __name__ == "__main__":
