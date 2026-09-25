@@ -3475,7 +3475,14 @@
     var lleva = !!((e.factura || {}).requiere);
     var neto = (monto == null) ? 0 : Math.round(lleva ? (monto / 1.19) : monto);
     var comisiona = !esServ && (monto != null);
-    var comision = comisiona ? Math.round(neto * 0.20) : 0;
+    // MISMA REGLA QUE comision_de() EN PYTHON: `comision` acepta un monto fijo cuando el
+    // trato se cerró en una cifra conversada. Esta función recalcula la comisión con los
+    // datos VIVOS de Supabase y pisa lo horneado, así que si no conoce la regla, un monto
+    // fijo vuelve al 20% en cuanto el panel refresca (pasó con American Container: la
+    // ficha decía $874.000 y el panel mostraba $1.520.000).
+    var fija = (typeof e.comision === 'number') ? e.comision : null;
+    var comision = !comisiona ? 0
+      : (fija != null ? Math.round(fija) : Math.round(neto * 0.20));
     return {
       id: e.id || '', cliente: e.cliente || '—', fecha: e.fecha || '',
       neto: neto, comision: comision, comisiona: comisiona,
