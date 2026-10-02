@@ -3386,9 +3386,6 @@
         }
       });
     });
-    cont.querySelectorAll('.pub-info').forEach(function (b) {
-      b.addEventListener('click', function () { abrirModalPublicidad(); });
-    });
     cont.querySelectorAll('.com-wa').forEach(function (b) {
       b.addEventListener('click', function () {
         var tel = (META[b.getAttribute('data-id')] || {}).tel;
@@ -3911,7 +3908,7 @@
   pintarTareas(); aplicarTareas();
   setTimeout(function () { if (!CARGADO) { setActualizado('La base no responde…'); } revelar(); }, 10000); // fallback si la red no responde
   var hp = document.getElementById('hdr-pub');
-  if (hp) { hp.addEventListener('click', abrirModalPublicidad); }
+  if (hp) { hp.addEventListener('click', function () { abrirModalPublicidad(); }); }
   wireVistas();
   wire();
   wireTareas();
