@@ -91,6 +91,9 @@ def publicar(carpeta: Path, fraccion: float, nota: str | None, id_forzado: str |
         "moneda": cobro.get("moneda") or "CLP",
         "dias_sin_gasto": cobro.get("dias_sin_gasto") or [],
         "montos": r.get("montos"),
+        # día por día (fecha, gasto, contactos, clics): la página lo pinta como tabla.
+        "por_dia": cobro.get("por_dia") or [],
+        "campanas_ads": r.get("campanas_ads") or [],
     }
     fila = {
         "id": cid,
