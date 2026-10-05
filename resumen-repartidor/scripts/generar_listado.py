@@ -820,6 +820,16 @@ ESTILOS_EXTRA = """
   .pub-chip.pend { color:#92400E; background:#FEF3C7; }
   .pub-chip.pag { color:#166534; background:#DCFCE7; }
   .pub-img { display:block; width:100%; margin-top:10px; border-radius:10px; border:1px solid var(--linea); background:#fff; }
+  /* Día por día en texto (2026-10-02): la imagen sola no siempre carga en el celular y Alejandro quiere
+     que el repartidor vea con transparencia cuánto se gastó cada día. */
+  .pub-dias-tit { font-weight:800; font-size:13px; color:var(--gris); text-transform:uppercase; letter-spacing:.4px; margin:12px 0 4px; }
+  .pub-dias { width:100%; border-collapse:collapse; font-size:13px; background:#fff; border:1px solid var(--linea); border-radius:10px; overflow:hidden; }
+  .pub-dias th, .pub-dias td { padding:5px 8px; text-align:right; font-variant-numeric:tabular-nums; border-top:1px solid var(--linea); }
+  .pub-dias th { font-size:11px; color:var(--gris); text-transform:uppercase; letter-spacing:.3px; border-top:0; background:#F8FAFC; }
+  .pub-dias th:first-child, .pub-dias td:first-child { text-align:left; }
+  .pub-dias td.cero { color:#94A3B8; }
+  .pub-dias tr.sum td { font-weight:800; border-top:2px solid #CBD5E1; }
+  .pub-img-link { display:block; margin-top:8px; font-size:13px; color:#1F5AA8; text-align:center; }
   .pub-ir { width:100%; margin-top:10px; padding:11px; border-radius:9px; font-family:inherit; font-weight:700;
     font-size:14px; cursor:pointer; background:#16A34A; color:#fff; border:none; min-height:44px; }
   .pub-ir:active { filter:brightness(.96); }
@@ -988,6 +998,7 @@ ESTILOS_EXTRA = """
   .cobro-chip-top { position:absolute; top:-10px; left:50%; transform:translateX(-50%);
     z-index:2; border:1.5px solid #93C5FD; box-shadow:0 1px 4px rgba(30,64,175,.18); }
   .cobro-monto { color:#166534; }
+  .cobro-cond { font-size:12px; font-weight:700; color:var(--gris); white-space:nowrap; }
   .cobro-sub { margin-top:3px; font-size:12.5px; color:var(--gris); font-weight:600; }
   /* Botones a la DERECHA, apilados y del MISMO tamaño. */
   .cobro-mini-btns { display:flex; flex-direction:column; gap:6px; flex:0 0 126px; }
@@ -1121,6 +1132,7 @@ ESTILOS_EXTRA = """
   .mes-f .d { flex:none; width:22px; color:var(--gris); font-variant-numeric:tabular-nums; font-size:13px; }
   .mes-f .cli { flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .mes-f .mto { flex:none; font-variant-numeric:tabular-nums; font-weight:700; }
+  .mes-f .mto-c { margin-left:4px; font-size:11px; font-weight:600; color:var(--gris); white-space:nowrap; }
   .mes-f.pend { background:#FFFBEB; }
   .mes-f.pend .mto { color:#92600A; }
   .mes-f .et { flex:none; font-size:11px; font-weight:700; color:var(--gris); width:74px; text-align:right; }
@@ -1509,19 +1521,24 @@ SCRIPT_ESTADO = r"""<script>
     var p = String(iso || '').split('-');
     return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2], 12) : null;
   }
+  // (5-oct) «con IVA» / «neto» junto al monto, como el chip de la tarjeta; '' si no se sabe
+  function condCobro(m) {
+    return m.con_iva === true ? 'con IVA' : (m.con_iva === false ? 'neto' : '');
+  }
   function msgCobro(id) {
     var m = META[id] || {};
     var d = dateDe(fechaDe(id) || '');
     var cuando = d ? (DIAS_JS[d.getDay()] + ' ' + d.getDate() + ' de ' + MESESL[d.getMonth()]) : '';
     var que = (m.banos > 1) ? ('los ' + m.banos + ' baños químicos') : 'el baño químico';
-    var conFactura = (m.monto || 0) > (m.neto || 0); // con factura el monto lleva IVA
+    // el monto lleva IVA: lo dice la entrega (con_iva) o, en una de antes, monto > neto
+    var conIva = m.con_iva === true || (m.con_iva == null && (m.monto || 0) > (m.neto || 0));
     // Saludo: si el nombre trae "(contacto: X)", saluda a X; si no, al nombre sin paréntesis.
     var cli = String(m.cliente || '');
     var mc = /\(\s*contacto:?\s*([^)]+)\)/i.exec(cli);
     var nombre = (mc ? mc[1] : cli.replace(/\s*\([^)]*\)/g, '')).trim();
     return 'Hola ' + nombre + ', le saluda Destape Rápido 🙌. Le dejamos instalado ' + que +
       (cuando ? ' el ' + cuando : '') + '. Quedó pendiente el pago de ' + clp(m.monto || 0) +
-      (conFactura ? ' (con factura)' : '') + '. ¿Me confirma si lo hace por transferencia o efectivo? ¡Gracias!';
+      (conIva ? ' (IVA incluido)' : '') + '. ¿Me confirma si lo hace por transferencia o efectivo? ¡Gracias!';
   }
   function aplicarCobroCompacto(card, id, entregado, cobrado, esServ) {
     var aplica = entregado && !cobrado && !esServ;
@@ -1565,6 +1582,7 @@ SCRIPT_ESTADO = r"""<script>
       '<div class="cobro-mini-row">' +
         '<div class="cobro-mini-info">' +
           '<b>' + escapeHtml(m.cliente || '—') + '</b> · <b class="cobro-monto">' + clp(m.monto || 0) + '</b>' +
+            (condCobro(m) ? ' <span class="cobro-cond">' + condCobro(m) + '</span>' : '') +
           '<div class="cobro-sub">' + (comuna ? '📍 <b>' + escapeHtml(comuna) + '</b> · ' : '') +
             'Entregado el ' + escapeHtml(cuando) + (hace ? ' · ' + hace : '') + '</div>' +
         '</div>' +
@@ -2253,7 +2271,8 @@ SCRIPT_ESTADO = r"""<script>
       html += '<div class="mes-f' + (pend ? ' pend' : '') + '">'
         + '<span class="d">' + escapeHtml(f.slice(8) || '—') + '</span>'
         + '<span class="cli">' + escapeHtml(m.cliente || id) + '</span>'
-        + '<span class="mto">' + clp(m.monto || 0) + '</span>'
+        + '<span class="mto">' + clp(m.monto || 0)
+        + (condCobro(m) ? '<small class="mto-c">' + condCobro(m) + '</small>' : '') + '</span>'
         + '<span class="et">' + (pend ? 'por cobrar' : 'cobrado') + '</span>'
         + '</div>';
     });
@@ -2352,7 +2371,8 @@ SCRIPT_ESTADO = r"""<script>
     var chip = pb.pagado
       ? '<span class="pub-chip pag">✓ Pagada' + (pb.pagada_at ? ' · ' + fechaLarga(String(pb.pagada_at).split('T')[0]) : '') + '</span>'
       : '<span class="pub-chip pend">Pendiente</span>';
-    var imgHtml = pb.imagen ? '<img class="pub-img" loading="lazy" alt="Desglose de la publicidad ' + escapeHtml(pb.campana || '') + '" src="' + escapeHtml(pb.imagen) + '">' : '';
+    var imgHtml = pb.imagen ? '<img class="pub-img" alt="Desglose de la publicidad ' + escapeHtml(pb.campana || '') + '" src="' + escapeHtml(pb.imagen) + '">' : '';
+    imgHtml += tablaPorDia(det);
     var boton = (conBoton && !pb.pagado) ? '<button type="button" class="pub-ir" data-id="' + escapeHtml(id) + '">💰 Pagar mi parte</button>' : '';
     return '<div class="pub-bloque">'
       + '<div class="pub-bloque-head"><div><div class="pub-bloque-tit">📣 ' + escapeHtml(pb.campana || 'Publicidad') + '</div>'
@@ -2364,9 +2384,34 @@ SCRIPT_ESTADO = r"""<script>
       + boton + imgHtml + '</div>';
   }
 
+  // Día por día en texto: cada fila es un día del período con lo que se gastó y cuántos contactaron.
+  var DIAS_CORTO = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+  var MESES_CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  function tablaPorDia(det) {
+    var dias = (det && det.por_dia) || [];
+    if (!dias.length) { return ''; }
+    var conContactos = dias.some(function (d) { return Number(d.contactos) > 0; });
+    var tg = 0, tc = 0;
+    var filas = dias.map(function (d) {
+      var f = new Date(d.fecha + 'T12:00:00');
+      var g = Number(d.gasto) || 0, c = Number(d.contactos) || 0;
+      tg += g; tc += c;
+      var lbl = DIAS_CORTO[f.getDay()] + ' ' + f.getDate() + ' ' + MESES_CORTO[f.getMonth()];
+      return '<tr><td>' + lbl + '</td>'
+        + (conContactos ? '<td class="' + (c ? '' : 'cero') + '">' + (c ? c : '—') + '</td>' : '')
+        + '<td class="' + (g ? '' : 'cero') + '">' + (g ? clp(g) : 'sin gasto') + '</td></tr>';
+    });
+    return '<div class="pub-dias-tit">Día por día</div><table class="pub-dias"><thead><tr><th>Día</th>'
+      + (conContactos ? '<th>Contactos</th>' : '') + '<th>Gasto</th></tr></thead><tbody>'
+      + filas.join('')
+      + '<tr class="sum"><td>Total</td>' + (conContactos ? '<td>' + tc + '</td>' : '') + '<td>' + clp(tg) + '</td></tr>'
+      + '</tbody></table>';
+  }
+
   // Modal con el desglose de la publicidad (todas las rendiciones, la más nueva arriba).
-  function abrirModalPublicidad() {
+  function abrirModalPublicidad(idSolo) {
     var ids = pubActivos();
+    if (idSolo && PUB[idSolo]) { ids = [idSolo]; }
     if (!ids.length) { return; }
     var pend = pubPendientes();
     var tot = pend.reduce(function (t, id) { return t + (Number(PUB[id].monto) || 0); }, 0);
@@ -2551,17 +2596,17 @@ SCRIPT_ESTADO = r"""<script>
         }
       });
     });
-    cont.querySelectorAll('.pub-info').forEach(function (b) {
-      b.addEventListener('click', function () { abrirModalPublicidad(); });
-    });
     cont.querySelectorAll('.com-wa').forEach(function (b) {
       b.addEventListener('click', function () {
         var tel = (META[b.getAttribute('data-id')] || {}).tel;
         if (tel) { window.location.href = 'whatsapp://send?phone=' + tel; }
       });
     });
-    cont.querySelectorAll('.com-info').forEach(function (b) {
+    cont.querySelectorAll('.com-info:not(.pub-info)').forEach(function (b) {
       b.addEventListener('click', function () { verInfoEntrega(b.getAttribute('data-id')); });
+    });
+    cont.querySelectorAll('.pub-info').forEach(function (b) {
+      b.addEventListener('click', function () { abrirModalPublicidad(b.getAttribute('data-id')); });
     });
     cont.querySelectorAll('.com-ver-transf').forEach(function (b) {
       b.addEventListener('click', function () { verTransferencia(b.getAttribute('data-key')); });
@@ -2675,6 +2720,10 @@ SCRIPT_ESTADO = r"""<script>
     var esServ = (e.comision === false);
     var lleva = !!((e.factura || {}).requiere);
     var neto = (monto == null) ? 0 : Math.round(lleva ? (monto / 1.19) : monto);
+    // (5-oct) ¿el monto trae IVA? MISMA regla que cuenta_cobro() en Python: `pago.con_factura`
+    // del conector y, en una entrega de antes, `factura.requiere`; null = la entrega no lo dice
+    var cf = pago.con_factura;
+    var conIva = (cf === true || cf === false) ? cf : (lleva ? true : null);
     var comisiona = !esServ && (monto != null);
     // MISMA REGLA QUE comision_de() EN PYTHON: `comision` acepta un monto fijo cuando el
     // trato se cerró en una cifra conversada. Esta función recalcula la comisión con los
@@ -2691,7 +2740,7 @@ SCRIPT_ESTADO = r"""<script>
       comision_pagada: !!e.comision_pagada, pagada_at: e.pagada_at || null,
       tel: soloDigitosJS(e.telefono || ''), banos: banosDeJS(e),
       tipo: esServ ? 'limpieza' : 'bano', es_servicio: esServ,
-      monto: monto || 0
+      monto: monto || 0, con_iva: conIva
     };
   }
   // Geo en VIVO (puerto JS de derivar_geo + maps_query del generador): deduce
@@ -3073,7 +3122,7 @@ SCRIPT_ESTADO = r"""<script>
   pintarTareas(); aplicarTareas();
   setTimeout(function () { if (!CARGADO) { setActualizado('La base no responde…'); } revelar(); }, 10000); // fallback si la red no responde
   var hp = document.getElementById('hdr-pub');
-  if (hp) { hp.addEventListener('click', abrirModalPublicidad); }
+  if (hp) { hp.addEventListener('click', function () { abrirModalPublicidad(); }); }
   wireVistas();
   wire();
   wireTareas();
@@ -3406,6 +3455,9 @@ def construir_html(data: dict) -> str:
             "tipo": "limpieza" if e.get("comision") is False else "bano",
             "es_servicio": e.get("comision") is False,
             "monto": (e.get("pago") or {}).get("monto") or 0,
+            # (5-oct) ¿el monto trae IVA? La MISMA regla que la tarjeta y el WhatsApp
+            # (cuenta_cobro): True/False si la entrega lo dice, None en una entrega vieja
+            "con_iva": (cuenta_cobro(e) or {}).get("con_factura"),
         }
         for e in entregas
     ]
