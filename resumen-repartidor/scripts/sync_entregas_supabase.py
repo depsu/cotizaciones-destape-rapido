@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import urllib.parse
 import urllib.request
 import urllib.error
 from datetime import datetime, timezone, timedelta
@@ -93,9 +94,35 @@ def construir_filas(entregas: list[dict]) -> list[dict]:
     return filas
 
 
+def marcar(id_entrega: str, cambios: dict) -> int:
+    """PATCH de UNA fila existente (p. ej. {'eliminado': True}). Nació el 3-oct-2026:
+    retirar una tarjeta con upsert({'id', 'eliminado'}) violaba el NOT NULL de `data`
+    (HTTP 400) y la cancelación jamás sacaba la tarjeta de la página."""
+    url = f"{gl.SUPABASE_URL}/rest/v1/entrega?id=eq.{urllib.parse.quote(str(id_entrega), safe='')}"
+    body = json.dumps(cambios).encode("utf-8")
+    req = urllib.request.Request(url, data=body, method="PATCH", headers=_headers({
+        "Content-Type": "application/json", "Prefer": "return=minimal",
+    }))
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.status
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"Supabase rechazó el PATCH (HTTP {e.code}): {e.read().decode()[:500]}")
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"No se pudo conectar a Supabase: {e}")
+
+
 def upsert(filas: list[dict]) -> int:
     """Upsert por id. Devuelve el status HTTP. Lanza RuntimeError ante error
-    (para no matar el proceso que la use embebida)."""
+    (para no matar el proceso que la use embebida). Una fila SIN `data` (solo id +
+    cambios, como el retiro) no es un upsert sino un PATCH: se desvía sola."""
+    parciales = [f for f in filas if "data" not in f]
+    filas = [f for f in filas if "data" in f]
+    status = 204
+    for f in parciales:
+        status = marcar(f["id"], {k: v for k, v in f.items() if k != "id"})
+    if not filas:
+        return status
     url = f"{gl.SUPABASE_URL}/rest/v1/entrega?on_conflict=id"
     body = json.dumps(filas).encode("utf-8")
     req = urllib.request.Request(url, data=body, method="POST", headers=_headers({

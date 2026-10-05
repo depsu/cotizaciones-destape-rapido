@@ -17,6 +17,8 @@ crons = ["*/20 * * * *"]
 # Variables públicas (los secretos van con `wrangler secret put`).
 # Identidad del cliente para el worker convergido con el maestro (2026-08-25).
 [vars]
+# C1 (oct-2026): id del buzón que viaja en el timbre (buzon_id) para que el receptor no adivine.
+BUZON_ID = "destaperapido"
 FORWARD_TO    = "paginasfastdev@gmail.com"
 VAPID_PUBLIC  = "BCC8yMzHYuBxfWp2A5SjERjUu1PxsGgdAU8Klz5BllDcpF-uJR20nyAxZTHYf4UFQXwz9baM8M8P0mFrAEh5-bM"
 CONTACT_EMAIL = "contacto@destaperapido.cl"
@@ -30,7 +32,7 @@ BRAND_RGB     = "15,110,110"
 BUZONES       = "contacto@dixdy.cl|https://correo-dixdy.rivera-ale98.workers.dev|contacto@dixdy.cl;empresa@dixdy.cl;demo@dixdy.cl"
 MODO_AGENCIA  = "1"                           # destaperapido es empresa PROPIA: lleva el switcher 🔀
 AUTODRAFT     = "0"                           # IA server-side apagada (activarla = plata → OK aparte)
-WAKE_URL      = ""
+WAKE_URL      = "https://timbre.dixdy.cl/timbre"  # timbre C4: despierta la ronda del Mac (2026-09-10)
 
 # Importables como texto dentro del bundle: el panel y las librerías vendoreadas.
 # (Wrangler admite UNA sola regla por tipo: van todos los globs juntos.)

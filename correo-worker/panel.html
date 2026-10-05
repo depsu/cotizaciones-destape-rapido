@@ -3849,9 +3849,16 @@ document.getElementById("editor").addEventListener("keydown", (e)=>{
 
 // Panel vivo: cada 15s refresca contadores; la lista solo si estás en la 1ª página, sin modal,
 // sin búsqueda ni selección en curso (no pisarle el trabajo al dueño) y no en Bloqueados.
-setInterval(()=>{
+// D1 (5-oct-2026): primero pregunta /api/version (~3 filas leídas) y solo si el buzón cambió
+// pide contadores y lista (que leen la tabla entera). Si la versión no se puede leer
+// (worker viejo o error), refresca como siempre.
+let versionVista = null;
+setInterval(async ()=>{
   if(document.visibilityState!=="visible") return;   // en segundo plano no se gasta batería ni datos
   if(!pass || document.getElementById("app").style.display==="none") return;
+  let firma = null;
+  try{ const v = await api("/api/version"); firma = (v && v.version) || null; }catch(e){ firma = null; }
+  if(firma && firma === versionVista) return;          // nada cambió: no gastar lecturas
   refrescarContadores();
   const modalAbierto = vistaAbierta;
   const composeAbierto = composeAbiertoAhora();
@@ -3859,8 +3866,10 @@ setInterval(()=>{
   // refresca si estás arriba y hace 3 s que no tocas la pantalla.
   const seguroRepintar = window.innerWidth>820 || (window.scrollY<40 && Date.now()-ultimoToque>3000);
   if(page===1 && !modalAbierto && !composeAbierto && !busca && !seleccion.size
-     && filtro!=="bloqueados" && seguroRepintar)
+     && filtro!=="bloqueados" && seguroRepintar){
     cargar(true).catch(()=>{});   // sin conexión: el banner ya avisa, no molestar con toasts
+    versionVista = firma;         // solo se da por vista si la lista se repintó de verdad
+  }
 }, 15000);
 // Al volver a la app (cambiar de pestaña o desbloquear el teléfono) se refresca al instante.
 document.addEventListener("visibilitychange",()=>{
