@@ -115,7 +115,8 @@ CLAVES_NOTA = ("EQUIPO", "ACCESO", "RECIBE", "PAGA", "PAGO", "RETIRO")
 
 # Un arriendo LARGO (mensual o más): ahí el aseo periódico corre y NO hay retiro
 # pedido, sino una fecha de renovación.
-RE_LARGO = re.compile(r"mensual|indefinid|permanente|\bmes(?:es)?\b", re.IGNORECASE)
+# «Medio mes» es una quincena, no un mes (5-oct-2026): misma regla que generar_listado.
+RE_LARGO = re.compile(r"mensual|indefinid|permanente|(?<!medi[oa] )\bmes(?:es)?\b", re.IGNORECASE)
 RE_HORA_EXACTA = re.compile(r"^\d{1,2}[:.]\d{2}$")
 # Un extra que es SERVICIO (se hace) y no EQUIPO (se sube al camión). «CARGAR: 1 baño +
 # limpieza extra» hacía que el repartidor buscara una limpieza en la bodega.
@@ -330,17 +331,21 @@ def construir_resumen(e: dict) -> str:
         if extra.lower() not in agendadas:
             lineas.append(f"🧴 Servicio aparte (no es carga): {extra}")
 
-    # 5 · LA PLATA, al final y diciendo a quién se le cobra y por qué período.
+    # 5 · LA PLATA, al final y diciendo a quién se le cobra, por qué período y si el monto
+    # trae el IVA (5-oct-2026: «que el valor final, si va el IVA, se vea el IVA»).
     pago = e.get("pago") or {}
     if pago.get("monto") is not None:
         lineas.append("")
-        lineas.append(f"💵 COBRAR a {marcas['PAGA']}: {clp(pago['monto'])}" if marcas.get("PAGA")
-                      else f"💵 COBRAR AL CLIENTE: {clp(pago['monto'])}")
+        # la regla de cómo se dice vive en generar_listado (la tarjeta web dice lo mismo)
+        condicion, detalle_cobro = gl.lineas_cobro(e)
+        cobro = clp(pago["monto"]) + (f" ({condicion})" if condicion else "")
+        lineas.append(f"💵 COBRAR a {marcas['PAGA']}: {cobro}" if marcas.get("PAGA")
+                      else f"💵 COBRAR AL CLIENTE: {cobro}")
         if periodo:
             lineas.append(f"   Corresponde a: {periodo}")
-        # Desglose breve de cómo se llegó al monto (baño + extras + flete + IVA).
-        if pago.get("desglose"):
-            lineas.append(f"   {pago['desglose']}")
+        # Neto + IVA (o el desglose de siempre en una entrega vieja) y de qué se compone.
+        for linea in detalle_cobro:
+            lineas.append(f"   {linea}")
         if marcas.get("PAGO"):
             lineas.append(f"   Forma de pago: {marcas['PAGO']}")
         # La nota del pago repetía LAS MISMAS notas de abajo, palabra por palabra: se

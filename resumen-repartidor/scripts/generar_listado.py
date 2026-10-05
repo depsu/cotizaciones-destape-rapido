@@ -87,10 +87,61 @@ ASEO_SIN_DATO = "Pendiente de confirmar con la oficina"
 # de buscar en las notas si el arriendo es largo.
 CLAVES_NOTA = ("EQUIPO", "ACCESO", "RECIBE", "PAGA", "PAGO", "RETIRO")
 RE_MARCA_NOTA = re.compile(r"^([A-ZÁÉÍÓÚÑ]{4,7})\s*:\s*.+$")
-# Un arriendo LARGO (mensual o más): ahí el aseo periódico corre de verdad.
-RE_LARGO = re.compile(r"mensual|indefinid|permanente|\bmes(?:es)?\b", re.IGNORECASE)
-# Un plazo CORTO escrito en días o noches: el baño se retira antes del primer ciclo.
-RE_CORTO = re.compile(r"\b(\d{1,2})\s*(?:d[ií]as?|noches?)\b", re.IGNORECASE)
+# Un arriendo LARGO (mensual o más): ahí el aseo periódico corre de verdad. «Medio mes» es
+# una quincena, no un mes (5-oct-2026: caía acá y salía «mensual»).
+RE_LARGO = re.compile(r"mensual|indefinid|permanente|(?<!medi[oa] )\bmes(?:es)?\b", re.IGNORECASE)
+
+# LOS PLAZOS SE ESCRIBEN COMO SE HABLAN (5-oct-2026, vista previa real de p-339: «dos
+# semanas» no se leía y el aseo salía mal). La MISMA lectura que el conector del bot
+# (conexiones/avisar-repartidor.mjs · diasDePlazo): números en palabras, semanas,
+# quincenas, «medio mes» y «… y media».
+_PALABRAS_NUMERO = {"un": 1, "uno": 1, "una": 1, "dos": 2, "tres": 3, "cuatro": 4,
+                    "cinco": 5, "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
+                    "once": 11, "doce": 12, "quince": 15, "veinte": 20, "treinta": 30}
+_RE_PALABRA_NUMERO = re.compile(
+    r"\b(" + "|".join(sorted(_PALABRAS_NUMERO, key=len, reverse=True)) + r")\b")
+_RE_PLAZO = re.compile(r"\b(\d{1,3})\s*(dias?|noches?|semanas?|quincenas?)\b(\s+y\s+medi[oa]\b)?")
+# Regla del dueño (5-oct-2026, tarifario.aseo.limpieza_evento.regla del bot): «desde una
+# semana corre el aseo incluido cada 7 a 10 días»; en menos de una semana no hay ciclo.
+DIAS_DESDE_ASEO_INCLUIDO = 7
+
+
+def dias_del_plazo(texto):
+    """Cuántos días dice el texto («dos semanas» → 14, «medio mes» → 15, «3 días» → 3), o
+    None si no dice un plazo en días/semanas/quincenas. Los meses los mira RE_LARGO."""
+    t = unicodedata.normalize("NFD", str(texto or "").lower())
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+    t = re.sub(r"\bmedi[oa]\s+mes\b", "15 dias", t)
+    t = _RE_PALABRA_NUMERO.sub(lambda m: str(_PALABRAS_NUMERO[m.group(1)]), t)
+    m = _RE_PLAZO.search(t)
+    if m is not None:
+        n, unidad, media = int(m.group(1)), m.group(2), bool(m.group(3))
+        if unidad.startswith(("dia", "noche")):
+            return n
+        if unidad.startswith("semana"):
+            return n * 7 + (4 if media else 0)
+        return n * 15 + (8 if media else 0)
+    if "quincen" in t:
+        return 15
+    if re.search(r"\bfin de semana\b", t):
+        return 2
+    if re.search(r"\bsemana\b", t):
+        return 7
+    return None
+
+
+_RE_MESES = re.compile(r"\b(\d{1,2}|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|"
+                       r"diez|once|doce)\s+mes(?:es)?\b", re.IGNORECASE)
+
+
+def meses_del_plazo(e: dict) -> int:
+    """Cuántos meses dura el arriendo según su plazo («al menos 2 meses» → 2); 1 si no lo
+    dice. El monto de un arriendo de varios meses es el de CADA mes (F6, 4-oct)."""
+    m = _RE_MESES.search(f"{e.get('periodo') or ''} {notas_sin_marcas(e.get('notas'))}")
+    if m is None:
+        return 1
+    n = int(m.group(1)) if m.group(1).isdigit() else _PALABRAS_NUMERO.get(m.group(1).lower(), 1)
+    return n if n > 0 else 1
 
 
 # Cómo se pinta cada marca en la tarjeta web (el WhatsApp ya las pinta en su sitio).
@@ -135,9 +186,11 @@ def texto_aseo(e: dict) -> str:
     1. Lo que diga la ficha, si lo dice.
     2. Arriendo LARGO (mensual+) o con una limpieza incluida ya agendada → el ciclo
        estándar de 7 a 10 días.
-    3. Plazo CORTO conocido (hasta 7 días) → no hay aseo periódico y se dice por qué:
-       prometer un ciclo semanal en un evento de tres días es prometer una visita que
-       nadie va a hacer, porque el baño ya no está.
+    3. Plazo CORTO conocido (menos de una semana; hasta el 5-oct-2026 era «hasta 7 días»)
+       → no hay aseo periódico y se dice por qué: prometer un ciclo semanal en un evento
+       de tres días es prometer una visita que nadie va a hacer, porque el baño ya no está.
+       Desde una semana corre el aseo incluido (regla del dueño, tarifario del bot), y el
+       plazo se lee como se habla: «dos semanas», «medio mes», «quince días».
     4. Sin saber cuánto dura → pendiente. Nunca se rellena con el estándar mensual.
     """
     dicho = str(e.get("aseo") or "").strip()
@@ -154,17 +207,17 @@ def texto_aseo(e: dict) -> str:
     # el arriendo lleva ciclo periódico, aunque el plazo no venga escrito.
     aseo_agendado = any(isinstance(x, dict) and str(x.get("tipo") or "") != "extra"
                         for x in (e.get("limpiezas") or []))
-    m = RE_CORTO.search(donde)
+    dias = dias_del_plazo(donde)
     # UN PLAZO EN DÍAS TAMBIÉN PUEDE SER LARGO (14-sep). Entre «7 días» y «1 mes» no había
     # ninguna regla: un arriendo de «51 días corridos» caía en «pendiente de confirmar con
-    # la oficina» aunque el ciclo de 7 a 10 días alcanza a correr seis veces. Desde 8 días
-    # el aseo periódico corre igual que en un mensual, y se dice.
-    if m is not None and int(m.group(1)) >= 8:
+    # la oficina» aunque el ciclo de 7 a 10 días alcanza a correr seis veces. Desde una
+    # semana (5-oct-2026; antes desde 8 días) el aseo periódico corre igual que en un
+    # mensual, y se dice. Las semanas cuentan («dos semanas» caía en «pendiente»).
+    if dias is not None and dias >= DIAS_DESDE_ASEO_INCLUIDO:
         return ASEO_LARGO
     if RE_LARGO.search(donde) or aseo_agendado:
         return ASEO_LARGO
-    if m is not None and 1 <= int(m.group(1)) <= 7:
-        dias = int(m.group(1))
+    if dias is not None and 1 <= dias < DIAS_DESDE_ASEO_INCLUIDO:
         return (f"Sin aseo periódico ({dias} día{'' if dias == 1 else 's'}): "
                 "el baño se retira antes del primer ciclo")
     return ASEO_SIN_DATO
@@ -216,6 +269,70 @@ def neto_de(e: dict):
         return None
     lleva_factura = bool((e.get("factura") or {}).get("requiere"))
     return int(round(monto / IVA)) if lleva_factura else int(monto)
+
+
+def cuenta_cobro(e: dict):
+    """La cuenta de lo que el repartidor cobra (5-oct-2026, pedido de Alejandro: «que el
+    valor final, si va el IVA, se vea el IVA»). Devuelve {total, neto, iva, con_factura,
+    detalle} o None si la entrega no trae monto.
+
+    `con_factura` es True/False SOLO cuando la entrega lo dice: el conector del bot manda
+    `pago.con_factura` desde el 5-oct (antes, solo `factura.requiere`). None = entrega
+    vieja que no lo dice (el bot antiguo cobraba con IVA sin marcar la factura): ahí no se
+    afirma nada y se muestra como siempre. El neto y el IVA vienen calculados por el
+    conector (mismo redondeo que el PDF de la cotización); si no vienen, se sacan del monto
+    (con factura, monto / 1,19 vuelve al neto entero, igual que `neto_de`)."""
+    pago = e.get("pago") or {}
+    monto = pago.get("monto")
+    if monto is None:
+        return None
+    try:
+        total = int(round(float(monto)))
+    except (TypeError, ValueError):
+        return None
+    cf = pago.get("con_factura")
+    if isinstance(cf, bool):
+        con = cf
+    elif (e.get("factura") or {}).get("requiere"):
+        con = True
+    else:
+        con = None
+    neto, iva = pago.get("neto"), pago.get("iva")
+    numeros = all(isinstance(x, (int, float)) and not isinstance(x, bool) for x in (neto, iva))
+    if not (numeros and int(round(neto)) + int(round(iva)) == total):
+        neto = int(round(total / IVA)) if con else total
+        iva = total - neto
+    detalle = str(pago.get("detalle_neto") or "").strip()
+    if not detalle:
+        # las entregas de antes traen la composición dentro del desglose («2 baños $600.000
+        # + flete $50.000 = $650.000 neto + IVA = $773.500»): se rescata la parte de la suma
+        primera = str(pago.get("desglose") or "").split(" = ")[0].strip()
+        detalle = primera if " = " in str(pago.get("desglose") or "") and " + " in primera else ""
+    return {"total": total, "neto": int(round(neto)), "iva": int(round(iva)),
+            "con_factura": con, "detalle": detalle}
+
+
+def lineas_cobro(e: dict) -> tuple[str, list]:
+    """Cómo se DICE el cobro, igual en el WhatsApp del repartidor y en su tarjeta web (una
+    sola fuente, como `texto_aseo`). Devuelve (la condición corta que va pegada al monto,
+    las líneas de detalle):
+      · con factura → («IVA incluido», [«Neto $650.000 + IVA $123.500 · con factura»,
+        «Detalle del neto: 2 baños $600.000 + flete $50.000»])
+      · sin factura → («neto, sin factura», [«Detalle: 2 baños … + flete …»])
+      · entrega vieja que no lo dice → («», [el desglose de siempre])
+    El detalle de la suma sale solo cuando el neto tiene dos o más partes."""
+    c = cuenta_cobro(e)
+    if c is None:
+        return "", []
+    if c["con_factura"] is True:
+        lineas = [f"Neto {clp(c['neto'])} + IVA {clp(c['iva'])} · con factura"]
+        if c["detalle"]:
+            lineas.append(f"Detalle del neto: {c['detalle']}")
+        return "IVA incluido", lineas
+    if c["con_factura"] is False:
+        return "neto, sin factura", ([f"Detalle: {c['detalle']}"] if c["detalle"] else [])
+    desglose = str((e.get("pago") or {}).get("desglose") or "").strip()
+    return "", ([desglose] if desglose else [])
 
 
 def comisiona(e: dict) -> bool:
@@ -452,16 +569,29 @@ def tarjeta(e: dict) -> str:
     # Pago: lo que el repartidor (dueño) le cobra al cliente.
     pago = e.get("pago") or {}
     monto = pago.get("monto")
+    # Si el monto trae el IVA se DICE (5-oct-2026), con la misma regla que el WhatsApp del
+    # repartidor (`lineas_cobro`): «con IVA» / «neto» pegado al monto y, en el detalle,
+    # «Neto $X + IVA $Y · con factura». Una entrega vieja que no lo dice queda como siempre.
+    condicion_cobro, detalle_cobro = lineas_cobro(e) if monto is not None else ("", [])
+    chip_cond = {"IVA incluido": "con IVA", "neto, sin factura": "neto"}.get(condicion_cobro, "")
     # En la card CERRADA el monto se reemplaza por "YA PAGÓ" cuando el cliente pagó
     # adelantado: si queda una cifra a la vista, el repartidor igual la cobra.
     monto_chip = (
-        f'<span class="monto">💵 {esc(clp(monto))}</span>'
+        f'<span class="monto">💵 {esc(clp(monto))}{(" " + esc(chip_cond)) if chip_cond else ""}</span>'
         f'<span class="monto-pagado" hidden>✅ YA PAGÓ — no cobrar</span>'
     ) if monto is not None else ""
     cobro_html = ""
     if monto is not None:
-        # Desglose breve de cómo se llega al monto (baño + extras + IVA), si viene.
-        desglose_pago = f'<span class="cobro-nota">{esc(pago.get("desglose"))}</span>' if pago.get("desglose") else ""
+        # Si lleva IVA (o no) y de qué se compone el monto: las MISMAS líneas del WhatsApp.
+        # En una entrega vieja, el desglose de siempre (baño + extras + IVA). En varios
+        # meses el monto es el de CADA mes, igual que «Corresponde a: 1.er mes (de N)» del
+        # WhatsApp (F6): sin esa línea la tarjeta se leía como el total del plazo.
+        meses = meses_del_plazo(e) if e.get("comision") is not False else 1
+        desglose_pago = "".join(
+            f'<span class="cobro-nota">{esc(x)}</span>'
+            for x in ([condicion_cobro[:1].upper() + condicion_cobro[1:]] if condicion_cobro else [])
+            + ([f"1.er mes (de {meses}) · se cobra mes a mes"] if meses >= 2 else [])
+            + detalle_cobro)
         # La nota del pago es, en el flujo del bot, LA MISMA cadena que las Notas de más
         # abajo (integracion.js escribe las dos con `notas.join(" · ")`): la tarjeta la
         # imprimía dos veces, palabra por palabra. Se muestra solo si dice algo distinto,
