@@ -341,7 +341,12 @@ def construir_resumen(e: dict) -> str:
         cobro = clp(pago["monto"]) + (f" ({condicion})" if condicion else "")
         lineas.append(f"💵 COBRAR a {marcas['PAGA']}: {cobro}" if marcas.get("PAGA")
                       else f"💵 COBRAR AL CLIENTE: {cobro}")
-        if periodo:
+        # En varios meses el monto es el de CADA mes (F6) y se dice así, con el MISMO número de
+        # meses que la confirmación al cliente (`gl.meses_del_cobro`, 5-oct-2026).
+        meses = gl.meses_del_cobro(e)
+        if meses >= 2:
+            lineas.append(f"   Corresponde a: 1.er mes (de {meses}) · se cobra mes a mes")
+        elif periodo:
             lineas.append(f"   Corresponde a: {periodo}")
         # Neto + IVA (o el desglose de siempre en una entrega vieja) y de qué se compone.
         for linea in detalle_cobro:
@@ -367,9 +372,15 @@ def construir_resumen(e: dict) -> str:
         if factura.get("email"):
             lineas.append(f"   Email: {factura['email']}")
         # Si requiere factura pero aún no tenemos los datos, avisar que se los pida al cliente.
+        # `pedida: false` (5-oct-2026): el cobro lleva IVA porque es lo normal, pero el cliente
+        # nunca pidió factura: los datos se piden solo si la necesita.
         if factura.get("requiere") and not factura.get("razon_social"):
-            lineas.append("   ⚠️ Datos pendientes: pedírselos al cliente al coordinar "
-                          "(razón social, RUT, giro, dirección).")
+            if factura.get("pedida") is False:
+                lineas.append("   Con IVA. Si el cliente necesita factura, pedirle razón social, "
+                              "RUT, giro y dirección al coordinar.")
+            else:
+                lineas.append("   ⚠️ Datos pendientes: pedírselos al cliente al coordinar "
+                              "(razón social, RUT, giro, dirección).")
     # NOTA: el bloque "Qué hacer" (detalle) se omite a propósito. El repartidor ya
     # conoce el estándar (instalar, traslado incluido, dejar insumos) y el aseo ya se
     # indica arriba en su propia línea, así que listarlo de nuevo es redundante.

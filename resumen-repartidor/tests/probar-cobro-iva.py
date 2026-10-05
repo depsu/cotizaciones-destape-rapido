@@ -97,14 +97,41 @@ peores = [n for n in range(0, 2_000_001, 10) if gl.cuenta_cobro(
 ok(not peores, "de 0 a 2.000.000 (cada 10 pesos): neto + IVA vuelve al mismo neto", str(peores[:5]))
 
 print("── varios meses: la tarjeta dice que es el valor de cada mes ──")
-e = entrega(monto=190400, neto=160000, iva=30400, con_factura=True, _con_factura_entrega=True)
+e = entrega(monto=190400, neto=160000, iva=30400, con_factura=True, meses=2, _con_factura_entrega=True)
 e["periodo"], e["notas"] = "al menos 2 meses", "al menos 2 meses"
 t = texto_tarjeta(e)
-ok("1.er mes (de 2) · se cobra mes a mes" in t, "tarjeta: «1.er mes (de 2) · se cobra mes a mes»", t)
+ok("1.er mes (de 2) · se cobra mes a mes" in t, "tarjeta: «1.er mes (de 2) · se cobra mes a mes» (pago.meses)", t)
+e = entrega(monto=190400, desglose="baño $160.000 = $160.000 neto + IVA = $190.400", _con_factura_entrega=True)
+e["periodo"], e["notas"] = None, "Arriendo 2 meses (prolongable)"
+ok("1.er mes (de 2) · se cobra mes a mes" in texto_tarjeta(e), "entrega de antes (sin marca): los meses se leen de su plazo escrito")
+e = entrega(monto=190400, neto=160000, iva=30400, con_factura=True, _con_factura_entrega=True)
 e["periodo"], e["notas"] = "1 mes", "1 mes"
 ok("1.er mes" not in texto_tarjeta(e), "un mes: sin esa línea")
 
+print("── refutación: los meses del cobro salen de UN lugar (pago.meses del despacho) ──")
+e = entrega(monto=226100, neto=190000, iva=36100, con_factura=True, meses=2, _con_factura_entrega=True)
+e["periodo"], e["notas"] = "2 meses", "aprox 51 días"
+r = rr.construir_resumen(e)
+ok("   Corresponde a: 1.er mes (de 2) · se cobra mes a mes" in r, "WhatsApp: «Corresponde a: 1.er mes (de 2)» con pago.meses", r)
+ok("1.er mes (de 2) · se cobra mes a mes" in texto_tarjeta(e), "tarjeta: el mismo «1.er mes (de 2)»")
+e = entrega(monto=226100, neto=190000, iva=36100, con_factura=True, _con_factura_entrega=True)
+e["periodo"], e["notas"] = "2 meses", "aprox 44 días"
+ok(gl.meses_del_cobro(e) == 1 and "1.er mes" not in texto_tarjeta(e),
+   "despacho nuevo sin pago.meses: un mes, aunque el periodo redondeado diga «2 meses»")
+
+print("── refutación: con IVA no es «pidió factura» ──")
+e = entrega(monto=154700, neto=130000, iva=24700, con_factura=True, _con_factura_entrega=True)
+e["factura"] = {"requiere": True, "pedida": False}
+r = rr.construir_resumen(e)
+ok("Con IVA. Si el cliente necesita factura, pedirle razón social, RUT, giro y dirección al coordinar." in r
+   and "Datos pendientes" not in r, "WhatsApp: sin «⚠️ Datos pendientes» cuando nadie pidió factura", r)
+ok("Si el cliente necesita factura, pedirle sus datos al coordinar." in texto_tarjeta(e), "tarjeta: lo mismo")
+e["factura"] = {"requiere": True}
+ok("⚠️ Datos pendientes" in rr.construir_resumen(e), "factura pedida sin datos: se piden como siempre")
+
 print("── plazos en palabras y el aseo del tarifario (desde una semana corre el aseo) ──")
+ok(gl.dias_del_plazo("media semana") == 4 and gl.texto_aseo({"periodo": "media semana"}).startswith("Sin aseo periódico"),
+   "«media semana» es menos de una semana")
 for txt, dias in [("dos semanas", 14), ("una semana", 7), ("medio mes", 15), ("quince días", 15),
                   ("3 semanas", 21), ("una semana y media", 11), ("3 días", 3), ("un día", 1),
                   ("fin de semana", 2), ("una quincena", 15), ("mensual", None), ("evento", None)]:

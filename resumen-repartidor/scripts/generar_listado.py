@@ -111,7 +111,7 @@ def dias_del_plazo(texto):
     None si no dice un plazo en días/semanas/quincenas. Los meses los mira RE_LARGO."""
     t = unicodedata.normalize("NFD", str(texto or "").lower())
     t = "".join(c for c in t if unicodedata.category(c) != "Mn")
-    t = re.sub(r"\bmedi[oa]\s+mes\b", "15 dias", t)
+    t = re.sub(r"\bmedia\s+semana\b", "4 dias", re.sub(r"\bmedi[oa]\s+mes\b", "15 dias", t))
     t = _RE_PALABRA_NUMERO.sub(lambda m: str(_PALABRAS_NUMERO[m.group(1)]), t)
     m = _RE_PLAZO.search(t)
     if m is not None:
@@ -142,6 +142,20 @@ def meses_del_plazo(e: dict) -> int:
         return 1
     n = int(m.group(1)) if m.group(1).isdigit() else _PALABRAS_NUMERO.get(m.group(1).lower(), 1)
     return n if n > 0 else 1
+
+
+def meses_del_cobro(e: dict) -> int:
+    """De cuántos meses es el cobro (este es el del 1.er mes). UNA sola fuente (5-oct-2026,
+    refutación): el despacho del bot lo cuenta y lo manda en `pago.meses`, el mismo número
+    que dice la confirmación al cliente; un despacho nuevo sin `meses` es de un mes. Solo una
+    entrega de antes (sin la marca `con_factura`) se lee de su plazo escrito."""
+    pago = e.get("pago") or {}
+    meses = pago.get("meses")
+    if isinstance(meses, int) and not isinstance(meses, bool) and meses >= 1:
+        return meses
+    if isinstance(pago.get("con_factura"), bool):
+        return 1
+    return meses_del_plazo(e)
 
 
 # Cómo se pinta cada marca en la tarjeta web (el WhatsApp ya las pinta en su sitio).
@@ -586,7 +600,7 @@ def tarjeta(e: dict) -> str:
         # En una entrega vieja, el desglose de siempre (baño + extras + IVA). En varios
         # meses el monto es el de CADA mes, igual que «Corresponde a: 1.er mes (de N)» del
         # WhatsApp (F6): sin esa línea la tarjeta se leía como el total del plazo.
-        meses = meses_del_plazo(e) if e.get("comision") is not False else 1
+        meses = meses_del_cobro(e) if e.get("comision") is not False else 1
         desglose_pago = "".join(
             f'<span class="cobro-nota">{esc(x)}</span>'
             for x in ([condicion_cobro[:1].upper() + condicion_cobro[1:]] if condicion_cobro else [])
@@ -624,7 +638,12 @@ def tarjeta(e: dict) -> str:
                            ("Giro", "giro"), ("Dirección", "direccion"), ("Email", "email")):
             if factura.get(clave):
                 filas.append(f"<li><b>{etq}:</b> {esc(factura[clave])}</li>")
-        cuerpo = f"<ul>{''.join(filas)}</ul>" if filas else "<p>Requiere factura.</p>"
+        # `pedida: false` (5-oct-2026): el cobro lleva IVA porque es lo normal, pero el cliente
+        # nunca pidió factura; sus datos se piden solo si la necesita
+        sin_pedir = factura.get("pedida") is False
+        cuerpo = (f"<ul>{''.join(filas)}</ul>" if filas
+                  else ("<p>Con IVA. Si el cliente necesita factura, pedirle sus datos al coordinar.</p>"
+                        if sin_pedir else "<p>Requiere factura.</p>"))
         factura_html = f'<div class="bloque"><span class="etq">🧾 Factura</span>{cuerpo}</div>'
 
     # CUÁNTO TIEMPO queda el baño puesto y cuándo hay que ir a buscarlo. Antes esto solo
