@@ -89,13 +89,33 @@ def icono_banos(n: int) -> str:
 DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
 
 
-def fecha_legible(iso: str) -> str:
-    """'2026-07-20' -> 'Lunes 20 de julio de 2026' (el día evita errores de agenda)."""
+def fecha_legible(iso: str, hoy: date | None = None) -> str:
+    """'2026-10-06' -> 'martes 6 de octubre' (el día de la semana evita errores de agenda).
+    Simplificada el 6-oct-2026 a pedido de Alejandro («el 2026 está demás»): sin cero a la
+    izquierda y el año solo cuando no es el de hoy. `hoy` se inyecta en las pruebas."""
     try:
         f = date.fromisoformat(iso)
-        return f"{DIAS_SEMANA[f.weekday()]} {f.day:02d} de {MESES[f.month - 1]} de {f.year}"
-    except (ValueError, IndexError):
+    except (ValueError, TypeError):
         return iso
+    ref = hoy or date.today()
+    anio = f" de {f.year}" if f.year != ref.year else ""
+    return f"{DIAS_SEMANA[f.weekday()].lower()} {f.day} de {MESES[f.month - 1]}{anio}"
+
+
+def cabecera_entrega(iso: str, hoy: date | None = None) -> str:
+    """La primera línea del aviso al repartidor. Lo de HOY grita (🚨 y «HOY»), lo de mañana
+    avisa, el resto solo dice el día: «🚨 ENTREGA HOY · martes 6 de octubre»,
+    «🚚 ENTREGA MAÑANA · miércoles 7 de octubre», «🚚 ENTREGA · sábado 10 de octubre»."""
+    ref = hoy or date.today()
+    try:
+        f = date.fromisoformat(iso)
+    except (ValueError, TypeError):
+        return f"🚚 ENTREGA · {iso}"
+    if f == ref:
+        return f"🚨 ENTREGA HOY · {fecha_legible(iso, ref)}"
+    if (f - ref).days == 1:
+        return f"🚚 ENTREGA MAÑANA · {fecha_legible(iso, ref)}"
+    return f"🚚 ENTREGA · {fecha_legible(iso, ref)}"
 
 
 # Frecuencia de aseo cuando el arriendo es LARGO (mensual) y la ficha no dice otra cosa.
@@ -215,7 +235,7 @@ def construir_resumen(e: dict) -> str:
     largo = bool(RE_LARGO.search(f"{periodo} {notas_resto}"))
     notas_resto = _sin_repetir(notas_resto, periodo)
 
-    lineas = [f"🚚 ENTREGA · {fecha_legible(e.get('fecha', ''))}"]
+    lineas = [cabecera_entrega(e.get('fecha', ''))]
     lineas += lineas_horario(e.get("hora", ""))
 
     # 1 · QUÉ SUBE AL CAMIÓN. El equipamiento decidía la unidad y vivía enterrado en
