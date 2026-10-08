@@ -505,10 +505,38 @@ function htmlATextoWorker(html) {
 }
 
 // ---- Adjuntos entrantes (fase 13) ----
-// Topes: sin R2, lo que se guarda va en D1, así que hay que ser estricto.
-const ADJ_MAX_UNO = 600 * 1024;      // 600 KB por archivo (≈800 KB ya en base64)
-const ADJ_MAX_TOTAL = 1200 * 1024;   // 1,2 MB por correo
+// Sin R2 (activarlo pide tarjeta), todo va en D1. Hasta ADJ_FILA cabe en una fila; lo más
+// pesado (fase 19, oct-2026: los TDR de una licitación llegaban «muy pesados» y solo se veían
+// en Gmail) se parte en trozos en `adjuntos_trozos` y la fila guarda la marca «trozos:N».
+const ADJ_FILA = 600 * 1024;          // ≤600 KB: una sola fila (≈800 KB en base64)
+const ADJ_MAX_UNO = 10 * 1024 * 1024; // 10 MB por archivo
+const ADJ_MAX_TOTAL = 20 * 1024 * 1024; // 20 MB por correo
 const ADJ_MAX_CANT = 10;
+const ADJ_TROZO_B64 = 900 * 1024;     // trozo en base64 (múltiplo de 4: cada trozo decodifica solo)
+const MARCA_TROZOS = "trozos:";
+
+async function guardarTrozos(env, adjuntoId, b64) {
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS adjuntos_trozos (
+       adjunto_id INTEGER NOT NULL, n INTEGER NOT NULL, datos_b64 TEXT NOT NULL,
+       PRIMARY KEY (adjunto_id, n))`
+  ).run();
+  const stmt = env.DB.prepare(`INSERT OR REPLACE INTO adjuntos_trozos (adjunto_id, n, datos_b64) VALUES (?, ?, ?)`);
+  let n = 0;
+  for (let i = 0; i < b64.length; i += ADJ_TROZO_B64, n++) {
+    await stmt.bind(adjuntoId, n, b64.slice(i, i + ADJ_TROZO_B64)).run();
+  }
+  // La marca va al final: si algo falla a medias, el adjunto queda «no guardado» (como antes).
+  await env.DB.prepare(`UPDATE adjuntos SET datos_b64 = ? WHERE id = ?`).bind(MARCA_TROZOS + n, adjuntoId).run();
+}
+
+// Rearma el base64 de un adjunto guardado en trozos.
+async function leerTrozos(env, adjuntoId) {
+  const { results } = await env.DB.prepare(
+    `SELECT datos_b64 FROM adjuntos_trozos WHERE adjunto_id = ? ORDER BY n ASC`
+  ).bind(adjuntoId).all();
+  return (results || []).map((r) => r.datos_b64).join("");
+}
 
 function bytesAB64(buf) {
   const bytes = new Uint8Array(buf);
@@ -542,8 +570,9 @@ async function guardarAdjuntos(env, correoId, adjuntos) {
       }
     }
     const esInline = a.disposition === "inline" || !!a.contentId;
+    const enTrozos = !!b64 && b64.length > ADJ_FILA * 4 / 3;
     try {
-      await env.DB.prepare(
+      const ins = await env.DB.prepare(
         `INSERT INTO adjuntos (correo_id, nombre, mime, tamano, cid, inline, datos_b64)
          VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
@@ -554,9 +583,11 @@ async function guardarAdjuntos(env, correoId, adjuntos) {
           tam,
           (a.contentId || "").replace(/^<|>$/g, "").slice(0, 200) || null,
           esInline ? 1 : 0,
-          b64
+          enTrozos ? null : b64
         )
         .run();
+      const adjId = ins.meta && ins.meta.last_row_id;
+      if (enTrozos && adjId) await guardarTrozos(env, adjId, b64);
     } catch (e) {
       console.error("adjunto no guardado:", e);
     }
@@ -1600,7 +1631,8 @@ export default {
       ).bind(id).first();
       if (!row) return new Response("no existe", { status: 404 });
       if (!row.datos_b64) return new Response("archivo demasiado grande: está en el buzón de respaldo", { status: 413 });
-      const bytes = Uint8Array.from(atob(row.datos_b64), (c) => c.charCodeAt(0));
+      const b64 = row.datos_b64.startsWith(MARCA_TROZOS) ? await leerTrozos(env, id) : row.datos_b64;
+      const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
       const nombre = (row.nombre || "archivo").replace(/[^\w.\- ]/g, "_");
       return new Response(bytes, {
         headers: {
