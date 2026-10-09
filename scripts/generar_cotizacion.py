@@ -54,7 +54,7 @@ DATOS_TRANSFERENCIA_DEFAULT = {
         ["Banco", "Santander"],
         ["Tipo de cuenta", "Cuenta Corriente"],
         ["N° de cuenta", "0000-9611698-5"],
-        ["Email", "estebanmoreno347@gmail.com"],
+        ["Email", "contacto@destaperapido.cl"],
     ]
 }
 
