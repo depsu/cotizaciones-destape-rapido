@@ -85,8 +85,10 @@ ASEO_SIN_DATO = "Pendiente de confirmar con la oficina"
 # Datos que el conector del cliente manda DENTRO de `notas` como «CLAVE: valor»
 # separados por « · » (EQUIPO, ACCESO, RECIBE…): no son plazo, y hay que sacarlos antes
 # de buscar en las notas si el arriendo es largo.
-CLAVES_NOTA = ("EQUIPO", "ACCESO", "RECIBE", "PAGA", "PAGO", "RETIRO")
-RE_MARCA_NOTA = re.compile(r"^([A-ZÁÉÍÓÚÑ]{4,7})\s*:\s*.+$")
+# RESPALDO (10-oct-2026, A10): el respaldo PROPIO de la ficha cuando la segunda línea de la
+# entrega la ocupa quien compra (ver `comprador_en_respaldo`).
+CLAVES_NOTA = ("EQUIPO", "ACCESO", "RECIBE", "PAGA", "PAGO", "RETIRO", "RESPALDO")
+RE_MARCA_NOTA = re.compile(r"^([A-ZÁÉÍÓÚÑ]{4,8})\s*:\s*.+$")
 # Un arriendo LARGO (mensual o más): ahí el aseo periódico corre de verdad. «Medio mes» es
 # una quincena, no un mes (5-oct-2026: caía acá y salía «mensual»).
 RE_LARGO = re.compile(r"mensual|indefinid|permanente|(?<!medi[oa] )\bmes(?:es)?\b", re.IGNORECASE)
@@ -166,6 +168,7 @@ ETIQUETA_MARCA = {
     "PAGA": "💵 Le cobra a",
     "PAGO": "💳 Forma de pago",
     "RETIRO": "↩️ Retiro acordado",
+    "RESPALDO": "☎️ Respaldo (de la ficha)",
 }
 
 
@@ -424,6 +427,53 @@ def solo_digitos(telefono: str) -> str:
     return d
 
 
+# ── DOS TELÉFONOS, NUNCA EL MISMO DOS VECES (15-chats-enlazados A10, 10-oct-2026) ──────
+# Caso real p-407: la tarjeta decía «👤 Cliente: Pablo Flores · 📱 +56992978972 · 🙋 Recibe en
+# terreno: Pablo Flores, maestro +56992978972» y Carlos, que compró y paga, no aparecía. Regla
+# de Alejandro: el número de TERRENO es el principal (📱 / 📞 Llamar) y el de quien compra
+# (pagos y emergencia) sale también, en los detalles, sin repetir ninguno. El conector manda a
+# quien compra en `contacto_respaldo` con su etiqueta entre paréntesis («Carlos Ruiz Moreno
+# (compra · pagos · emergencia)») y el respaldo propio de la ficha, si lo había, en la marca
+# RESPALDO de las notas. Acá se leen esas dos cosas y se quita todo número repetido.
+RE_TELEFONO_EN_TEXTO = re.compile(r"\+?\d[\d\s]{6,}\d")
+
+
+def sin_el_numero(texto, *telefonos) -> str:
+    """Saca de un texto («Pablo Flores, maestro +56992978972») los teléfonos que ya salieron
+    en otra línea (misma cola de 8 dígitos). Queda el nombre; si no queda nada, ''."""
+    colas = {solo_digitos(t)[-8:] for t in telefonos if solo_digitos(t)}
+    limpio = str(texto or "")
+    if colas:
+        def _quitar(m: re.Match) -> str:
+            d = re.sub(r"\D", "", m.group(0))
+            return "" if len(d) >= 8 and d[-8:] in colas else m.group(0)
+        limpio = RE_TELEFONO_EN_TEXTO.sub(_quitar, limpio)
+    return re.sub(r"\s+", " ", limpio).strip(" ·,")
+
+
+def comprador_en_respaldo(e: dict) -> tuple[str, str, str] | None:
+    """(nombre, etiqueta, teléfono) si el respaldo de la entrega es QUIEN COMPRA (el conector lo
+    marca con la etiqueta entre paréntesis); None si es un respaldo de siempre (portería)."""
+    nombre = str(e.get("contacto_respaldo") or "").strip()
+    m = re.match(r"^(.*?)\s*\((compra[^)]*)\)\s*$", nombre, re.IGNORECASE)
+    if m is None:
+        return None
+    etiqueta = m.group(2).strip()
+    return (m.group(1).strip(), etiqueta[:1].upper() + etiqueta[1:],
+            solo_digitos(e.get("telefono_respaldo") or ""))
+
+
+def contacto_cobro(e: dict) -> tuple[str, str]:
+    """(nombre, teléfono) a quien se le COBRA (refutación R1, 10-oct-2026): si el conector puso
+    a quien compra en el respaldo («… (compra · pagos · emergencia)») con su número, el cobro va
+    a esa persona; si no, ('', '') y el panel usa el principal de siempre. El número de terreno
+    (quien recibe: maestro, conserje) nunca recibe precios ni datos de pago."""
+    comprador = comprador_en_respaldo(e)
+    if comprador is None or not comprador[2]:
+        return ("", "")
+    return (comprador[0], comprador[2])
+
+
 def esc(texto: str) -> str:
     return html.escape(str(texto or ""))
 
@@ -671,6 +721,19 @@ def tarjeta(e: dict) -> str:
     # y todo en una línea. Ahora cada una tiene su fila, y en «Notas» queda lo que de
     # verdad es una nota.
     marcas_ficha, notas_limpias = partir_notas(notas)
+    # A10: un número que ya es el principal (o el de quien compra) no se repite en una marca
+    tel_principal = solo_digitos(telefono)
+    comprador = comprador_en_respaldo(e)
+    rtel = solo_digitos(e.get("telefono_respaldo", ""))
+    if rtel and rtel[-8:] == tel_principal[-8:]:
+        rtel = ""  # nunca el mismo número dos veces
+    for clave in ("RECIBE", "PAGA", "RESPALDO"):
+        if clave in marcas_ficha:
+            limpio = sin_el_numero(marcas_ficha[clave], tel_principal, rtel)
+            if limpio:
+                marcas_ficha[clave] = limpio
+            else:
+                del marcas_ficha[clave]
     marcas_html = ""
     if marcas_ficha:
         filas_marcas = [f"<li><b>{ETIQUETA_MARCA.get(k, k)}:</b> {esc(v)}</li>"
@@ -685,13 +748,19 @@ def tarjeta(e: dict) -> str:
                       f'<p>{esc(notas_limpias)}</p></div>')
 
     # Contacto de respaldo opcional (jefe, portería): a quién llamar si no contesta el cliente.
+    # Desde A10 puede ser QUIEN COMPRA (pagos y emergencia), con su etiqueta.
     respaldo_html = ""
     if e.get("telefono_respaldo") or e.get("contacto_respaldo"):
-        rtel = solo_digitos(e.get("telefono_respaldo", ""))
-        rnom = esc(e.get("contacto_respaldo", ""))
+        if comprador is not None:
+            rnom, etq_respaldo = esc(comprador[0]), f"💳 {esc(comprador[1])}"
+        else:
+            rnom, etq_respaldo = esc(e.get("contacto_respaldo", "")), "☎️ Respaldo"
         rlink = f'<a href="tel:+{rtel}">+{rtel}</a>' if rtel else ""
         cuerpo = " · ".join(p for p in [rnom, rlink] if p)
-        respaldo_html = f'<div class="bloque"><span class="etq">☎️ Respaldo</span><p>{cuerpo}</p></div>'
+        if cuerpo:
+            respaldo_html = f'<div class="bloque"><span class="etq">{etq_respaldo}</span><p>{cuerpo}</p></div>'
+    # el 📱 de la tarjeta es el de TERRENO cuando quien compra va aparte (A10)
+    etq_telefono = "Teléfono en terreno" if comprador is not None else "Teléfono"
 
     # Botones de acción.
     num = solo_digitos(telefono)
@@ -748,7 +817,7 @@ def tarjeta(e: dict) -> str:
           {periodo_html}
           <div class="bloque"><span class="etq">Aseo</span><p>{aseo}</p></div>
           {limpiezas_bloque}
-          {f'<div class="bloque"><span class="etq">Teléfono</span><p>{esc("+" + num if num else telefono)}</p></div>' if telefono else ""}
+          {f'<div class="bloque"><span class="etq">{etq_telefono}</span><p>{esc("+" + num if num else telefono)}</p></div>' if telefono else ""}
           {respaldo_html}
           {factura_html}
           {horario_html}
@@ -1532,13 +1601,21 @@ SCRIPT_ESTADO = r"""<script>
     var que = (m.banos > 1) ? ('los ' + m.banos + ' baños químicos') : 'el baño químico';
     // el monto lleva IVA: lo dice la entrega (con_iva) o, en una de antes, monto > neto
     var conIva = m.con_iva === true || (m.con_iva == null && (m.monto || 0) > (m.neto || 0));
-    // Saludo: si el nombre trae "(contacto: X)", saluda a X; si no, al nombre sin paréntesis.
+    // Saludo: a quien compra si viene aparte (R1); si no, si el nombre trae "(contacto: X)",
+    // saluda a X; si no, al nombre sin paréntesis.
     var cli = String(m.cliente || '');
     var mc = /\(\s*contacto:?\s*([^)]+)\)/i.exec(cli);
-    var nombre = (mc ? mc[1] : cli.replace(/\s*\([^)]*\)/g, '')).trim();
+    var nombre = (m.tel_cobro && m.nombre_cobro) ? String(m.nombre_cobro).trim()
+      : (mc ? mc[1] : cli.replace(/\s*\([^)]*\)/g, '')).trim();
     return 'Hola ' + nombre + ', le saluda Destape Rápido 🙌. Le dejamos instalado ' + que +
       (cuando ? ' el ' + cuando : '') + '. Quedó pendiente el pago de ' + clp(m.monto || 0) +
       (conIva ? ' (IVA incluido)' : '') + '. ¿Me confirma si lo hace por transferencia o efectivo? ¡Gracias!';
+  }
+  // R1 (10-oct): el cobro va a QUIEN COMPRA (compra · pagos · emergencia) si viene aparte;
+  // si no, al principal. Al de terreno (maestro, conserje) no se le habla de plata.
+  function telCobro(id) {
+    var m = META[id] || {};
+    return m.tel_cobro || m.tel || '';
   }
   function aplicarCobroCompacto(card, id, entregado, cobrado, esServ) {
     var aplica = entregado && !cobrado && !esServ;
@@ -1572,7 +1649,7 @@ SCRIPT_ESTADO = r"""<script>
     var dias = (d && hoyD) ? Math.round((hoyD - d) / 86400000) : null;
     var hace = dias == null ? '' : (dias <= 0 ? 'hoy' : (dias === 1 ? 'hace 1 día' : 'hace ' + dias + ' días'));
     var cuando = d ? (DIAS_JS_AB[d.getDay()] + ' ' + d.getDate() + ' ' + MESES[d.getMonth()]) : f;
-    var tel = m.tel || '';
+    var tel = telCobro(id);
     var wa = tel ? ('whatsapp://send?phone=' + tel + '&text=' + encodeURIComponent(msgCobro(id))) : '';
     var abierta = card.classList.contains('cobro-abierta');
     // La comuna ayuda al repartidor a UBICAR la entrega de un vistazo (geo en vivo).
@@ -2707,6 +2784,13 @@ SCRIPT_ESTADO = r"""<script>
     if (d.charAt(0) === '9' && d.length === 9) { return '56' + d; }
     return d;
   }
+  // MISMA REGLA QUE contacto_cobro() EN PYTHON (R1): quien compra va en el respaldo con la
+  // etiqueta «(compra …)»; si trae número, el cobro es suyo. Sin eso, {nombre:'', tel:''}.
+  function contactoCobroJS(e) {
+    var m = /^(.*?)\s*\((compra[^)]*)\)\s*$/i.exec(String(e.contacto_respaldo || '').trim());
+    var tel = m ? soloDigitosJS(e.telefono_respaldo || '') : '';
+    return (m && tel) ? { nombre: m[1].trim(), tel: tel } : { nombre: '', tel: '' };
+  }
   function banosDeJS(e) {
     var c = e.cantidad;
     if (typeof c === 'number' && c > 0) { return c; }
@@ -2738,7 +2822,9 @@ SCRIPT_ESTADO = r"""<script>
       neto: neto, comision: comision, comisiona: comisiona,
       estado: e.estado || 'pendiente',
       comision_pagada: !!e.comision_pagada, pagada_at: e.pagada_at || null,
-      tel: soloDigitosJS(e.telefono || ''), banos: banosDeJS(e),
+      tel: soloDigitosJS(e.telefono || ''),
+      tel_cobro: contactoCobroJS(e).tel, nombre_cobro: contactoCobroJS(e).nombre,
+      banos: banosDeJS(e),
       tipo: esServ ? 'limpieza' : 'bano', es_servicio: esServ,
       monto: monto || 0, con_iva: conIva
     };
@@ -3415,6 +3501,32 @@ def maps_query(e: dict) -> str:
     return d
 
 
+def meta_entrega(e: dict) -> dict:
+    """Metadatos de UNA entrega para el JS del panel (comisión, cobro, progreso)."""
+    return {
+        "id": e.get("id", ""),
+        "cliente": e.get("cliente", "—"),
+        "fecha": e.get("fecha", ""),
+        "neto": neto_de(e) or 0,
+        "comision": comision_de(e),
+        "comisiona": comisiona(e),
+        "estado": e.get("estado", "pendiente"),
+        "comision_pagada": bool(e.get("comision_pagada", False)),
+        "pagada_at": e.get("pagada_at"),
+        "tel": solo_digitos(e.get("telefono", "")),
+        # R1: el WhatsApp de cobro va a quien compra cuando viene aparte (si no, a `tel`)
+        "tel_cobro": contacto_cobro(e)[1],
+        "nombre_cobro": contacto_cobro(e)[0],
+        "banos": cantidad_banos(e),
+        "tipo": "limpieza" if e.get("comision") is False else "bano",
+        "es_servicio": e.get("comision") is False,
+        "monto": (e.get("pago") or {}).get("monto") or 0,
+        # (5-oct) ¿el monto trae IVA? La MISMA regla que la tarjeta y el WhatsApp
+        # (cuenta_cobro): True/False si la entrega lo dice, None en una entrega vieja
+        "con_iva": (cuenta_cobro(e) or {}).get("con_factura"),
+    }
+
+
 def construir_html(data: dict) -> str:
     entregas = data.get("entregas", [])
     # Ordenar por fecha y agrupar.
@@ -3439,28 +3551,7 @@ def construir_html(data: dict) -> str:
     tareas = tareas_lim + tareas_ret
 
     # Metadatos por entrega para el JS (cálculo de comisión y panel).
-    meta = [
-        {
-            "id": e.get("id", ""),
-            "cliente": e.get("cliente", "—"),
-            "fecha": e.get("fecha", ""),
-            "neto": neto_de(e) or 0,
-            "comision": comision_de(e),
-            "comisiona": comisiona(e),
-            "estado": e.get("estado", "pendiente"),
-            "comision_pagada": bool(e.get("comision_pagada", False)),
-            "pagada_at": e.get("pagada_at"),
-            "tel": solo_digitos(e.get("telefono", "")),
-            "banos": cantidad_banos(e),
-            "tipo": "limpieza" if e.get("comision") is False else "bano",
-            "es_servicio": e.get("comision") is False,
-            "monto": (e.get("pago") or {}).get("monto") or 0,
-            # (5-oct) ¿el monto trae IVA? La MISMA regla que la tarjeta y el WhatsApp
-            # (cuenta_cobro): True/False si la entrega lo dice, None en una entrega vieja
-            "con_iva": (cuenta_cobro(e) or {}).get("con_factura"),
-        }
-        for e in entregas
-    ]
+    meta = [meta_entrega(e) for e in entregas]
     config_json = json.dumps(
         {
             "url": SUPABASE_URL,

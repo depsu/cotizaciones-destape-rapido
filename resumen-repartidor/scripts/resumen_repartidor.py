@@ -131,7 +131,9 @@ ASEO_SIN_DATO = gl.ASEO_SIN_DATO
 # separados por « · », porque el objeto entrega no tiene un campo propio para ellos.
 # Acá se sacan de las Notas y se pintan en su lugar del resumen: arriba, donde el
 # repartidor los necesita, y no al final mezclados con el resto.
-CLAVES_NOTA = ("EQUIPO", "ACCESO", "RECIBE", "PAGA", "PAGO", "RETIRO")
+# RESPALDO (10-oct-2026, A10): el respaldo PROPIO de la ficha cuando la segunda línea la ocupa
+# quien compra (pagos y emergencia); ver «3 · QUIÉN» en construir_resumen.
+CLAVES_NOTA = ("EQUIPO", "ACCESO", "RECIBE", "PAGA", "PAGO", "RETIRO", "RESPALDO")
 
 # Un arriendo LARGO (mensual o más): ahí el aseo periódico corre y NO hay retiro
 # pedido, sino una fecha de renovación.
@@ -168,7 +170,7 @@ def separar_notas(notas) -> tuple[dict, str]:
     for parte in [p.strip() for p in str(notas or "").split("·")]:
         if not parte:
             continue
-        m = re.match(r"^([A-ZÁÉÍÓÚÑ]{4,7})\s*:\s*(.+)$", parte)
+        m = re.match(r"^([A-ZÁÉÍÓÚÑ]{4,8})\s*:\s*(.+)$", parte)
         if m is not None and m.group(1) in CLAVES_NOTA:
             marcas.setdefault(m.group(1), m.group(2).strip())
         else:
@@ -279,19 +281,40 @@ def construir_resumen(e: dict) -> str:
                   else "🚪 Acceso: pendiente de coordinar con quien recibe")
 
     # 3 · QUIÉN. Quien recibe en terreno y quien paga pueden ser personas distintas.
+    # DOS TELÉFONOS, NUNCA EL MISMO DOS VECES (A10, 10-oct-2026, caso p-407: salió «📱 Teléfono
+    # cliente: +56992978972 · 🙋 Recibe en terreno: Pablo Flores, maestro +56992978972» y Carlos,
+    # que compró y paga, en ninguna parte). El 📱 es el de TERRENO (así lo manda el conector);
+    # quien compra viene en el respaldo con su etiqueta (`gl.comprador_en_respaldo`) y sale en
+    # su línea; un número que ya salió no se repite en ninguna otra (`gl.sin_el_numero`).
     lineas.append("")
+    tel_principal = solo_digitos(e.get("telefono") or "")
+    comprador = gl.comprador_en_respaldo(e)
+    rtel = solo_digitos(e.get("telefono_respaldo") or "")
+    if rtel and rtel[-8:] == tel_principal[-8:]:
+        rtel = ""
     lineas.append(f"👤 Cliente: {e.get('cliente', '—')}")
     if e.get("telefono"):
         # Con "+" el número queda clicable en WhatsApp (llamar / abrir chat directo).
-        tel = solo_digitos(e["telefono"])
-        lineas.append(f"📱 Teléfono cliente: {'+' + tel if tel else e['telefono']}")
-    lineas.append(f"🙋 Recibe en terreno: {marcas['RECIBE']}" if marcas.get("RECIBE")
+        etq_tel = "Teléfono en terreno" if comprador else "Teléfono cliente"
+        lineas.append(f"📱 {etq_tel}: {'+' + tel_principal if tel_principal else e['telefono']}")
+    recibe = gl.sin_el_numero(marcas.get("RECIBE", ""), tel_principal)
+    lineas.append(f"🙋 Recibe en terreno: {recibe}" if recibe
                   else "🙋 Recibe en terreno: el cliente (no se indicó a otra persona)")
     if e.get("telefono_respaldo") or e.get("contacto_respaldo"):
-        # Contacto de respaldo opcional (jefe, portería): a quién llamar si no contesta.
-        rtel = solo_digitos(e.get("telefono_respaldo", ""))
-        partes = [p for p in [e.get("contacto_respaldo"), ("+" + rtel if rtel else "")] if p]
-        lineas.append(f"☎️ Respaldo: {' '.join(partes)}")
+        if comprador:
+            # quien compra: pagos, dudas de plata y emergencia van con él, no con el de terreno
+            partes = [p for p in [comprador[0], ("+" + rtel if rtel else "")] if p]
+            lineas.append(f"💳 {comprador[1]}: {' '.join(partes)}")
+        else:
+            # Contacto de respaldo opcional (jefe, portería): a quién llamar si no contesta.
+            partes = [p for p in [e.get("contacto_respaldo"), ("+" + rtel if rtel else "")] if p]
+            if partes:
+                lineas.append(f"☎️ Respaldo: {' '.join(partes)}")
+    if marcas.get("RESPALDO"):
+        # el respaldo propio de la ficha, cuando la segunda línea ya la ocupa quien compra
+        propio = gl.sin_el_numero(marcas["RESPALDO"], tel_principal, rtel)
+        if propio:
+            lineas.append(f"☎️ Respaldo: {propio}")
 
     # 4 · HASTA CUÁNDO queda puesto. Fin del uso, retiro acordado y renovación son tres
     # cosas distintas (A18): la fecha de fin sale de la duración que dijo el cliente, y
@@ -359,7 +382,9 @@ def construir_resumen(e: dict) -> str:
         # la regla de cómo se dice vive en generar_listado (la tarjeta web dice lo mismo)
         condicion, detalle_cobro = gl.lineas_cobro(e)
         cobro = clp(pago["monto"]) + (f" ({condicion})" if condicion else "")
-        lineas.append(f"💵 COBRAR a {marcas['PAGA']}: {cobro}" if marcas.get("PAGA")
+        # el número de quien paga, si ya salió arriba, no se repite acá (A10)
+        paga = gl.sin_el_numero(marcas.get("PAGA", ""), tel_principal, rtel)
+        lineas.append(f"💵 COBRAR a {paga}: {cobro}" if paga
                       else f"💵 COBRAR AL CLIENTE: {cobro}")
         # En varios meses el monto es el de CADA mes (F6) y se dice así, con el MISMO número de
         # meses que la confirmación al cliente (`gl.meses_del_cobro`, 5-oct-2026).

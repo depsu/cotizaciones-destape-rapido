@@ -5,7 +5,7 @@ const fs = require('fs'), vm = require('vm');
 const js = fs.readFileSync('/tmp/js-1.js', 'utf8');
 
 // se extrae metaDeData con sus ayudantes, sin arrancar el panel entero
-const trozos = ['soloDigitosJS', 'banosDeJS', 'metaDeData'].map(nombre => {
+const trozos = ['soloDigitosJS', 'contactoCobroJS', 'banosDeJS', 'metaDeData'].map(nombre => {
   const i = js.indexOf(`function ${nombre}(`);
   if (i === -1) throw new Error(`no encontré ${nombre}`);
   let prof = 0, j = js.indexOf('{', i);
