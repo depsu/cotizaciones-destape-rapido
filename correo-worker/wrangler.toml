@@ -22,7 +22,9 @@ BUZON_ID = "destaperapido"
 FORWARD_TO    = "paginasfastdev@gmail.com"
 VAPID_PUBLIC  = "BCC8yMzHYuBxfWp2A5SjERjUu1PxsGgdAU8Klz5BllDcpF-uJR20nyAxZTHYf4UFQXwz9baM8M8P0mFrAEh5-bM"
 CONTACT_EMAIL = "contacto@destaperapido.cl"
-CUENTAS       = ""                            # subcuentas: activar con "contacto@...|Contacto,ventas@...|Ventas"
+CUENTAS       = "contacto@destaperapido.cl|Contacto,trabajo@destaperapido.cl|Trabajo"  # subcuentas (trabajo@ = postulaciones RRHH, 14-oct-2026)
+FORMULARIO_PARA     = "trabajo@destaperapido.cl"   # destinos que acepta POST /formulario (público)
+FORMULARIO_ORIGENES = "destaperapido.cl,limpiafosasydestape.cl,destapando.cl,limpiafosasvaldes.cl,xn--chilebaos-r6a.cl,banoschicureo.cl,limpiafosasrapido.cl,limpiotufosa.cl,retiroderiles.cl,localhost"
 FROM_NAME     = "Destape Rápido"
 FROM_EMAIL    = "contacto@destaperapido.cl"
 BRAND_NAME    = "Cotizaciones — Destape Rápido"

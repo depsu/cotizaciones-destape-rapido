@@ -368,6 +368,114 @@ function timbreCambio(env, ctx, id, extra) {
 // ============================================================
 
 // SHA-256 hex con Web Crypto (disponible en Workers) — fallback de dedup por contenido.
+// Formulario público -> correo nuevo en el buzón. Antispam: campo trampa "website",
+// tope de 5 envíos por IP cada hora y destino solo desde la lista permitida.
+const CAMPOS_FORMULARIO = [
+  ["cargo", "Cargo"], ["nombre", "Nombre"], ["telefono", "Teléfono"], ["email", "Correo"],
+  ["comuna", "Comuna"], ["edad", "Edad"], ["licencia", "Licencia"], ["experiencia", "Experiencia"],
+  ["disponibilidad", "Disponibilidad"], ["mensaje", "Mensaje"], ["sitio", "Sitio"],
+];
+
+function origenPermitido(env, origen) {
+  if (!origen) return null;
+  const lista = (env.FORMULARIO_ORIGENES || "").split(",").map((s) => s.trim()).filter(Boolean);
+  try {
+    const host = new URL(origen).hostname.replace(/^www\./, "");
+    return lista.some((d) => host === d || host.endsWith("." + d)) ? origen : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function apiFormulario(request, env, ctx) {
+  const origen = origenPermitido(env, request.headers.get("origin"));
+  const cors = origen
+    ? { "access-control-allow-origin": origen, "access-control-allow-methods": "POST",
+        "access-control-allow-headers": "content-type", vary: "origin" }
+    : {};
+  const responder = (obj, status = 200) =>
+    new Response(JSON.stringify(obj), {
+      status, headers: { "content-type": "application/json; charset=utf-8", ...cors },
+    });
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+  if (request.method !== "POST") return responder({ ok: false, error: "método" }, 405);
+  if (!origen) return responder({ ok: false, error: "origen no permitido" }, 403);
+
+  try {
+    await asegurarEsquema(env);
+    const tipo = request.headers.get("content-type") || "";
+    let datos = {};
+    if (tipo.includes("application/json")) {
+      datos = await request.json();
+    } else {
+      const fd = await request.formData();
+      for (const [k, v] of fd.entries()) if (typeof v === "string") datos[k] = v;
+    }
+    const limpio = (k, max = 500) => String(datos[k] || "").replace(/\s+/g, " ").trim().slice(0, max);
+
+    // Campo trampa: los bots lo llenan, las personas no lo ven. Se responde ok para no darles pistas.
+    if (limpio("website")) return responder({ ok: true });
+
+    const permitidos = (env.FORMULARIO_PARA || "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+    const para = (limpio("para", 200) || permitidos[0] || "").toLowerCase();
+    if (!para || !permitidos.includes(para)) return responder({ ok: false, error: "destino" }, 400);
+
+    const nombre = limpio("nombre", 120);
+    const telefono = limpio("telefono", 40);
+    if (!nombre || telefono.replace(/\D/g, "").length < 8) {
+      return responder({ ok: false, error: "Falta tu nombre o un teléfono válido" }, 400);
+    }
+
+    const ip = request.headers.get("cf-connecting-ip") || "sin-ip";
+    const ipHash = (await sha256Hex("form\x1e" + ip)).slice(0, 32);
+    await env.DB.prepare(
+      `CREATE TABLE IF NOT EXISTS formulario_envios (ip_hash TEXT NOT NULL, creado_en TEXT NOT NULL DEFAULT (datetime('now')))`
+    ).run();
+    const recientes = await env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM formulario_envios WHERE ip_hash=? AND creado_en >= datetime('now','-1 hour')`
+    ).bind(ipHash).first();
+    if (recientes && recientes.n >= 5) {
+      return responder({ ok: false, error: "Muchos envíos seguidos. Prueba en un rato o escríbenos por WhatsApp" }, 429);
+    }
+    await env.DB.prepare(`INSERT INTO formulario_envios (ip_hash) VALUES (?)`).bind(ipHash).run();
+
+    const email = limpio("email", 200).toLowerCase();
+    const de = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? email : "sin-correo@formulario.invalid";
+    const cargo = limpio("cargo", 80) || "Formulario";
+    const asunto = `Postulación ${cargo}: ${nombre}`.slice(0, 500);
+    const lineas = CAMPOS_FORMULARIO
+      .map(([k, etiqueta]) => [etiqueta, limpio(k, k === "mensaje" || k === "experiencia" ? 3000 : 300)])
+      .filter(([, v]) => v)
+      .map(([etiqueta, v]) => `${etiqueta}: ${v}`);
+    const tel = telefono.replace(/\D/g, "");
+    const wa = tel.length === 9 ? "56" + tel : tel;
+    lineas.push("", `WhatsApp directo: https://wa.me/${wa}`);
+    const cuerpo = lineas.join("\n");
+    const ahora = new Date().toISOString();
+    const uniq = crypto.randomUUID();
+    const mid = `<form-${uniq}@formulario>`;
+    const dedupHash = await sha256Hex(de + "\x1e" + para + "\x1e" + asunto + "\x1e" + ahora + "\x1e" + cuerpo);
+    const thread_id = await derivarThreadId(env, de, para, asunto, "", "", uniq.slice(0, 16));
+    const dominio = para.split("@")[1] || "";
+
+    const ins = await env.DB.prepare(
+      `INSERT OR IGNORE INTO correos
+         (message_id, de, de_nombre, para, asunto, cuerpo_texto, cuerpo_html, dominio, recibido_en,
+          estado, notificado, dedup_hash, thread_id, in_reply_to, referencias, leido)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'nuevo', 0, ?, ?, NULL, NULL, 0)`
+    ).bind(mid, de, nombre, para, asunto, cuerpo, "", dominio, ahora, dedupHash, thread_id).run();
+    if (de !== "sin-correo@formulario.invalid") await upsertContacto(env, de, nombre);
+    const nuevoId = ins.meta && ins.meta.last_row_id;
+    if (nuevoId && ctx && ctx.waitUntil) {
+      ctx.waitUntil(postCaptura(env, nuevoId).catch((e) => console.error("timbre formulario falló:", e)));
+    }
+    return responder({ ok: true });
+  } catch (err) {
+    console.error("Error en /formulario:", err);
+    return responder({ ok: false, error: "No pudimos recibirlo. Escríbenos por WhatsApp" }, 500);
+  }
+}
+
 async function sha256Hex(s) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -1699,6 +1807,11 @@ export default {
         return new Response("fetch fail", { status: 502 });
       }
     }
+
+    // POST /formulario (público, oct-2026): formularios de los sitios (p.ej. postulaciones a
+    // trabajo@) entran al buzón como un correo nuevo, sin pasar por Resend ni Email Routing.
+    // Destinos permitidos en env.FORMULARIO_PARA (CSV); orígenes en env.FORMULARIO_ORIGENES.
+    if (path === "/formulario") return apiFormulario(request, env, ctx);
 
     if (!path.startsWith("/api/")) {
       return new Response("not found", { status: 404 });
