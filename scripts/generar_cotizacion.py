@@ -457,7 +457,7 @@ def generar(config: dict, output_path: str) -> None:
     valores_txt = (
         "Valores netos."
         if solo_neto
-        else "Valores netos; se les suma IVA (19%) al total."
+        else "Valores netos. Se les suma IVA (19%) al total."
     )
     # LAS CONDICIONES NO SON SIEMPRE LAS MISMAS (9-sep, A08 · A09 · A10). Iban fijas en
     # TODA cotización y contradecían el pedido: prometían "24 a 48 horas hábiles" para un
