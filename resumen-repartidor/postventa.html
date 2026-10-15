@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Postventa - Destape Rápido</title>
+<style>
+  :root { --azul:#1F5AA8; --tinta:#0F172A; --gris:#64748B; --linea:#E2E8F0; --fondo:#F1F5F9;
+          --rojo:#B91C1C; --rojo-f:#FEF2F2; --nar:#B45309; --nar-f:#FFFBEB; --verde:#166534; --verde-f:#F0FDF4; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { max-width:100%; overflow-x:hidden; }
+  body { margin:0; background:var(--fondo); color:var(--tinta);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px; line-height:1.45; padding-bottom:env(safe-area-inset-bottom); }
+  header { position:sticky; top:0; z-index:10; background:var(--azul); color:#fff;
+    padding:16px 18px; padding-top:max(16px,env(safe-area-inset-top)); box-shadow:0 2px 8px rgba(15,23,42,.18); }
+  header h1 { margin:0; font-size:19px; }
+  header .sub { margin-top:3px; font-size:13px; opacity:.85; }
+  .filtros { display:flex; gap:8px; margin-top:12px; }
+  .filtros button { flex:1; border:0; border-radius:10px; min-height:42px; font:inherit; font-size:15px; font-weight:700;
+    background:rgba(255,255,255,.16); color:#fff; }
+  .filtros button.on { background:#fff; color:var(--azul); }
+  main { max-width:560px; margin:0 auto; padding:12px 12px 40px; }
+  .demo { background:#FFFBEB; border:1px solid #FDE68A; color:#78350F; border-radius:12px; padding:10px 12px; font-size:14px; margin-bottom:12px; }
+  .viaje { background:#EFF6FF; border:1px solid #BFDBFE; border-radius:12px; padding:10px 12px; font-size:14px; margin-bottom:10px; }
+  .viaje b { color:var(--azul); }
+  h2 { font-size:14px; text-transform:uppercase; letter-spacing:.6px; color:var(--gris); margin:18px 4px 8px;
+    display:flex; align-items:center; gap:8px; }
+  .conteo { background:var(--azul); color:#fff; font-size:12px; min-width:22px; height:22px; border-radius:11px;
+    display:inline-flex; align-items:center; justify-content:center; padding:0 7px; }
+  .card { background:#fff; border:1px solid var(--linea); border-radius:14px; margin-bottom:10px; overflow:hidden; }
+  .card.hecha { opacity:.45; }
+  summary { list-style:none; cursor:pointer; padding:14px 16px; }
+  summary::-webkit-details-marker { display:none; }
+  .top { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .cliente { font-weight:700; font-size:17px; }
+  .lugar { color:var(--gris); font-size:14px; margin-top:2px; }
+  .que { font-size:15px; margin-top:6px; }
+  .badge { font-size:12px; font-weight:700; padding:4px 9px; border-radius:20px; white-space:nowrap; }
+  .b-rojo { background:var(--rojo-f); color:var(--rojo); }
+  .b-nar { background:var(--nar-f); color:var(--nar); }
+  .b-gris { background:#F1F5F9; color:var(--gris); }
+  .det { padding:0 16px 14px; }
+  .det p { margin:0 0 10px; color:#334155; font-size:15px; }
+  .botones { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .botones a, .botones button { min-height:46px; border-radius:10px; font:inherit; font-weight:700; font-size:15px;
+    display:flex; align-items:center; justify-content:center; text-decoration:none; }
+  .mapa { background:#fff; border:1px solid var(--linea); color:var(--tinta); }
+  .listo { background:var(--verde); color:#fff; border:0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Postventa</h1>
+  <div class="sub">Limpiezas y retiros pendientes · jueves 15 de octubre</div>
+  <div class="filtros">
+    <button type="button" data-f="todo" class="on">Todo 8</button>
+    <button type="button" data-f="retiro">Retiros 3</button>
+    <button type="button" data-f="limpieza">Limpiezas 5</button>
+  </div>
+</header>
+<main>
+  <div class="demo">Vista de prueba con los pendientes reales de hoy. El botón "Listo" todavía no guarda nada.</div>
+
+  <div class="viaje"><b>Mismo viaje:</b> San Carlos de Apoquindo tiene 3 (Carlos Venegas, Cristian Nolan y Valesca). En Colina están Felipe (retiro) y Sandy (limpieza).</div>
+
+  <section data-g="retiro">
+    <h2>Retiros <span class="conteo">3</span></h2>
+
+    <details class="card">
+      <summary>
+        <div class="top"><span class="cliente">Felipe Hernández</span><span class="badge b-rojo">6 días esperando</span></div>
+        <div class="lugar">Colina</div>
+        <div class="que">Retirar el baño. Terminó su mes.</div>
+      </summary>
+      <div class="det">
+        <p>Lo pidió el jueves 9. Se puede hacer junto con la limpieza de Sandy en Colina.</p>
+        <div class="botones"><a class="mapa" href="https://maps.google.com/?q=Colina" target="_blank" rel="noopener">Mapa</a><button type="button" class="listo">Listo</button></div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary>
+        <div class="top"><span class="cliente">Marcos · Fagecons</span><span class="badge b-rojo">3 días atrasado</span></div>
+        <div class="lugar">Pudahuel, recinto aeropuerto</div>
+        <div class="que">Retirar los baños. Ya están listos.</div>
+      </summary>
+      <div class="det">
+        <p>Era para el lunes 12. Él avisó que los baños quedaron listos para sacar.</p>
+        <div class="botones"><a class="mapa" href="https://maps.google.com/?q=Aeropuerto+Pudahuel" target="_blank" rel="noopener">Mapa</a><button type="button" class="listo">Listo</button></div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary>
+        <div class="top"><span class="cliente">GMC Ambiental · Carlo</span><span class="badge b-rojo">3 días atrasado</span></div>
+        <div class="lugar">Buin</div>
+        <div class="que">Retiro acordado.</div>
+      </summary>
+      <div class="det">
+        <p>Era para el lunes 12.</p>
+        <div class="botones"><a class="mapa" href="https://maps.google.com/?q=Buin" target="_blank" rel="noopener">Mapa</a><button type="button" class="listo">Listo</button></div>
+      </div>
+    </details>
+  </section>
+
+  <section data-g="limpieza">
+    <h2>Limpiezas <span class="conteo">5</span></h2>
+
+    <details class="card">
+      <summary>
+        <div class="top"><span class="cliente">Carlos Venegas · Constructora Natales</span><span class="badge b-rojo">Urgente</span></div>
+        <div class="lugar">San Carlos de Apoquindo, Las Condes</div>
+        <div class="que">Limpiar 4 baños.</div>
+      </summary>
+      <div class="det">
+        <p>Lo pidió hoy y dijo que es urgente.</p>
+        <div class="botones"><a class="mapa" href="https://maps.google.com/?q=San+Carlos+de+Apoquindo" target="_blank" rel="noopener">Mapa</a><button type="button" class="listo">Listo</button></div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary>
+        <div class="top"><span class="cliente">Cristian Nolan</span><span class="badge b-nar">Desde ayer</span></div>
+        <div class="lugar">Obra San Carlos de Apoquindo</div>
+        <div class="que">Limpiar 2 baños.</div>
+      </summary>
+      <div class="det">
+        <p>Es supervisor de la obra. Ayer preguntó a qué hora llegaban a limpiar.</p>
+        <div class="botones"><a class="mapa" href="https://maps.google.com/?q=San+Carlos+de+Apoquindo" target="_blank" rel="noopener">Mapa</a><button type="button" class="listo">Listo</button></div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary>
+        <div class="top"><span class="cliente">Juanita Flores</span><span class="badge b-nar">Desde ayer</span></div>
+        <div class="lugar">Las Condes</div>
+        <div class="que">Segunda limpieza.</div>
+      </summary>
+      <div class="det">
+        <p>Pidió adelantarla para hoy o mañana.</p>
+        <div class="botones"><a class="mapa" href="https://maps.google.com/?q=Las+Condes" target="_blank" rel="noopener">Mapa</a><button type="button" class="listo">Listo</button></div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary>
+        <div class="top"><span class="cliente">Valesca · Duoc San Carlos</span><span class="badge b-nar">2 días</span></div>
+        <div class="lugar">San Carlos de Apoquindo, Las Condes</div>
+        <div class="que">2 baños. Falta acordar los días de limpieza.</div>
+      </summary>
+      <div class="det">
+        <p>Escribió el martes 13 para fijar los días. Aprovechar el viaje a San Carlos.</p>
+        <div class="botones"><a class="mapa" href="https://maps.google.com/?q=Duoc+San+Carlos+de+Apoquindo" target="_blank" rel="noopener">Mapa</a><button type="button" class="listo">Listo</button></div>
+      </div>
+    </details>
+
+    <details class="card">
+      <summary>
+        <div class="top"><span class="cliente">Sandy</span><span class="badge b-gris">Hoy</span></div>
+        <div class="lugar">Obra en Colina</div>
+        <div class="que">Limpiar el baño de la obra.</div>
+      </summary>
+      <div class="det">
+        <p>Preguntó hoy cuándo pasan de nuevo. Se puede hacer junto con el retiro de Felipe.</p>
+        <div class="botones"><a class="mapa" href="https://maps.google.com/?q=Colina" target="_blank" rel="noopener">Mapa</a><button type="button" class="listo">Listo</button></div>
+      </div>
+    </details>
+  </section>
+</main>
+<script>
+  // Filtros de arriba: muestra solo retiros, solo limpiezas o todo
+  document.querySelectorAll('.filtros button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('.filtros button').forEach(function (x) { x.classList.toggle('on', x === b); });
+      document.querySelectorAll('section[data-g]').forEach(function (s) {
+        s.hidden = b.dataset.f !== 'todo' && s.dataset.g !== b.dataset.f;
+      });
+    });
+  });
+  // "Listo" en la prueba solo atenúa la tarjeta
+  document.querySelectorAll('.listo').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var c = b.closest('.card'); c.classList.add('hecha'); c.open = false;
+    });
+  });
+</script>
+</body>
+</html>
