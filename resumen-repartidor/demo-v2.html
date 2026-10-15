@@ -72,46 +72,54 @@
 </head>
 <body>
 <div class="app">
-  <div class="demo">Demo para revisar: los botones no envían nada.</div>
+  <div class="demo">Demo: así vería su día el repartidor, con los pedidos reales de hoy. Los botones no envían nada.</div>
 
   <!-- 1 · MI DÍA -->
   <section class="vista on" id="v-dia">
     <header class="dark">
       <div class="row">
-        <div><div class="sub">Miércoles 15 de octubre</div><h1 class="big">Hola, compita</h1></div>
+        <div><div class="sub">Jueves 15 de octubre</div><h1 class="big">Hola, compita</h1></div>
         <div class="live"><i></i>En vivo</div>
       </div>
       <div class="stats">
         <div class="stat"><b>2</b><span>Entregas</span></div>
-        <div class="stat"><b>2</b><span>Limpiezas</span></div>
+        <div class="stat"><b>3</b><span>Limpiezas</span></div>
         <div class="stat"><b style="color:#FF9A5C">3</b><span>Retiros</span></div>
       </div>
     </header>
     <div class="pad">
-      <div class="aviso"><b>Cambió hace 2 min</b>Claudia Orlandini pasó al viernes 16, en la tardecita. Cobrar $150.000.</div>
-      <div class="titulo"><h2>Ruta de hoy · 7 paradas</h2><a href="#" data-toast="Abriría la ruta completa en Google Maps">Ver mapa</a></div>
+      <div class="aviso"><b>Cambió hace 2 min</b>Claudia Orlandini es mañana viernes 16, en la tardecita. Cobrar $150.000.</div>
+      <div class="titulo"><h2>Ruta de hoy · 8 paradas</h2><a href="#" data-toast="Abriría la ruta completa en Google Maps">Ver mapa</a></div>
 
       <button class="card" data-ir="parada">
         <div class="row"><span class="tag t-entrega">ENTREGA</span><span class="gris" style="font-size:14px">10:00 a 12:00 · 1.º</span></div>
-        <div><div class="nombre">Josué · Basalto Drilling</div><div class="gris">Renca · 1 baño · mensual</div></div>
-        <div class="row"><span>Cobrar <b>$946.050</b> con IVA</span><span class="chip">Ir ahora</span></div>
+        <div><div class="nombre">Guillermo Silva</div><div class="gris">Las Condes · 1 baño · 1 mes</div></div>
+        <div class="row"><span>Cobrar <b>$190.400</b> con IVA</span><span class="chip">Ir ahora</span></div>
       </button>
 
       <div class="card alerta">
         <div class="row"><span class="tag t-retiro">RETIRO ATRASADO</span><span style="font-size:14px;color:var(--redink);font-weight:600">era el lunes 12 · 2.º</span></div>
+        <div class="nombre">Marcos · Fagecons</div>
+        <div class="gris">Pudahuel (recinto aeropuerto) · avisó que ya están listos</div>
+      </div>
+
+      <div class="card alerta">
+        <div class="row"><span class="tag t-retiro">RETIRO ATRASADO</span><span style="font-size:14px;color:var(--redink);font-weight:600">era el lunes 12 · 3.º</span></div>
         <div class="nombre">GMC Ambiental · Carlo</div>
         <div class="gris">Buin · retiro acordado</div>
       </div>
 
       <div class="card">
-        <div class="row"><span class="tag t-limpieza">LIMPIEZA</span><span class="gris" style="font-size:14px">la pidió el cliente · 3.º</span></div>
+        <div class="row"><span class="tag t-limpieza">LIMPIEZA</span><span class="gris" style="font-size:14px">la pidió la clienta · 4.º</span></div>
         <div class="nombre">Juanita Flores</div>
         <div class="gris">Las Condes · 2.ª limpieza · mismo viaje que Valesca</div>
       </div>
 
-      <div class="card hecha">
-        <div class="row"><span class="tag t-gris">ENTREGA · HECHA</span><span class="gris" style="font-size:14px">09:20</span></div>
-        <div class="nombre">Ariel · San Bernardo</div>
+      <div class="card">
+        <div class="row"><span class="tag t-entrega">ENTREGA</span><span class="gris" style="font-size:14px">desde las 14:00 · 6.º</span></div>
+        <div class="nombre">Mario Hernández</div>
+        <div class="gris">Lampa · 2 baños · retiro el viernes 13:00</div>
+        <div>Cobrar <b>$214.200</b> con IVA</div>
       </div>
     </div>
   </section>
@@ -119,21 +127,21 @@
   <!-- 2 · UNA PARADA -->
   <section class="vista" id="v-parada">
     <div class="mapa">
-      <span>[Mapa con el punto exacto · 12 min]</span>
+      <span>[Mapa con el punto exacto]</span>
       <button class="volver" data-ir="dia" aria-label="Volver a mi día"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16181D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
     </div>
     <div class="pad hoja">
       <span class="tag t-entrega">ENTREGA · 10:00 a 12:00</span>
-      <div><h1 class="big" style="font-size:28px">Josué · Basalto Drilling</h1><div class="gris">[Dirección exacta], Renca</div></div>
+      <div><h1 class="big" style="font-size:28px">Guillermo Silva</h1><div class="gris">[Dirección exacta], Las Condes</div></div>
       <div class="datos">
         <div><span>Cargar</span><b>1 baño + papel y químico</b></div>
-        <div><span>Uso</span><b>mensual · limpieza semanal</b></div>
-        <div><span>Cobrar</span><b>$946.050 con IVA</b></div>
-        <div><span>Recibe</span><b>Josué</b></div>
+        <div><span>Uso</span><b>1 mes · renueva en noviembre</b></div>
+        <div><span>Cobrar</span><b>$190.400 con IVA</b></div>
+        <div><span>Recibe</span><b>Guillermo</b></div>
       </div>
-      <div class="nota"><b>Nota de la oficina:</b> pide factura. Llevar la guía firmada.</div>
+      <div class="nota"><b>Nota de la oficina:</b> pide factura. Pedirle razón social y RUT al entregar.</div>
       <div class="grid2">
-        <a class="btn out" href="#" data-toast="Llamaría a Josué">Llamar</a>
+        <a class="btn out" href="#" data-toast="Llamaría a Guillermo">Llamar</a>
         <a class="btn out" href="#" data-toast="Abriría Waze o Google Maps">Navegar</a>
       </div>
       <div class="paso" id="paso">Paso 2 de 3 · ya marcaste «Llegué» a las 10:41</div>
@@ -147,32 +155,33 @@
     <div class="pad">
       <h1 class="big" style="font-size:28px">Limpiezas</h1>
       <div class="semana">
-        <div class="dia hoy">MI<b>15</b><em>2</em></div>
-        <div class="dia">JU<b>16</b><em>1</em></div>
-        <div class="dia">VI<b>17</b><em>2</em></div>
-        <div class="dia">SA<b>18</b><em style="color:var(--soft)">0</em></div>
-        <div class="dia">DO<b>19</b><em style="color:var(--soft)">0</em></div>
-        <div class="dia">LU<b>20</b><em>4</em></div>
-        <div class="dia">MA<b>21</b><em>2</em></div>
+        <div class="dia hoy">JU<b>15</b><em>3</em></div>
+        <div class="dia">VI<b>16</b><em>1</em></div>
+        <div class="dia">SA<b>17</b><em style="color:var(--soft)">0</em></div>
+        <div class="dia">DO<b>18</b><em style="color:var(--soft)">0</em></div>
+        <div class="dia">LU<b>19</b><em>2</em></div>
+        <div class="dia">MA<b>20</b><em>1</em></div>
+        <div class="dia">MI<b>21</b><em>2</em></div>
       </div>
       <div class="sug">
-        <b>Sugerencia: junta las dos de Las Condes</b>
-        <span style="font-size:14px;line-height:1.35">Valesca (Duoc, 2 baños) y Juanita están a 6 min. Hazlas hoy en el mismo viaje y ahorras una vuelta.</span>
+        <b>Sugerencia: junta las tres de Las Condes</b>
+        <span style="font-size:14px;line-height:1.35">Juanita, Valesca (Duoc) y Cristian (obra San Carlos de Apoquindo) están cerca. Hazlas hoy en el mismo viaje.</span>
         <div style="display:flex;gap:8px"><button class="btn verde" data-toast="Quedarían juntas en tu ruta de hoy">Juntar hoy</button><button class="btn verde-out" data-toast="Lo vuelvo a sugerir mañana">Ahora no</button></div>
       </div>
-      <h2 class="cond" style="margin:4px 0 0;font-size:19px">Hoy, miércoles 15</h2>
+      <h2 class="cond" style="margin:4px 0 0;font-size:19px">Hoy, jueves 15</h2>
       <div class="card alerta">
         <div class="row"><span class="nombre">Juanita Flores</span><span style="color:var(--redink);font-weight:700;font-size:13px">la pidió 2 veces</span></div>
-        <div class="gris">Las Condes · 1 baño · 2.ª limpieza de 2</div>
-        <div style="font-size:14px">Última: hace 7 días</div>
+        <div class="gris">Las Condes · 2.ª limpieza</div>
       </div>
       <div class="card">
-        <div class="row"><span class="nombre">Valesca · Duoc San Carlos</span><span style="color:var(--amber);font-weight:700;font-size:13px">día por confirmar</span></div>
-        <div class="gris">Las Condes · 2 baños · mensual</div>
-        <a href="#" style="font-weight:700" data-toast="El bot le escribiría a Valesca proponiendo martes y viernes">Proponerle martes y viernes</a>
+        <div class="row"><span class="nombre">Valesca · Duoc</span><span style="color:var(--amber);font-weight:700;font-size:13px">días por confirmar</span></div>
+        <div class="gris">Las Condes · 2 baños</div>
+        <a href="#" style="font-weight:700" data-toast="El bot le escribiría a Valesca proponiendo los días">Proponerle martes y viernes</a>
       </div>
-      <h2 class="cond" style="margin:4px 0 0;font-size:19px">Mañana, jueves 16</h2>
-      <div class="card"><div class="row"><div><div class="nombre">Andres Peralta</div><div class="gris">Lo Barnechea · mensual, semanal</div></div><span class="gris" style="font-size:14px">AM</span></div></div>
+      <div class="card">
+        <div class="row"><span class="nombre">Cristian Nolan</span><span style="color:var(--amber);font-weight:700;font-size:13px">preguntó la hora</span></div>
+        <div class="gris">Obra San Carlos de Apoquindo · supervisor</div>
+      </div>
     </div>
   </section>
 
