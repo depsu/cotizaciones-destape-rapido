@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#16181D">
+<title>App del repartidor (demo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--ground:#F3F1EC;--ink:#16181D;--muted:#4A4F59;--soft:#6B7180;--card:#FFFFFF;--line:#E2DED6;
+    --blue:#1B5FD1;--green:#0E8A6A;--red:#E04B1A;--redink:#B5330A;--amber:#8A5A00}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--ground);color:var(--ink);font-family:'Barlow',system-ui,sans-serif;-webkit-text-size-adjust:100%}
+  .app{max-width:480px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;padding-bottom:84px}
+  .demo{background:#FFE9A8;color:#5C4400;font-size:13px;text-align:center;padding:6px 12px}
+  h1,h2,.cond{font-family:'Barlow Semi Condensed',sans-serif}
+  header.dark{background:var(--ink);color:#fff;padding:18px 16px 16px;display:flex;flex-direction:column;gap:12px}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .sub{font-size:14px;color:#C9CCD3}
+  .big{font-weight:800;font-size:30px;line-height:1;margin:2px 0 0}
+  .live{display:flex;align-items:center;gap:6px;background:#23262E;border-radius:999px;padding:6px 12px;font-size:13px;color:#9FE3BC}
+  .live i{width:9px;height:9px;border-radius:50%;background:#3DDC84;display:block}
+  .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .stat{background:#23262E;border-radius:12px;padding:10px 12px}
+  .stat b{display:block;font-family:'Barlow Semi Condensed',sans-serif;font-size:26px;font-weight:800}
+  .stat span{font-size:13px;color:#C9CCD3}
+  .pad{padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+  .aviso{background:#FFF4E8;border:1px solid #F2C79B;border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.35}
+  .aviso b{color:#8A3507;display:block}
+  .titulo{display:flex;justify-content:space-between;align-items:baseline}
+  .titulo h2{margin:0;font-size:19px}
+  .card{background:var(--card);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 2px rgba(22,24,29,.08);color:inherit;text-decoration:none;border:0;text-align:left;font:inherit;width:100%}
+  .card.alerta{border:2px solid var(--red)}
+  .card.hecha{opacity:.55}
+  .tag{align-self:flex-start;color:#fff;font-size:12px;font-weight:700;letter-spacing:.04em;border-radius:6px;padding:3px 8px}
+  .t-entrega{background:var(--blue)}.t-retiro{background:var(--red)}.t-limpieza{background:var(--green)}.t-gris{background:var(--soft)}
+  .nombre{font-family:'Barlow Semi Condensed',sans-serif;font-weight:700;font-size:21px}
+  .gris{font-size:15px;color:var(--muted)}
+  .chip{background:var(--ink);color:#fff;border-radius:10px;padding:10px 14px;font-weight:700;font-size:15px}
+  .btn{font:inherit;font-weight:700;border-radius:14px;min-height:52px;font-size:17px;border:0;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none}
+  .btn.prim{background:var(--ink);color:#fff;min-height:60px;font-size:18px}
+  .btn.out{background:#fff;color:var(--ink);border:1px solid #D5D1C8;min-height:48px;font-size:15px}
+  .btn.prob{background:transparent;color:var(--redink);border:2px solid var(--red);min-height:48px;font-size:16px}
+  .btn.verde{background:var(--green);color:#fff;min-height:44px;font-size:15px;flex:1}
+  .btn.verde-out{background:transparent;color:#0B6B52;border:1px solid #9ED5BF;min-height:44px;font-size:15px;padding:0 14px}
+  .mapa{height:180px;background:#DCD8CF;display:flex;align-items:center;justify-content:center;position:relative}
+  .mapa span{font-size:14px;color:var(--muted);background:rgba(255,255,255,.85);border-radius:8px;padding:6px 10px}
+  .volver{position:absolute;top:14px;left:14px;width:44px;height:44px;border-radius:22px;background:#fff;border:0;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+  .hoja{background:var(--ground);border-radius:20px 20px 0 0;margin-top:-22px;position:relative}
+  .datos{background:#fff;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:15px}
+  .datos div{display:flex;justify-content:space-between;gap:12px}.datos span{color:var(--muted)}
+  .nota{background:#EAF1FF;border-radius:14px;padding:10px 14px;font-size:14px;line-height:1.35}
+  .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .paso{font-size:13px;color:var(--muted);text-align:center}
+  .semana{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+  .dia{background:#fff;border-radius:10px;padding:8px 0;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted)}
+  .dia b{font-size:18px;color:var(--ink)}.dia.hoy{background:var(--ink);color:#fff}.dia.hoy b{color:#fff}
+  .dia em{font-style:normal;color:var(--green);font-weight:700}.dia.hoy em{color:#9FE3BC}
+  .sug{background:#E7F5EF;border:1px solid #9ED5BF;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+  .sug b{color:#0B6B52}
+  nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);padding:6px 6px calc(10px + env(safe-area-inset-bottom))}
+  nav .in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+  nav button{font:inherit;background:none;border:0;color:var(--soft);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12px;font-weight:600;min-height:52px;justify-content:center;cursor:pointer}
+  nav button[aria-current="page"]{color:var(--ink);font-weight:800}
+  nav svg{width:24px;height:24px}
+  .vista{display:none}.vista.on{display:block}
+  .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:#fff;border-radius:12px;padding:10px 16px;font-size:15px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="demo">Demo para revisar: los botones no envían nada.</div>
+
+  <!-- 1 · MI DÍA -->
+  <section class="vista on" id="v-dia">
+    <header class="dark">
+      <div class="row">
+        <div><div class="sub">Miércoles 15 de octubre</div><h1 class="big">Hola, compita</h1></div>
+        <div class="live"><i></i>En vivo</div>
+      </div>
+      <div class="stats">
+        <div class="stat"><b>2</b><span>Entregas</span></div>
+        <div class="stat"><b>2</b><span>Limpiezas</span></div>
+        <div class="stat"><b style="color:#FF9A5C">3</b><span>Retiros</span></div>
+      </div>
+    </header>
+    <div class="pad">
+      <div class="aviso"><b>Cambió hace 2 min</b>Claudia Orlandini pasó al viernes 16, en la tardecita. Cobrar $150.000.</div>
+      <div class="titulo"><h2>Ruta de hoy · 7 paradas</h2><a href="#" data-toast="Abriría la ruta completa en Google Maps">Ver mapa</a></div>
+
+      <button class="card" data-ir="parada">
+        <div class="row"><span class="tag t-entrega">ENTREGA</span><span class="gris" style="font-size:14px">10:00 a 12:00 · 1.º</span></div>
+        <div><div class="nombre">Josué · Basalto Drilling</div><div class="gris">Renca · 1 baño · mensual</div></div>
+        <div class="row"><span>Cobrar <b>$946.050</b> con IVA</span><span class="chip">Ir ahora</span></div>
+      </button>
+
+      <div class="card alerta">
+        <div class="row"><span class="tag t-retiro">RETIRO ATRASADO</span><span style="font-size:14px;color:var(--redink);font-weight:600">era el lunes 12 · 2.º</span></div>
+        <div class="nombre">GMC Ambiental · Carlo</div>
+        <div class="gris">Buin · retiro acordado</div>
+      </div>
+
+      <div class="card">
+        <div class="row"><span class="tag t-limpieza">LIMPIEZA</span><span class="gris" style="font-size:14px">la pidió el cliente · 3.º</span></div>
+        <div class="nombre">Juanita Flores</div>
+        <div class="gris">Las Condes · 2.ª limpieza · mismo viaje que Valesca</div>
+      </div>
+
+      <div class="card hecha">
+        <div class="row"><span class="tag t-gris">ENTREGA · HECHA</span><span class="gris" style="font-size:14px">09:20</span></div>
+        <div class="nombre">Ariel · San Bernardo</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · UNA PARADA -->
+  <section class="vista" id="v-parada">
+    <div class="mapa">
+      <span>[Mapa con el punto exacto · 12 min]</span>
+      <button class="volver" data-ir="dia" aria-label="Volver a mi día"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16181D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+    </div>
+    <div class="pad hoja">
+      <span class="tag t-entrega">ENTREGA · 10:00 a 12:00</span>
+      <div><h1 class="big" style="font-size:28px">Josué · Basalto Drilling</h1><div class="gris">[Dirección exacta], Renca</div></div>
+      <div class="datos">
+        <div><span>Cargar</span><b>1 baño + papel y químico</b></div>
+        <div><span>Uso</span><b>mensual · limpieza semanal</b></div>
+        <div><span>Cobrar</span><b>$946.050 con IVA</b></div>
+        <div><span>Recibe</span><b>Josué</b></div>
+      </div>
+      <div class="nota"><b>Nota de la oficina:</b> pide factura. Llevar la guía firmada.</div>
+      <div class="grid2">
+        <a class="btn out" href="#" data-toast="Llamaría a Josué">Llamar</a>
+        <a class="btn out" href="#" data-toast="Abriría Waze o Google Maps">Navegar</a>
+      </div>
+      <div class="paso" id="paso">Paso 2 de 3 · ya marcaste «Llegué» a las 10:41</div>
+      <button class="btn prim" id="accion">Foto del baño instalado</button>
+      <button class="btn prob" data-toast="Abriría «¿Qué pasó?»: no está, no hay acceso, falta pago… y le llega a la oficina como reclamo">Tengo un problema</button>
+    </div>
+  </section>
+
+  <!-- 3 · LIMPIEZAS -->
+  <section class="vista" id="v-limpiezas">
+    <div class="pad">
+      <h1 class="big" style="font-size:28px">Limpiezas</h1>
+      <div class="semana">
+        <div class="dia hoy">MI<b>15</b><em>2</em></div>
+        <div class="dia">JU<b>16</b><em>1</em></div>
+        <div class="dia">VI<b>17</b><em>2</em></div>
+        <div class="dia">SA<b>18</b><em style="color:var(--soft)">0</em></div>
+        <div class="dia">DO<b>19</b><em style="color:var(--soft)">0</em></div>
+        <div class="dia">LU<b>20</b><em>4</em></div>
+        <div class="dia">MA<b>21</b><em>2</em></div>
+      </div>
+      <div class="sug">
+        <b>Sugerencia: junta las dos de Las Condes</b>
+        <span style="font-size:14px;line-height:1.35">Valesca (Duoc, 2 baños) y Juanita están a 6 min. Hazlas hoy en el mismo viaje y ahorras una vuelta.</span>
+        <div style="display:flex;gap:8px"><button class="btn verde" data-toast="Quedarían juntas en tu ruta de hoy">Juntar hoy</button><button class="btn verde-out" data-toast="Lo vuelvo a sugerir mañana">Ahora no</button></div>
+      </div>
+      <h2 class="cond" style="margin:4px 0 0;font-size:19px">Hoy, miércoles 15</h2>
+      <div class="card alerta">
+        <div class="row"><span class="nombre">Juanita Flores</span><span style="color:var(--redink);font-weight:700;font-size:13px">la pidió 2 veces</span></div>
+        <div class="gris">Las Condes · 1 baño · 2.ª limpieza de 2</div>
+        <div style="font-size:14px">Última: hace 7 días</div>
+      </div>
+      <div class="card">
+        <div class="row"><span class="nombre">Valesca · Duoc San Carlos</span><span style="color:var(--amber);font-weight:700;font-size:13px">día por confirmar</span></div>
+        <div class="gris">Las Condes · 2 baños · mensual</div>
+        <a href="#" style="font-weight:700" data-toast="El bot le escribiría a Valesca proponiendo martes y viernes">Proponerle martes y viernes</a>
+      </div>
+      <h2 class="cond" style="margin:4px 0 0;font-size:19px">Mañana, jueves 16</h2>
+      <div class="card"><div class="row"><div><div class="nombre">Andres Peralta</div><div class="gris">Lo Barnechea · mensual, semanal</div></div><span class="gris" style="font-size:14px">AM</span></div></div>
+    </div>
+  </section>
+
+  <section class="vista" id="v-pronto"><div class="pad"><h1 class="big" style="font-size:28px" id="pronto-t">Semana</h1><p class="gris">Esta pantalla viene después: primero revisamos Mi día, Una parada y Limpiezas.</p></div></section>
+</div>
+
+<nav aria-label="Secciones">
+  <div class="in">
+    <button data-ir="dia" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Mi día</button>
+    <button data-ir="limpiezas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 21h10"/><path d="M12 3v12"/><path d="M8 7c0-2 2-4 4-4s4 2 4 4"/><path d="M6 15h12l-1 6H7z"/></svg>Limpiezas</button>
+    <button data-ir="pronto" data-nombre="Semana"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/><path d="M8 3v4"/><path d="M16 3v4"/></svg>Semana</button>
+    <button data-ir="pronto" data-nombre="Cobros"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>Cobros</button>
+  </div>
+</nav>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  // Demo: cambia de pantalla y muestra lo que haría cada botón, sin enviar nada
+  const vistas = { dia: 'v-dia', parada: 'v-parada', limpiezas: 'v-limpiezas', pronto: 'v-pronto' };
+  function ir(destino, nombre) {
+    document.querySelectorAll('.vista').forEach((v) => v.classList.remove('on'));
+    document.getElementById(vistas[destino]).classList.add('on');
+    if (destino === 'pronto') document.getElementById('pronto-t').textContent = nombre || 'Pronto';
+    document.querySelectorAll('nav button').forEach((b) => {
+      const activo = b.dataset.ir === destino && (destino !== 'pronto' || b.dataset.nombre === nombre);
+      if (activo || (destino === 'parada' && b.dataset.ir === 'dia')) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
+    window.scrollTo(0, 0);
+  }
+  let reloj;
+  function aviso(texto) {
+    const t = document.getElementById('toast');
+    t.textContent = texto; t.classList.add('on');
+    clearTimeout(reloj); reloj = setTimeout(() => t.classList.remove('on'), 2600);
+  }
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-ir],[data-toast]');
+    if (!el) return;
+    e.preventDefault();
+    if (el.dataset.ir) ir(el.dataset.ir, el.dataset.nombre);
+    else aviso(el.dataset.toast);
+  });
+  // los 3 pasos de la parada
+  const pasos = [
+    ['Paso 2 de 3 · ya marcaste «Llegué» a las 10:41', 'Foto del baño instalado', 'Foto guardada: tu panel y la oficina ya la ven'],
+    ['Paso 3 de 3 · baño instalado 10:52', 'Cobrado: efectivo o transferencia', 'Cobro anotado: el pedido pasó a Cobrado'],
+    ['Listo · entrega cerrada 10:55', 'Volver a mi día', '']
+  ];
+  let paso = 0;
+  document.getElementById('accion').addEventListener('click', () => {
+    if (paso === pasos.length - 1) { paso = 0; document.getElementById('paso').textContent = pasos[0][0]; document.getElementById('accion').textContent = pasos[0][1]; ir('dia'); return; }
+    aviso(pasos[paso][2]);
+    paso += 1;
+    document.getElementById('paso').textContent = pasos[paso][0];
+    document.getElementById('accion').textContent = pasos[paso][1];
+  });
+</script>
+</body>
+</html>
