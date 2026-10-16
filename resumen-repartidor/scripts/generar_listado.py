@@ -1328,7 +1328,21 @@ SCRIPT_ESTADO = r"""<script>
   var PUB = {};          // id -> fila de cobro_publicidad
   var pubPorPagar = [];  // 'pub:<id>' pendientes (se recalcula en renderComision)
   var CARGADO = false;   // true cuando llegaron los datos vivos (o el caché): recién ahí se pintan cifras en la cabecera
-  var CACHE_ENT = 'entregas_cache_v1', CACHE_EST = 'estado_cache_v1', CACHE_PUB = 'publicidad_cache_v1';
+  /* UNA PÁGINA POR REPARTIDOR (16-oct-2026, relevo del dixdybot). Sin `?repartidor=` esta es la lista
+     de siempre y muestra SOLO las tarjetas sin marca de relevo. Con `?repartidor=<id>` muestra SOLO las
+     que el despacho marcó para ese relevo (`data.repartidor_relevo`). Nunca se mezclan: una vez
+     llegaron dos personas al mismo punto. El caché local va por vista, para que un teléfono que abrió
+     las dos no muestre la lista equivocada sin señal. */
+  var REPARTIDOR_VISTA = (function () {
+    try { return String(new URLSearchParams(location.search).get('repartidor') || '').trim().toLowerCase(); }
+    catch (e) { return ''; }
+  })();
+  function esDeEstaVista(row) {
+    var rel = String(((row && row.data) || {}).repartidor_relevo || '').trim().toLowerCase();
+    return REPARTIDOR_VISTA ? rel === REPARTIDOR_VISTA : rel === '';
+  }
+  var SUFIJO_VISTA = REPARTIDOR_VISTA ? ':' + REPARTIDOR_VISTA : '';
+  var CACHE_ENT = 'entregas_cache_v1' + SUFIJO_VISTA, CACHE_EST = 'estado_cache_v1', CACHE_PUB = 'publicidad_cache_v1';
   function cacheGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
   function cacheSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin espacio o modo privado */ } }
   function esPub(id) { return String(id).indexOf('pub:') === 0; }
@@ -2964,6 +2978,12 @@ SCRIPT_ESTADO = r"""<script>
   }
 
   function load() {
+    // la página de un relevo se reconoce de un vistazo (cabecera y pestaña)
+    if (REPARTIDOR_VISTA) {
+      var h1 = document.querySelector('header h1');
+      if (h1) { h1.textContent = '🔀 Entregas de relevo · ' + REPARTIDOR_VISTA; }
+      document.title = 'Entregas de relevo · ' + REPARTIDOR_VISTA;
+    }
     var done = function () { CARGADO = true; pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); renderHeaderPub(); renderComision(); revelar(); irAlAncla(); };
     if (!SUPA.url || !SUPA.key) { setActualizado('sin conexión a la base'); done(); return; }
     // Estado mutable (entregado/cobrado/…): puebla el mapa `estado`. null = no llegó.
@@ -2981,14 +3001,24 @@ SCRIPT_ESTADO = r"""<script>
     Promise.all([pEstado, pEntrega, pPub]).then(function (res) {
       var est = res[0], rows = res[1], pubs = res[2];
       var vivo = true, horneado = false;
+      // solo las tarjetas de ESTA vista (la lista de siempre o la del relevo): ver REPARTIDOR_VISTA
+      if (rows) { rows = rows.filter(esDeEstaVista); }
+      // la publicidad es del reparto de siempre: en la página de un relevo no se muestra
+      if (REPARTIDOR_VISTA) { pubs = []; }
       // Estado: vivo → guarda caché; si no llegó, usa el de la última visita (si hay).
       if (est) { cacheSet(CACHE_EST, est); }
       else { vivo = false; est = cacheGet(CACHE_EST) || []; }
       est.forEach(function (row) { estado[row.id] = row; });
       // Entregas: vivo → guarda caché; si no llegó, el caché de la última visita; y si
       // tampoco hay, quedan las horneadas del HTML (respaldo de último recurso).
-      if (rows && rows.length) { cacheSet(CACHE_ENT, rows); }
-      else { vivo = false; rows = cacheGet(CACHE_ENT); if (!rows || !rows.length) { horneado = true; } }
+      if (rows && res[1]) { cacheSet(CACHE_ENT, rows); }
+      else { vivo = false; rows = (cacheGet(CACHE_ENT) || []).filter(esDeEstaVista); if (!rows || !rows.length) { horneado = true; } }
+      /* en la página de un relevo las tarjetas HORNEADAS (las de siempre) no son suyas: si no hay
+         datos vivos ni caché, se vacía y se dice; la lista de siempre sigue cayendo al respaldo */
+      if (REPARTIDOR_VISTA && (!rows || !rows.length)) {
+        rows = [];
+        document.querySelectorAll('.vista[data-vista="entregas"] .card-wrap[data-id]').forEach(function (c) { c.remove(); });
+      }
       if (rows && rows.length) {
         try { aplicarEntregas(rows); }
         catch (e) { console.warn('No se pudo aplicar entregas de Supabase, uso las horneadas:', e); horneado = true; }
