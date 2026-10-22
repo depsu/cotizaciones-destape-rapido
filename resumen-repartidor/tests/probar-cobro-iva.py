@@ -123,9 +123,10 @@ print("── refutación: con IVA no es «pidió factura» ──")
 e = entrega(monto=154700, neto=130000, iva=24700, con_factura=True, _con_factura_entrega=True)
 e["factura"] = {"requiere": True, "pedida": False}
 r = rr.construir_resumen(e)
-ok("Con IVA. Si el cliente necesita factura, pedirle razón social, RUT, giro y dirección al coordinar." in r
-   and "Datos pendientes" not in r, "WhatsApp: sin «⚠️ Datos pendientes» cuando nadie pidió factura", r)
-ok("Si el cliente necesita factura, pedirle sus datos al coordinar." in texto_tarjeta(e), "tarjeta: lo mismo")
+ok("   Si pide factura: pedirle razón social, RUT, giro y dirección." in r and "🧾" not in r
+   and "Datos pendientes" not in r and "con factura" not in r, "WhatsApp: sin «⚠️ Datos pendientes» cuando nadie pidió factura", r)
+ok("No la pidió (el cobro ya lleva IVA)" in texto_tarjeta(e) and "con factura" not in texto_tarjeta(e),
+   "tarjeta: lo mismo (y el cobro no dice «con factura»)")
 e["factura"] = {"requiere": True}
 ok("⚠️ Datos pendientes" in rr.construir_resumen(e), "factura pedida sin datos: se piden como siempre")
 
@@ -145,7 +146,21 @@ ok(not gl.RE_LARGO.search("medio mes") and not rr.RE_LARGO.search("medio mes") a
    "«medio mes» no es un arriendo mensual (en los dos archivos)")
 r = rr.construir_resumen({**entrega(monto=154700, neto=130000, iva=24700, con_factura=True),
                           "periodo": "medio mes", "notas": "medio mes", "aseo": ""})
-ok("🔁 Renovación" not in r and "↩️ Retiro: pendiente de coordinar" in r, "WhatsApp: «medio mes» no promete renovación mensual", r)
+ok("🔁 Renovación" not in r and "↩️ Retiro: por coordinar con el cliente (plazo: medio mes)" in r,
+   "WhatsApp: «medio mes» no promete renovación mensual (y sin fecha de integracion no se inventa una)", r)
+print("── (22-oct-2026, p-573, refutación Codex) el retiro no se inventa de un plazo ambiguo ──")
+for periodo, esperado in [("entre 3 y 7 días", "por coordinar con el cliente (plazo: entre 3 y 7 días)"),
+                          ("evento", "por coordinar, el cliente no dijo cuántos días (plazo: evento)")]:
+    r = rr.construir_resumen({**entrega(monto=119000, neto=100000, iva=19000, con_factura=True),
+                              "periodo": periodo, "notas": periodo, "aseo": ""})
+    ok(f"↩️ Retiro: {esperado}" in r, f"«{periodo}»: {esperado}", r)
+r = rr.construir_resumen({**entrega(monto=119000, neto=100000, iva=19000, con_factura=True), "fecha": "2026-10-22",
+                          "periodo": "3 días", "retiro": {"fecha": "2026-10-24", "nota": "3 días"}, "aseo": ""})
+ok("↩️ Retiro: termina el uso el sábado 24 de octubre (3 días), coordinar la hora con quien recibe" in r,
+   "con la fecha que sacó integracion.js: el día y la hora a coordinar", r)
+r = rr.construir_resumen({**entrega(monto=190400, neto=160000, iva=30400, con_factura=True), "fecha": "2026-10-21",
+                          "periodo": "1 mes", "retiro": {"fecha": "2026-11-21", "nota": "Llamar dos días antes para renovar"}})
+ok("⏳ Uso: 1 mes · Llamar dos días antes para renovar" in r, "mensual: la nota del retiro no se pierde", r)
 
 print("\nTODO VERDE" if malas == 0 else f"\n{malas} mala(s)")
 sys.exit(1 if malas else 0)

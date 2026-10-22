@@ -224,13 +224,59 @@ def lineas_horario(hora) -> list[str]:
     return lineas
 
 
+RE_NUMERO_PLAZO = re.compile(r"\d|\b(?:un[oa]?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|quince|"
+                             r"veinte|treinta|medi[oa])\b", re.IGNORECASE)
+
+
+def lineas_retiro(e: dict, periodo: str, largo: bool, marcas: dict) -> list[str]:
+    """CUÁNDO SE RETIRA (o se renueva), en UNA línea que el repartidor pueda agendar (22-oct-2026, caso real p-573).
+
+    Antes salían tres líneas que se contradecían: «⏳ Uso: evento · ↩️ Retiro: pendiente de coordinar · 🧽 Aseo: Sin
+    aseo programado (1 día)», o «Uso: 3 días, fin de uso el martes 20» con «Retiro: pendiente de coordinar» justo
+    abajo. Ahora: un retiro ACORDADO manda; si no, el día en que termina el uso (la fecha que integracion.js saca de
+    los días que dijo el cliente, nunca una cuenta propia sobre un plazo ambiguo) con la hora por coordinar; si no
+    dijo cuántos días, se dice eso. Un mensual no tiene retiro: tiene renovación.
+    """
+    retiro_f = str((e.get("retiro") or {}).get("fecha") or "").strip()
+    retiro_nota = str((e.get("retiro") or {}).get("nota") or "").strip()
+    if _clave(retiro_nota) in (_clave(periodo), ""):
+        retiro_nota = ""
+    nota = f" · {retiro_nota}" if retiro_nota else ""
+    acordado = marcas.get("RETIRO", "")
+    if largo:
+        lineas = [f"⏳ Uso: {periodo or 'arriendo mensual'}{nota}"]
+        # sin fecha de fin, la renovación se cuenta desde la entrega con los meses del plazo: es aritmética sobre
+        # lo que dijo el cliente, y se dice de dónde sale
+        m_meses = re.search(r"(\d+)\s*mes", periodo, re.IGNORECASE)
+        meses = int(m_meses.group(1)) if m_meses else 1
+        renov = retiro_f or _mas_meses(str(e.get("fecha") or ""), meses)
+        if renov:
+            lineas.append(f"🔁 Renovación: {fecha_legible(renov)}"
+                          + ("" if retiro_f else f" ({meses} mes{'es' if meses != 1 else ''} desde la entrega)"))
+        if acordado:
+            lineas.append(f"↩️ Retiro acordado: {acordado}")
+        return lineas
+    if acordado:
+        return [f"↩️ Retiro acordado: {acordado}" + (f" ({periodo})" if periodo else "") + nota]
+    if retiro_f:
+        cuando = ("el mismo día de la entrega" if retiro_f == str(e.get("fecha") or "")
+                  else f"el {fecha_legible(retiro_f)}")
+        return [f"↩️ Retiro: termina el uso {cuando} ({periodo or 'plazo de la ficha'}), "
+                "coordinar la hora con quien recibe" + nota]
+    if periodo and not RE_NUMERO_PLAZO.search(periodo):
+        return [f"↩️ Retiro: por coordinar, el cliente no dijo cuántos días (plazo: {periodo})" + nota]
+    if periodo:
+        return [f"↩️ Retiro: por coordinar con el cliente (plazo: {periodo})" + nota]
+    return ["↩️ Retiro: por coordinar, la ficha no trae el plazo"]
+
+
 def construir_resumen(e: dict) -> str:
     """Arma el texto plano del resumen de una entrega.
 
-    ORDEN (9-sep, revisión de experiencia del repartidor): primero lo que condiciona el
-    día (hora tope y franja), después lo que sube al camión, dónde se instala, quién
-    recibe, hasta cuándo queda puesto y recién al final la plata. Un dato que la ficha
-    no trae se dice «pendiente»: nunca se rellena con el estándar.
+    ORDEN (22-oct-2026, caso real p-573: el dueño lo leyó «desordenado»): lo que el repartidor necesita, en el
+    orden en que lo usa. Qué subir al camión, dónde va, cuándo se entrega, cuándo se retira, a quién se le entrega y
+    su teléfono, y al final cuánto se cobra y cómo. Lo que no se sabe no ocupa una línea «pendiente»: se dice una
+    vez, donde importa (la hora junto a la entrega, los días junto al retiro). Nunca se rellena con el estándar.
     """
     marcas, notas_resto = separar_notas(e.get("notas", ""))
     periodo = str(e.get("periodo") or "").strip()
@@ -238,10 +284,8 @@ def construir_resumen(e: dict) -> str:
     notas_resto = _sin_repetir(notas_resto, periodo)
 
     lineas = [cabecera_entrega(e.get('fecha', ''))]
-    lineas += lineas_horario(e.get("hora", ""))
 
-    # 1 · QUÉ SUBE AL CAMIÓN. El equipamiento decidía la unidad y vivía enterrado en
-    # «📝 Notas», al final del mensaje: era el peor lugar posible para ese dato.
+    # 1 · QUÉ SUBE AL CAMIÓN. El equipamiento decide la unidad: va arriba, nunca enterrado en «📝 Notas».
     n = cantidad_banos(e)
     servicio = str(e.get("servicio") or "")
     extras = servicio.split(" + ", 1)[1] if " + " in servicio else ""
@@ -251,41 +295,59 @@ def construir_resumen(e: dict) -> str:
     carga = f"{n} baño{'s' if n != 1 else ''} químico{'s' if n != 1 else ''}"
     for x in equipos:
         carga += f" + {x}"
-    # sin acuerdo especial va la unidad estándar del tarifario (con lavamanos adentro):
-    # «pendiente de confirmar» hacía dudar de algo que no está en duda (10-sep)
+    # sin acuerdo especial va la unidad estándar del tarifario (con lavamanos adentro)
     carga += f" · equipo: {marcas['EQUIPO']}" if marcas.get("EQUIPO") \
         else " · equipo: estándar con lavamanos"
     lineas.append("")
     lineas.append(f"{icono_banos(n)} CARGAR: {carga}")
     if marcas.get("EQUIPO"):
-        # A11: si el cliente EXIGIÓ una configuración, el despacho no puede resolverse
-        # «según stock». Se vende una cosa y se entrega esa, o se avisa antes de salir.
+        # A11: si el cliente EXIGIÓ una configuración, el despacho no puede resolverse «según stock».
         lineas.append("   Esa configuración es la acordada: si no hay, avisar antes de salir.")
+    agendadas = {str(lim.get("etiqueta") or "Limpieza").strip().lower()
+                 for lim in (e.get("limpiezas") or []) if isinstance(lim, dict)}
+    for extra in servicios:
+        if extra.lower() not in agendadas:          # la que tiene su día sale abajo, con su fecha
+            lineas.append(f"🧴 Servicio aparte (no es carga): {extra}")
 
-    # 2 · DÓNDE se instala (con la comuna, que antes no se imprimía nunca) y cómo se entra.
+    # 2 · DÓNDE se instala (con la comuna) y cómo se entra, si se sabe.
     direccion = str(e.get("direccion") or "").strip()
     comuna = str(e.get("comuna") or "").strip()
     if direccion and comuna and comuna.lower() not in direccion.lower():
         direccion = f"{direccion}, {comuna}"
     elif not direccion:
-        # SIN CALLE, PERO CON PIN (10-sep): el cliente mandó su ubicación por Maps/Waze y
-        # nunca dictó la calle. Antes salía «📍 Instalación: —, San Bernardo», que se lee
-        # como un dato perdido; ahora se dice qué pasó y el pin va justo abajo.
+        # SIN CALLE, PERO CON PIN (10-sep): el cliente mandó su ubicación y nunca dictó la calle
         direccion = (f"{comuna} — sin calle: el cliente mandó el pin del mapa (abajo)"
                      if e.get("maps_url") else (comuna or "—"))
     lineas.append(f"📍 Instalación: {direccion}")
     if e.get("maps_url"):
-        # Pin exacto que mandó el cliente (plus de la dirección; clave en condominios).
         lineas.append(f"🗺️ Ubicación exacta: {e['maps_url']}")
-    lineas.append(f"🚪 Acceso: {marcas['ACCESO']}" if marcas.get("ACCESO")
-                  else "🚪 Acceso: pendiente de coordinar con quien recibe")
+    if marcas.get("ACCESO"):
+        lineas.append(f"🚪 Acceso: {marcas['ACCESO']}")
 
-    # 3 · QUIÉN. Quien recibe en terreno y quien paga pueden ser personas distintas.
-    # DOS TELÉFONOS, NUNCA EL MISMO DOS VECES (A10, 10-oct-2026, caso p-407: salió «📱 Teléfono
-    # cliente: +56992978972 · 🙋 Recibe en terreno: Pablo Flores, maestro +56992978972» y Carlos,
-    # que compró y paga, en ninguna parte). El 📱 es el de TERRENO (así lo manda el conector);
-    # quien compra viene en el respaldo con su etiqueta (`gl.comprador_en_respaldo`) y sale en
-    # su línea; un número que ya salió no se repite en ninguna otra (`gl.sin_el_numero`).
+    # 3 · CUÁNDO se entrega (el día ya va en la cabecera): franja, tope y hora confirmada son TRES cosas (A17);
+    # sin ninguna, la hora se coordina con quien recibe.
+    horario = lineas_horario(e.get("hora", ""))
+    if horario == ["🕐 Horario: pendiente de coordinar"]:
+        horario = ["🕐 Hora: a coordinar con quien recibe"]
+    lineas += horario
+
+    # 4 · CUÁNDO se retira (o se renueva) y el aseo que corresponde a ese plazo.
+    lineas += lineas_retiro(e, periodo, largo, marcas)
+    # la regla del aseo es la MISMA de la tarjeta web (generar_listado.texto_aseo)
+    lineas.append(f"🧽 Aseo: {gl.texto_aseo(e)}")
+    for lim in (e.get("limpiezas") or []):
+        if not isinstance(lim, dict):
+            continue
+        etq = str(lim.get("etiqueta") or "Limpieza").strip()
+        detalle = [f"🧴 {etq[:1].upper()}{etq[1:]}: {fecha_legible(str(lim.get('fecha') or ''))}"]
+        if lim.get("valor"):
+            detalle.append(f"valor {clp(lim['valor'])}")
+        if lim.get("nota"):
+            detalle.append(str(lim["nota"]))
+        lineas.append(" · ".join(detalle))
+
+    # 5 · QUIÉN. DOS TELÉFONOS, NUNCA EL MISMO DOS VECES (A10, 10-oct-2026, caso p-407): el 📱 es el de TERRENO
+    # (así lo manda el conector); quien compra va en el respaldo con su etiqueta y sale en su línea.
     lineas.append("")
     tel_principal = solo_digitos(e.get("telefono") or "")
     comprador = gl.comprador_en_respaldo(e)
@@ -294,7 +356,6 @@ def construir_resumen(e: dict) -> str:
         rtel = ""
     lineas.append(f"👤 Cliente: {e.get('cliente', '—')}")
     if e.get("telefono"):
-        # Con "+" el número queda clicable en WhatsApp (llamar / abrir chat directo).
         etq_tel = "Teléfono en terreno" if comprador else "Teléfono cliente"
         lineas.append(f"📱 {etq_tel}: {'+' + tel_principal if tel_principal else e['telefono']}")
     recibe = gl.sin_el_numero(marcas.get("RECIBE", ""), tel_principal)
@@ -302,134 +363,51 @@ def construir_resumen(e: dict) -> str:
                   else "🙋 Recibe en terreno: el cliente (no se indicó a otra persona)")
     if e.get("telefono_respaldo") or e.get("contacto_respaldo"):
         if comprador:
-            # quien compra: pagos, dudas de plata y emergencia van con él, no con el de terreno
             partes = [p for p in [comprador[0], ("+" + rtel if rtel else "")] if p]
             lineas.append(f"💳 {comprador[1]}: {' '.join(partes)}")
         else:
-            # Contacto de respaldo opcional (jefe, portería): a quién llamar si no contesta.
             partes = [p for p in [e.get("contacto_respaldo"), ("+" + rtel if rtel else "")] if p]
             if partes:
                 lineas.append(f"☎️ Respaldo: {' '.join(partes)}")
     if marcas.get("RESPALDO"):
-        # el respaldo propio de la ficha, cuando la segunda línea ya la ocupa quien compra
         propio = gl.sin_el_numero(marcas["RESPALDO"], tel_principal, rtel)
         if propio:
             lineas.append(f"☎️ Respaldo: {propio}")
 
-    # 4 · HASTA CUÁNDO queda puesto. Fin del uso, retiro acordado y renovación son tres
-    # cosas distintas (A18): la fecha de fin sale de la duración que dijo el cliente, y
-    # eso NO es un retiro coordinado. En mensual no hay retiro, hay renovación.
-    retiro_f = str((e.get("retiro") or {}).get("fecha") or "").strip()
-    # La nota del retiro de las entregas escritas a mano («Fin del primer mes, renovable
-    # si la obra sigue») explica el plazo: se conserva. La del flujo del bot es la propia
-    # duración, y repetirla al lado de «Uso» no aporta.
-    retiro_nota = str((e.get("retiro") or {}).get("nota") or "").strip()
-    if _clave(retiro_nota) in (_clave(periodo), ""):
-        retiro_nota = ""
-    lineas.append("")
-    if largo:
-        lineas.append(f"⏳ Uso: {periodo or 'arriendo mensual'}")
-        # sin fecha de fin, la renovación se cuenta desde la entrega con los meses del
-        # plazo: es aritmética sobre lo que dijo el cliente, y se dice de dónde sale
-        m_meses = re.search(r"(\d+)\s*mes", periodo, re.IGNORECASE)
-        meses = int(m_meses.group(1)) if m_meses else 1
-        renov = retiro_f or _mas_meses(str(e.get("fecha") or ""), meses)
-        lineas.append(
-            f"🔁 Renovación: {fecha_legible(renov)}"
-            + ("" if retiro_f else f" ({meses} mes{'es' if meses != 1 else ''} desde la entrega)")
-            if renov else "🔁 Renovación: pendiente de confirmar")
-        lineas.append(f"↩️ Retiro acordado: {marcas['RETIRO']}" if marcas.get("RETIRO")
-                      else "↩️ Retiro: no solicitado")
-    else:
-        uso = periodo or "pendiente de confirmar"
-        # el fin de uso solo aporta si NO es el mismo día de la entrega («1 día» dejaba
-        # «fin de uso el viernes 18» debajo de «ENTREGA · viernes 18»: ruido puro)
-        if retiro_f and retiro_f != str(e.get("fecha") or ""):
-            uso += f", fin de uso el {fecha_legible(retiro_f).lower()}"
-        if retiro_nota:
-            uso += f" · {retiro_nota}"
-        lineas.append(f"⏳ Uso: {uso}")
-        lineas.append(f"↩️ Retiro acordado: {marcas['RETIRO']}" if marcas.get("RETIRO")
-                      else "↩️ Retiro: pendiente de coordinar")
-    # La regla del aseo (ficha → largo → plazo corto → pendiente) es la MISMA que pinta
-    # la tarjeta web: vive en generar_listado.texto_aseo y las dos la llaman igual.
-    lineas.append(f"🧽 Aseo: {gl.texto_aseo(e)}")
-    # Visitas de limpieza con fecha: el repartidor las ve el día que le tocan, con su
-    # valor y si ya se cobraron (así no las cobra dos veces).
-    agendadas = []
-    for lim in (e.get("limpiezas") or []):
-        if not isinstance(lim, dict):
-            continue
-        etq = str(lim.get("etiqueta") or "Limpieza").strip()
-        agendadas.append(etq.lower())
-        detalle = [f"🧴 {etq[:1].upper()}{etq[1:]}: {fecha_legible(str(lim.get('fecha') or ''))}"]
-        if lim.get("valor"):
-            detalle.append(f"valor {clp(lim['valor'])}")
-        if lim.get("nota"):
-            detalle.append(str(lim["nota"]))
-        lineas.append(" · ".join(detalle))
-    # Un servicio extra SIN fecha propia igual tiene que verse, y marcado como servicio:
-    # si ya salió arriba con su día agendado, no se repite.
-    for extra in servicios:
-        if extra.lower() not in agendadas:
-            lineas.append(f"🧴 Servicio aparte (no es carga): {extra}")
-
-    # 5 · LA PLATA, al final y diciendo a quién se le cobra, por qué período y si el monto
-    # trae el IVA (5-oct-2026: «que el valor final, si va el IVA, se vea el IVA»).
+    # 6 · LA PLATA, al final: a quién se le cobra, cuánto, si trae IVA y cómo se paga.
     pago = e.get("pago") or {}
+    factura = e.get("factura") or {}
+    datos_factura = any(factura.get(k) for k in ("razon_social", "rut", "giro", "direccion", "email"))
     if pago.get("monto") is not None:
         lineas.append("")
-        # la regla de cómo se dice vive en generar_listado (la tarjeta web dice lo mismo)
         condicion, detalle_cobro = gl.lineas_cobro(e)
         cobro = clp(pago["monto"]) + (f" ({condicion})" if condicion else "")
-        # el número de quien paga, si ya salió arriba, no se repite acá (A10)
         paga = gl.sin_el_numero(marcas.get("PAGA", ""), tel_principal, rtel)
         lineas.append(f"💵 COBRAR a {paga}: {cobro}" if paga
                       else f"💵 COBRAR AL CLIENTE: {cobro}")
-        # En varios meses el monto es el de CADA mes (F6) y se dice así, con el MISMO número de
-        # meses que la confirmación al cliente (`gl.meses_del_cobro`, 5-oct-2026).
+        # en varios meses el monto es el de CADA mes (F6), con el MISMO número de meses que la confirmación
         meses = gl.meses_del_cobro(e)
         if meses >= 2:
             lineas.append(f"   Corresponde a: 1.er mes (de {meses}) · se cobra mes a mes")
-        elif periodo:
-            lineas.append(f"   Corresponde a: {periodo}")
-        # Neto + IVA (o el desglose de siempre en una entrega vieja) y de qué se compone.
         for linea in detalle_cobro:
             lineas.append(f"   {linea}")
         if marcas.get("PAGO"):
             lineas.append(f"   Forma de pago: {marcas['PAGO']}")
-        # La nota del pago repetía LAS MISMAS notas de abajo, palabra por palabra: se
-        # imprime solo cuando de verdad dice algo distinto.
         if pago.get("nota") and str(pago["nota"]).strip() != str(e.get("notas") or "").strip():
             lineas.append(f"   ({pago['nota']})")
-    factura = e.get("factura") or {}
-    if factura.get("requiere") or factura.get("razon_social"):
+        # (22-oct-2026, p-573) el IVA va porque es lo normal, pero nadie pidió factura: una línea, no un bloque
+        if factura.get("requiere") and factura.get("pedida") is False and not datos_factura:
+            lineas.append("   Si pide factura: pedirle razón social, RUT, giro y dirección.")
+    if datos_factura or (factura.get("requiere") and factura.get("pedida") is not False):
         lineas.append("")
         lineas.append("🧾 Factura:")
-        if factura.get("razon_social"):
-            lineas.append(f"   Razón social: {factura['razon_social']}")
-        if factura.get("rut"):
-            lineas.append(f"   RUT: {factura['rut']}")
-        if factura.get("giro"):
-            lineas.append(f"   Giro: {factura['giro']}")
-        if factura.get("direccion"):
-            lineas.append(f"   Dirección: {factura['direccion']}")
-        if factura.get("email"):
-            lineas.append(f"   Email: {factura['email']}")
-        # Si requiere factura pero aún no tenemos los datos, avisar que se los pida al cliente.
-        # `pedida: false` (5-oct-2026): el cobro lleva IVA porque es lo normal, pero el cliente
-        # nunca pidió factura: los datos se piden solo si la necesita.
-        if factura.get("requiere") and not factura.get("razon_social"):
-            if factura.get("pedida") is False:
-                lineas.append("   Con IVA. Si el cliente necesita factura, pedirle razón social, "
-                              "RUT, giro y dirección al coordinar.")
-            else:
-                lineas.append("   ⚠️ Datos pendientes: pedírselos al cliente al coordinar "
-                              "(razón social, RUT, giro, dirección).")
-    # NOTA: el bloque "Qué hacer" (detalle) se omite a propósito. El repartidor ya
-    # conoce el estándar (instalar, traslado incluido, dejar insumos) y el aseo ya se
-    # indica arriba en su propia línea, así que listarlo de nuevo es redundante.
-    # El campo "detalle" puede seguir existiendo en entregas.json, pero NO se muestra.
+        for etq, clave in (("Razón social", "razon_social"), ("RUT", "rut"), ("Giro", "giro"),
+                           ("Dirección", "direccion"), ("Email", "email")):
+            if factura.get(clave):
+                lineas.append(f"   {etq}: {factura[clave]}")
+        if not factura.get("razon_social"):
+            lineas.append("   ⚠️ Datos pendientes: pedírselos al cliente al coordinar "
+                          "(razón social, RUT, giro, dirección).")
     if notas_resto:
         lineas.append("")
         lineas.append(f"📝 Notas: {notas_resto}")

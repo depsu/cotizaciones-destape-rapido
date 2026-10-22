@@ -329,6 +329,13 @@ def cuenta_cobro(e: dict):
             "con_factura": con, "detalle": detalle}
 
 
+def pidio_factura(e: dict) -> bool:
+    """¿El cliente PIDIÓ factura? Con sus datos, sí; con `requiere` y sin la marca `pedida: false` (el conector del
+    bot la pone cuando el IVA va porque es lo normal y nadie habló de factura, 5-oct-2026), también."""
+    f = e.get("factura") or {}
+    return bool(f.get("razon_social")) or (bool(f.get("requiere")) and f.get("pedida") is not False)
+
+
 def lineas_cobro(e: dict) -> tuple[str, list]:
     """Cómo se DICE el cobro, igual en el WhatsApp del repartidor y en su tarjeta web (una
     sola fuente, como `texto_aseo`). Devuelve (la condición corta que va pegada al monto,
@@ -342,7 +349,10 @@ def lineas_cobro(e: dict) -> tuple[str, list]:
     if c is None:
         return "", []
     if c["con_factura"] is True:
-        lineas = [f"Neto {clp(c['neto'])} + IVA {clp(c['iva'])} · con factura"]
+        # «· con factura» SOLO si la factura se pidió (22-oct-2026, caso real p-573): el cobro lleva IVA porque es
+        # lo normal del negocio, y la clienta nunca habló de factura; «con factura» le decía al repartidor que
+        # tenía que emitir una y, dos líneas abajo, «si el cliente necesita factura…». Se contradecía.
+        lineas = [f"Neto {clp(c['neto'])} + IVA {clp(c['iva'])}" + (" · con factura" if pidio_factura(e) else "")]
         if c["detalle"]:
             lineas.append(f"Detalle del neto: {c['detalle']}")
         return "IVA incluido", lineas
@@ -692,8 +702,8 @@ def tarjeta(e: dict) -> str:
         # nunca pidió factura; sus datos se piden solo si la necesita
         sin_pedir = factura.get("pedida") is False
         cuerpo = (f"<ul>{''.join(filas)}</ul>" if filas
-                  else ("<p>Con IVA. Si el cliente necesita factura, pedirle sus datos al coordinar.</p>"
-                        if sin_pedir else "<p>Requiere factura.</p>"))
+                  else ("<p>No la pidió (el cobro ya lleva IVA). Si la necesita, pedirle razón social, RUT, giro "
+                        "y dirección.</p>" if sin_pedir else "<p>Requiere factura.</p>"))
         factura_html = f'<div class="bloque"><span class="etq">🧾 Factura</span>{cuerpo}</div>'
 
     # CUÁNTO TIEMPO queda el baño puesto y cuándo hay que ir a buscarlo. Antes esto solo
@@ -709,6 +719,12 @@ def tarjeta(e: dict) -> str:
             partes.append(esc(periodo_txt))
         if retiro_fecha:
             partes.append(f"retiro el {esc(encabezado_fecha(retiro_fecha))}")
+        elif not RE_LARGO.search(periodo_txt) and not partir_notas(e.get("notas"))[0].get("RETIRO"):
+            # (22-oct-2026, p-573) sin fecha de retiro se dice, para que no se lea como olvido; «no dijo cuántos días»
+            # solo si de verdad el plazo no trae un número (la misma regla del WhatsApp del repartidor)
+            sin_numero = not re.search(r"\d|\b(?:un[oa]?|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|once|doce|"
+                                       r"quince|veinte|treinta|medi[oa])\b", periodo_txt, re.IGNORECASE)
+            partes.append("retiro por coordinar con el cliente" + (" (no dijo cuántos días)" if sin_numero else ""))
         periodo_html = (
             f'<div class="bloque"><span class="etq">⏳ Tiempo de uso</span>'
             f'<p>{" · ".join(partes)}</p></div>'
