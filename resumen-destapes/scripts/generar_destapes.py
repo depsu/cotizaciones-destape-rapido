@@ -206,50 +206,70 @@ body.listo #skel { display:none; }
 .dia-tit.atrasado { color:var(--rojo); }
 .dia-tit.hoy { color:var(--azul); }
 .dia-n { margin-left:auto; background:var(--card); border:1px solid var(--linea); border-radius:20px; padding:1px 9px; font-size:12px; }
-.dw { background:var(--card); border:1px solid var(--linea); border-radius:14px; margin-bottom:12px; overflow:hidden;
-  box-shadow:0 1px 2px rgba(15,23,42,.05); transition:opacity .3s, transform .3s; }
-.dw.is-realizado { border-color:#93C5FD; }
-.dw.is-cobrado { border-color:var(--verde-br); background:var(--verde-bg); }
-.dw.foco { box-shadow:0 0 0 3px var(--azul); }
-.dw-estado { display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:10px 14px 0; }
-.chip { font-size:11px; font-weight:800; padding:3px 9px; border-radius:20px; text-transform:uppercase; letter-spacing:.4px; }
-.chip.pend { background:var(--suave); color:var(--gris); border:1px solid var(--linea); }
+.dw { position:relative; background:var(--card); border:1px solid var(--linea); border-radius:16px; margin-bottom:14px;
+  box-shadow:0 1px 3px rgba(15,23,42,.06); transition:opacity .3s, transform .3s; }
+.dw.is-contactado { border-color:#86EFAC; background:var(--verde-bg); }
+.dw.is-realizado { border-color:#93C5FD; background:#EFF6FF; }
+.dw.is-cobrado { border-color:#FCD34D; background:#FFFBEB; }
+@media (prefers-color-scheme: dark) { .dw.is-realizado { background:#0F1F3D; border-color:#1E40AF; } .dw.is-cobrado { background:#2A2108; border-color:#A16207; } }
+.dw.foco { animation:pulso 1.3s ease-in-out 3; }
+@keyframes pulso { 0%,100% { box-shadow:0 0 0 0 rgba(59,130,246,0); } 35% { box-shadow:0 0 0 6px rgba(59,130,246,.5); } }
+/* NUEVO (este teléfono no lo había visto): anillo azul y chip flotante, igual que en baños */
+.dw.nueva { margin-top:20px; box-shadow:0 0 0 2px #93C5FD, 0 4px 16px rgba(59,130,246,.28); }
+.dw.nueva::before { content:"✨ Nuevo"; position:absolute; top:-10px; right:14px; background:#3B82F6; color:#fff;
+  font-size:11px; font-weight:800; padding:2px 10px; border-radius:999px; box-shadow:0 1px 4px rgba(30,64,175,.35); z-index:2; }
+.dw-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:12px 14px 0; }
+.hora-pill { display:inline-flex; align-items:center; gap:6px; background:var(--azul); color:#fff; font-weight:800;
+  font-size:17px; padding:6px 12px; border-radius:10px; font-variant-numeric:tabular-nums; letter-spacing:.2px; }
+.hora-pill.sin { background:var(--ambar-bg); color:var(--ambar); font-size:15px; }
+.chip { margin-left:auto; font-size:11.5px; font-weight:800; padding:4px 10px; border-radius:20px; white-space:nowrap; }
 .chip.real { background:#DBEAFE; color:#1E40AF; }
-.chip.cob { background:#DCFCE7; color:#166534; }
-.chip.reag { background:var(--rojo-bg); color:var(--rojo); }
-.chip.nuevo { background:var(--violeta-bg); color:var(--violeta); }
-@media (prefers-color-scheme: dark) { .chip.real { background:#172554; color:#93C5FD; } .chip.cob { background:#052E16; color:#86EFAC; } }
-.dc { padding:10px 14px 4px; }
-.dc-top { display:flex; justify-content:space-between; gap:10px; align-items:baseline; }
-.dc-serv { font-weight:800; font-size:17px; }
-.dc-hora { font-size:14px; color:var(--gris); white-space:nowrap; font-variant-numeric:tabular-nums; }
-.dc-dir { margin-top:6px; overflow-wrap:anywhere; }
+.chip.cob { background:#FEF3C7; color:#92400E; }
+.chip.cont { background:#DCFCE7; color:#166534; }
+.chip.reag { background:var(--rojo-bg); color:var(--rojo); margin-left:0; }
+@media (prefers-color-scheme: dark) { .chip.real { background:#172554; color:#93C5FD; } .chip.cob { background:#3A2A06; color:#FCD34D; } .chip.cont { background:#052E16; color:#86EFAC; } }
+.dw-body { padding:10px 14px 14px; }
+.dw-serv { font-weight:800; font-size:18px; line-height:1.25; }
+.dw-cli { margin-top:2px; font-size:15px; color:var(--gris); }
+.dw-dir { margin-top:8px; font-size:15.5px; overflow-wrap:anywhere; }
 .dc-falta { color:var(--rojo); font-weight:700; }
-.dc-valor { margin-top:8px; background:var(--verde-bg); border:1px solid var(--verde-br); border-radius:10px; padding:8px 12px; color:var(--verde); }
-.dc-valor b { font-size:20px; font-variant-numeric:tabular-nums; }
-.dc-iva { display:block; font-size:12.5px; opacity:.9; }
-.dc-cli { margin-top:8px; font-size:15px; }
-.dc-linea { margin-top:6px; font-size:14px; color:var(--gris); }
-.dc-acc { display:flex; gap:8px; margin-top:10px; }
-.dc-btn { flex:1 1 0; display:flex; align-items:center; justify-content:center; gap:6px; min-height:44px; border-radius:10px;
-  text-decoration:none; color:#fff; font-weight:700; font-size:14px; }
-.dc-wa { background:#16A34A; } .dc-tel { background:#2563EB; } .dc-map { background:#475569; }
-.dc-btn:active { filter:brightness(.92); }
-.dw-ctl { padding:10px 14px 14px; display:grid; gap:10px; }
-.est-row { display:flex; gap:8px; }
-.est-btn { flex:1 1 0; min-height:46px; border-radius:10px; font:inherit; font-weight:800; font-size:15px; cursor:pointer;
+.dw-valor { margin-top:10px; background:var(--verde-bg); border:1px solid var(--verde-br); border-radius:12px; padding:10px 12px; color:var(--verde); }
+.dw-valor .etq { display:block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; }
+.dw-valor b { font-size:24px; font-variant-numeric:tabular-nums; }
+.dw-valor .nota { display:block; font-size:12.5px; opacity:.9; }
+.dw-linea { margin-top:8px; font-size:14px; color:var(--gris); }
+.dw-linea.nota-imp { color:var(--ambar); background:var(--ambar-bg); border-radius:10px; padding:8px 10px; font-weight:600; }
+.btn-contacto { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:12px; min-height:50px;
+  border:none; border-radius:12px; background:#22A45D; color:#fff; font:inherit; font-size:15.5px; font-weight:800; cursor:pointer; }
+.btn-contacto:active { filter:brightness(.95); }
+.btn-contacto.hecho { background:#DCFCE7; color:#166534; cursor:default; }
+@media (prefers-color-scheme: dark) { .btn-contacto.hecho { background:#052E16; color:#86EFAC; } }
+.accesos { display:flex; gap:8px; margin-top:8px; }
+.acc { flex:1 1 0; display:flex; align-items:center; justify-content:center; gap:6px; min-height:46px; border-radius:11px;
+  text-decoration:none; font-weight:700; font-size:14px; }
+.acc-wa { background:#25D366; color:#fff; } .acc-map { background:var(--azul); color:#fff; }
+.acc-tel { background:var(--card); color:var(--tinta); border:1px solid var(--linea); }
+.acc:active { filter:brightness(.92); }
+.est-row { display:flex; gap:8px; margin-top:12px; }
+.est-btn { flex:1 1 0; min-height:48px; border-radius:11px; font:inherit; font-weight:800; font-size:15px; cursor:pointer;
   border:2px solid var(--linea); background:var(--card); color:var(--tinta); }
-.est-btn.on.b-real { background:#2563EB; border-color:#2563EB; color:#fff; }
-.est-btn.on.b-cob { background:#16A34A; border-color:#16A34A; color:#fff; }
+.est-btn.on.b-real { background:#1E40AF; border-color:#1E40AF; color:#fff; }
+.est-btn.on.b-cob { background:#B8860B; border-color:#B8860B; color:#fff; }
+.dw-mas { margin-top:12px; border-top:1px dashed var(--linea); padding-top:4px; }
+.dw-mas > summary { list-style:none; cursor:pointer; color:var(--azul); font-weight:700; font-size:14px; padding:8px 0; }
+.dw-mas > summary::-webkit-details-marker { display:none; }
+.dw-mas > summary::after { content:" ▾"; }
+.dw-mas[open] > summary::after { content:" ▴"; }
+.mas-cuerpo { display:grid; gap:10px; padding-bottom:2px; }
 .fila2 { display:flex; gap:8px; }
 .campo { flex:1 1 0; display:flex; flex-direction:column; gap:3px; font-size:12px; font-weight:700; color:var(--gris);
   text-transform:uppercase; letter-spacing:.4px; min-width:0; }
 .campo input { font:inherit; font-size:16px; min-height:44px; border-radius:10px; border:1px solid var(--linea);
   background:var(--suave); color:var(--tinta); padding:6px 10px; width:100%; text-transform:none; letter-spacing:0; }
 .campo small { font-weight:500; text-transform:none; letter-spacing:0; font-size:12px; }
-.com-linea { font-size:13px; color:var(--gris); }
+.com-linea { font-size:13.5px; color:var(--gris); background:var(--suave); border-radius:10px; padding:8px 10px; }
 .com-linea b { color:var(--tinta); }
-.quitar { justify-self:end; background:none; border:none; color:var(--rojo); font:inherit; font-size:13px; font-weight:700;
+.quitar { justify-self:start; background:none; border:none; color:var(--rojo); font:inherit; font-size:13px; font-weight:700;
   cursor:pointer; padding:6px 0; }
 .confirma { display:flex; gap:8px; align-items:center; font-size:14px; flex-wrap:wrap; background:var(--rojo-bg);
   border-radius:10px; padding:8px 10px; color:var(--rojo); }
@@ -410,34 +430,99 @@ SCRIPT = r"""
   }
 
   // ── agenda ─────────────────────────────────────────────────────────────
+  var ICONOS = { 'destape-hydrojet': '💦', 'destape-camion': '🚛', 'video-inspeccion': '📹', 'succion-fosa': '🚛', 'destape-domiciliario': '🔧' };
+  var masAbierto = {};
+  /** Minutos desde medianoche de la hora pedida («de 9 a 12» → 540). null = sin hora exacta («en la tarde»). */
+  function minutosDe(h) {
+    var t = String(h || '').toLowerCase(), m = t.match(/(\d{1,2})(?:[:.](\d{2}))?/);
+    if (!m) return null;
+    var n = +m[1]; if (n > 23) return null;
+    if (n < 8 && /tarde|pm|noche/.test(t)) n += 12;
+    return n * 60 + (+(m[2] || 0));
+  }
+  function horaBonita(h) {
+    var t = String(h || '').trim();
+    var r = t.match(/^(?:de\s+|entre\s+)?(\d{1,2})(?:[:.](\d{2}))?\s*(?:a|y|-|hasta)\s*(\d{1,2})(?:[:.](\d{2}))?\s*(?:hrs?|horas)?$/i);
+    if (r) return r[1] + ':' + (r[2] || '00') + ' a ' + r[3] + ':' + (r[4] || '00') + ' hrs';
+    var u = t.match(/^(?:a las\s+)?(\d{1,2})(?:[:.](\d{2}))?\s*(?:hrs?|horas)?$/i);
+    if (u) return u[1] + ':' + (u[2] || '00') + ' hrs';
+    return cap(t);
+  }
+  function diaRelativo(iso) {
+    if (iso === hoyISO(0)) return 'hoy';
+    if (iso === hoyISO(1)) return 'mañana ' + diaLargo(iso);
+    return 'el ' + diaLargo(iso);
+  }
+  function dirHtml(d) {
+    var dire = String(d.direccion || '').trim(), com = String(d.comuna || '').trim();
+    if (!dire && !com) return '<span class="dc-falta">Falta la dirección. Pídesela al cliente.</span>';
+    if (com && dire.toLowerCase().indexOf(com.toLowerCase()) < 0) return dire ? '<b>' + esc(dire) + '</b>, ' + esc(com) : '<b>' + esc(com) + '</b>';
+    return '<b>' + esc(dire) + '</b>';
+  }
+  function mapaDe(d) {
+    if (d.maps_url) return d.maps_url;
+    var q = [d.direccion, d.comuna].filter(Boolean).join(', ');
+    return q ? 'https://maps.google.com/?q=' + encodeURIComponent(q) : '';
+  }
   function wrap(f) {
-    var id = f.id, st = estadoDe(id), e = E(id);
+    var id = f.id, st = estadoDe(id), e = E(id), d = f.data || {};
     var fe = fechaEf(f), orig = f.fecha || '';
-    var chips = '';
-    chips += st === 'cobrado' ? '<span class="chip cob">Cobrado</span>' : st === 'realizado' ? '<span class="chip real">Realizado, falta cobrar</span>' : '<span class="chip pend">Por hacer</span>';
-    if (e.fecha && orig && e.fecha !== orig) chips += '<span class="chip reag">Reagendado (era ' + esc(diaLargo(orig)) + ')</span>';
-    if (!primeraVez && !vistos[id]) chips += '<span class="chip nuevo">Nuevo</span>';
-    var vf = Number(e.valor_final) > 0 ? Number(e.valor_final) : '';
-    var desde = Number(f.data && f.data.precio_neto) || 0;
+    var tel = String(d.telefono || '').replace(/\D/g, '');
+    var hora = d.hora || '', min = minutosDe(hora);
+    var contactado = !!e.contactado;
+    var reag = e.fecha && orig && e.fecha !== orig;
+    var cls = st !== 'pendiente' ? ' is-' + st : (contactado ? ' is-contactado' : '');
+    if (!primeraVez && !vistos[id]) cls += ' nueva';
+    var chip = st === 'cobrado' ? '<span class="chip cob">💰 Cobrado</span>'
+      : st === 'realizado' ? '<span class="chip real">✓ Realizado, falta cobrar</span>'
+      : contactado ? '<span class="chip cont">✓ Cliente contactado</span>' : '';
+    var top = '<div class="dw-top"><span class="hora-pill' + (min === null ? ' sin' : '') + '">🕐 '
+      + esc(hora ? horaBonita(hora) : 'Horario por confirmar') + '</span>'
+      + (reag ? '<span class="chip reag">Reagendado (era ' + esc(diaLargo(orig)) + ')</span>' : '') + chip + '</div>';
+    var neto = Number(d.precio_neto) || 0, vf = Number(e.valor_final) > 0 ? Number(e.valor_final) : 0;
+    var fac = String(d.factura || '').toLowerCase();
+    var facTxt = /^s[ií]/.test(fac) ? 'Con factura: se suma el IVA' : /^no/.test(fac) ? 'Sin factura' : 'Si pide factura se suma el IVA';
+    var valor = vf
+      ? '<div class="dw-valor"><span class="etq">Valor final</span><b>' + clp(vf) + '</b> neto<span class="nota">' + esc(facTxt) + '</span></div>'
+      : neto ? '<div class="dw-valor"><span class="etq">Valor</span>desde <b>' + clp(neto) + '</b> neto<span class="nota">' + esc(facTxt) + '. El valor final se confirma en terreno.</span></div>'
+      : '<div class="dw-valor"><b>Valor a confirmar en terreno</b></div>';
+    var servicio = d.servicio || 'Destape', trabajo = d.trabajo || '';
+    var lineas = '';
+    if (trabajo && trabajo.trim().toLowerCase() !== servicio.trim().toLowerCase()) lineas += '<div class="dw-linea">🛠️ ' + esc(cap(trabajo)) + '</div>';
+    if (d.acceso) lineas += '<div class="dw-linea">🚪 ' + esc(d.acceso) + '</div>';
+    if (d.nota) lineas += '<div class="dw-linea nota-imp">📝 ' + esc(d.nota) + '</div>';
+    var contacto = '';
+    if (tel && st === 'pendiente') {
+      contacto = contactado
+        ? '<button type="button" class="btn-contacto hecho" data-acc="contactar">✓ Cliente contactado</button>'
+        : '<button type="button" class="btn-contacto" data-acc="contactar">💬 Avisar al cliente que vamos</button>';
+    }
+    var mapa = mapaDe(d), acc = '';
+    if (tel && (contactado || st !== 'pendiente')) acc += '<a class="acc acc-wa" href="https://wa.me/' + tel + '" target="_blank" rel="noopener">WhatsApp</a>';
+    if (tel) acc += '<a class="acc acc-tel" href="tel:+' + tel + '">📞 Llamar</a>';
+    if (mapa) acc += '<a class="acc acc-map" href="' + esc(mapa) + '" target="_blank" rel="noopener">🗺️ Cómo llegar</a>';
     var conf = confirmando === id
       ? '<div class="confirma">¿Quitar este destape de la agenda? <button type="button" class="si" data-acc="quitar-si">Sí, quitar</button><button type="button" class="no" data-acc="quitar-no">No</button></div>'
       : '<button type="button" class="quitar" data-acc="quitar">✕ Quitar de la agenda</button>';
-    return '<div class="dw is-' + st + '" data-id="' + esc(id) + '">'
-      + '<div class="dw-estado">' + chips + '</div>'
-      + (f.card_html || '')
-      + '<div class="dw-ctl">'
+    var mas = '<details class="dw-mas" data-mas="' + esc(id) + '"' + (masAbierto[id] ? ' open' : '') + '><summary>Reagendar, valor final y comisión</summary><div class="mas-cuerpo">'
+      + '<div class="fila2">'
+      + '<label class="campo">📅 Reagendar<input type="date" data-acc="fecha" value="' + esc(fe) + '"></label>'
+      + '<label class="campo">💵 Valor final neto<input type="text" inputmode="numeric" autocomplete="off" data-acc="valor" placeholder="' + (neto ? esc(clp(neto)) : 'sin IVA') + '" value="' + (vf ? esc(clp(vf)) : '') + '"><small>Si en terreno cambió el valor</small></label>'
+      + '</div>'
+      + '<div class="com-linea">Comisión Destape Rápido (' + pctDe(f) + '%): <b>' + clp(comDe(f)) + '</b>' + (vf ? ' sobre el valor final' : (neto ? ' sobre el valor desde' : '')) + '</div>'
+      + conf + '</div></details>';
+    return '<div class="dw' + cls + '" data-id="' + esc(id) + '">' + top
+      + '<div class="dw-body"><div class="dw-serv">' + (ICONOS[d.servicio_clave] || '🔧') + ' ' + esc(servicio) + '</div>'
+      + '<div class="dw-cli">👤 ' + esc(d.cliente || 'Cliente sin nombre') + (tel ? ' · ' + esc(telBonito(tel)) : '') + '</div>'
+      + '<div class="dw-dir">📍 ' + dirHtml(d) + '</div>'
+      + valor + lineas + contacto
+      + (acc ? '<div class="accesos">' + acc + '</div>' : '')
       + '<div class="est-row">'
       + '<button type="button" class="est-btn b-real' + (st !== 'pendiente' ? ' on' : '') + '" data-acc="realizado">' + (st !== 'pendiente' ? '✓ Realizado' : 'Realizado') + '</button>'
       + '<button type="button" class="est-btn b-cob' + (st === 'cobrado' ? ' on' : '') + '" data-acc="cobrado">' + (st === 'cobrado' ? '✓ Cobrado' : 'Cobrado') + '</button>'
-      + '</div>'
-      + '<div class="fila2">'
-      + '<label class="campo">📅 Reagendar<input type="date" data-acc="fecha" value="' + esc(fe) + '"></label>'
-      + '<label class="campo">💵 Valor final neto<input type="text" inputmode="numeric" autocomplete="off" data-acc="valor" placeholder="' + (desde ? esc(clp(desde)) : 'sin IVA') + '" value="' + (vf ? esc(clp(vf)) : '') + '"><small>Si en terreno cambió el valor</small></label>'
-      + '</div>'
-      + '<div class="com-linea">Comisión Destape Rápido (' + pctDe(f) + '%): <b>' + clp(comDe(f)) + '</b>' + (vf ? ' sobre el valor final' : (desde ? ' sobre el valor desde' : '')) + '</div>'
-      + conf
-      + '</div></div>';
+      + '</div>' + mas + '</div></div>';
   }
+  function telBonito(d) { return d.length === 11 && d.indexOf('569') === 0 ? '+56 9 ' + d.slice(3, 7) + ' ' + d.slice(7) : '+' + d; }
 
   function pintarAgenda() {
     var cont = document.getElementById('agenda');
@@ -467,6 +552,9 @@ SCRIPT = r"""
       var items = grupos[k].sort(function (a, b) {
         var fa = fechaEf(a), fb = fechaEf(b);
         if (fa !== fb) return fa < fb ? -1 : 1;
+        // por hora programada; los que no tienen hora exacta van al final del día
+        var ma = minutosDe(a.data && a.data.hora), mb = minutosDe(b.data && b.data.hora);
+        if (ma !== mb) { if (ma === null) return 1; if (mb === null) return -1; return ma - mb; }
         return (b.informado_at || '') < (a.informado_at || '') ? -1 : 1;
       });
       var tit, cls = '';
@@ -480,7 +568,7 @@ SCRIPT = r"""
     });
     if (!lista.length) html += '<p class="vacio">' + (verCobrados ? 'Todavía no hay destapes cobrados.' : 'No hay destapes agendados por ahora. Cuando el bot confirme uno, aparece acá solo.') + '</p>';
     if (cobrados.length || verCobrados) html += '<button type="button" class="ver-mas" data-acc="ver-cobrados">' + (verCobrados ? '← Volver a la agenda' : '✓ Ver cobrados (' + cobrados.length + ')') + '</button>';
-    if (!verCobrados && lista.length) html += '<p class="leyenda">Borde azul: realizado, falta cobrar. Verde: cobrado. Al marcar Cobrado el destape pasa a la lista de cobrados y suma a la comisión.</p>';
+    if (!verCobrados && lista.length) html += '<p class="leyenda">Verde: cliente contactado. Azul: realizado, falta cobrar. Dorado: cobrado. Al marcar Cobrado el destape pasa a la lista de cobrados y suma a la comisión.</p>';
     cont.innerHTML = html;
     document.getElementById('hdr-pend').textContent = abiertos.length;
   }
@@ -586,12 +674,14 @@ SCRIPT = r"""
     if (t.classList.contains('vista-btn')) { vista = t.getAttribute('data-vista'); pintar(); window.scrollTo(0, 0); return; }
     var w = t.closest('.dw'), id = w && w.getAttribute('data-id');
     var acc = t.getAttribute('data-acc') || t.getAttribute('data-accion');
-    if (acc === 'wa' && id) {
-      // Mensaje listo para el cliente. El link base ya abre el chat, esto le suma el texto.
-      var f = fila(id), d = (f && f.data) || {};
-      var txt = 'Hola, le escribo de Destape Rápido por el ' + (d.servicio || 'destape').toLowerCase() + ' agendado para el ' + diaLargo(fechaEf(f)) + (d.hora ? ', ' + d.hora : '') + (d.direccion ? ', en ' + d.direccion : '') + '.';
-      t.href = 'https://wa.me/' + (d.telefono || '').replace(/\D/g, '') + '?text=' + encodeURIComponent(txt);
-      if (!E(id).contactado) guardar(id, { contactado: true }).then(function () { est[id] = Object.assign({}, E(id), { contactado: true }); lsSet(CK_EST, est); }).catch(function () {});
+    if (acc === 'contactar' && id) {
+      var f = fila(id), d = (f && f.data) || {}, tel = String(d.telefono || '').replace(/\D/g, '');
+      if (E(id).contactado || !tel) return;
+      // Se presenta y pregunta UNA cosa, como en baños. Sin emoji ni exclamación.
+      var msg = 'Hola, le escribo de Destape Rápido, soy del equipo que va a hacer el ' + (d.servicio || 'destape').toLowerCase()
+        + '. Vamos ' + diaRelativo(fechaEf(f)) + (d.hora ? ', ' + d.hora : '') + (d.direccion ? ', a ' + d.direccion : '') + '. ¿Me confirma que nos puede recibir?';
+      cambiar(id, { contactado: true }, 'Cliente contactado').catch(function () {});
+      window.location.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
       return;
     }
     if (acc === 'realizado') {
@@ -639,6 +729,10 @@ SCRIPT = r"""
     var b = APP.banco, t = b.titular + '\n' + b.banco + '\nCuenta RUT ' + b.cuenta + '\n' + b.email;
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Datos copiados'); }).catch(function () { toast(t); });
   });
+  document.addEventListener('toggle', function (ev) {
+    var t = ev.target; if (!t.getAttribute || !t.hasAttribute('data-mas')) return;
+    masAbierto[t.getAttribute('data-mas')] = t.open;
+  }, true);
   window.addEventListener('resize', medirHeader);
   window.addEventListener('hashchange', irAlHash);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) cargar(); });
