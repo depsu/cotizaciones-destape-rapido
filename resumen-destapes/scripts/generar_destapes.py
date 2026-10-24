@@ -432,7 +432,7 @@ SCRIPT = r"""
       + '</div>'
       + '<div class="fila2">'
       + '<label class="campo">📅 Reagendar<input type="date" data-acc="fecha" value="' + esc(fe) + '"></label>'
-      + '<label class="campo">💵 Valor final neto<input type="number" inputmode="numeric" min="0" step="1000" data-acc="valor" placeholder="' + (desde ? esc(desde) : 'sin IVA') + '" value="' + esc(vf) + '"><small>Si en terreno cambió el valor</small></label>'
+      + '<label class="campo">💵 Valor final neto<input type="text" inputmode="numeric" autocomplete="off" data-acc="valor" placeholder="' + (desde ? esc(clp(desde)) : 'sin IVA') + '" value="' + (vf ? esc(clp(vf)) : '') + '"><small>Si en terreno cambió el valor</small></label>'
       + '</div>'
       + '<div class="com-linea">Comisión Destape Rápido (' + pctDe(f) + '%): <b>' + clp(comDe(f)) + '</b>' + (vf ? ' sobre el valor final' : (desde ? ' sobre el valor desde' : '')) + '</div>'
       + conf
@@ -613,6 +613,12 @@ SCRIPT = r"""
       if (t.checked) delete d2[sid]; else d2[sid] = 1;
       lsSet(CK_DESEL, d2); pintarComision();
     }
+  });
+  // valor final con formato CLP mientras se escribe ($160.000)
+  document.addEventListener('input', function (ev) {
+    var t = ev.target; if (!t.getAttribute || t.getAttribute('data-acc') !== 'valor') return;
+    var d = String(t.value).replace(/\D/g, '').replace(/^0+/, '');
+    t.value = d ? clp(Number(d)) : '';
   });
   document.addEventListener('change', function (ev) {
     var t = ev.target, acc = t.getAttribute && t.getAttribute('data-acc'); if (!acc) return;
