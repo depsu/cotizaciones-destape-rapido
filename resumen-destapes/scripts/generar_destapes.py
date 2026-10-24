@@ -480,7 +480,7 @@ SCRIPT = r"""
     });
     if (!lista.length) html += '<p class="vacio">' + (verCobrados ? 'Todavía no hay destapes cobrados.' : 'No hay destapes agendados por ahora. Cuando el bot confirme uno, aparece acá solo.') + '</p>';
     if (cobrados.length || verCobrados) html += '<button type="button" class="ver-mas" data-acc="ver-cobrados">' + (verCobrados ? '← Volver a la agenda' : '✓ Ver cobrados (' + cobrados.length + ')') + '</button>';
-    if (!verCobrados && lista.length) html += '<p class="leyenda">Blanco: por hacer. Azul: realizado, falta cobrar. Verde: cobrado. Al marcar Cobrado el destape pasa a la lista de cobrados y suma a la comisión.</p>';
+    if (!verCobrados && lista.length) html += '<p class="leyenda">Borde azul: realizado, falta cobrar. Verde: cobrado. Al marcar Cobrado el destape pasa a la lista de cobrados y suma a la comisión.</p>';
     cont.innerHTML = html;
     document.getElementById('hdr-pend').textContent = abiertos.length;
   }
