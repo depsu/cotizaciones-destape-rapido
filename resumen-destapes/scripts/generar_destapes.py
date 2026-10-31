@@ -10,6 +10,11 @@ lee y escribe SOLO las tablas `destape` y `destape_estado` de Supabase.
   hay, el respaldo horneado acá (las filas que había al generar).
 - El porcentaje de Destape Rápido sale de un solo lugar:
   DIXDY/clientes/destaperapido/conexiones/avisar-destape.json → comision_por_destino.
+- Montos en la página con el formato de plata de siempre ("$140.000"). El campo del valor
+  final acepta "140", "140 mil", "140.000" o "$140.000" y lo muestra como "$140.000".
+  ("140 mil" es solo para lo que el bot le escribe al cliente por WhatsApp, no para acá.)
+- Cobrar = botón "Cobrado" → "¿Cuánto se cobró?" → guarda valor_final y estado cobrado
+  juntos. La comisión sale de ese valor final.
 
 Uso:
     python3 resumen-destapes/scripts/generar_destapes.py            # escribe ../destapes.html
@@ -71,7 +76,31 @@ def pct_comision(destino: str = DESTINO_PAGINA) -> int:
 
 
 esc = gl.esc
-clp = gl.clp
+clp = gl.clp  # $160.000
+
+
+def con_factura(factura) -> bool | None:
+    """¿Pidió factura? True = sí ("si", "sí", "si, con factura", "con factura"),
+    False = no ("no", "sin factura", "boleta"), None = no se sabe ("").
+    OJO: "sin factura" empieza con "si", por eso se mira la palabra entera."""
+    t = str(factura if factura is not None else "").strip().lower().replace("í", "i")
+    if not t:
+        return None
+    if re.match(r"(sin|no|boleta|false)\b", t):
+        return False
+    if re.match(r"(si|true)\b", t) or t.startswith("con factura") or t == "factura":
+        return True
+    return None
+
+
+def iva_txt(factura) -> str:
+    """El valor es NETO. Regla del dueño: si pide factura se suma el IVA (19 %)."""
+    fac = con_factura(factura)
+    if fac is True:
+        return "Con factura: + IVA"
+    if fac is False:
+        return "Sin factura"
+    return "Si pide factura se suma el IVA"
 
 
 def solo_digitos(v) -> str:
@@ -108,11 +137,8 @@ def tarjeta(d: dict) -> str:
     icono = ICONO_SERVICIO.get(d.get("servicio_clave", ""), "🔧")
     hora = d.get("hora") or "Horario a coordinar"
     neto = int(solo_digitos(d.get("precio_neto")) or 0)
-    fac = str(d.get("factura") or "").lower()
-    iva_txt = ("Con factura, más IVA" if fac.startswith("si") or fac.startswith("sí")
-               else "Sin factura" if fac.startswith("no") else "Si pide factura se suma el IVA")
-    valor = (f'<div class="dc-valor">desde <b>{esc(clp(neto))}</b> neto'
-             f'<span class="dc-iva">{esc(iva_txt)}. El valor final se confirma en terreno.</span></div>'
+    valor = (f'<div class="dc-valor">desde <b>{esc(clp(neto))}</b>'
+             f'<span class="dc-iva">{esc(iva_txt(d.get("factura")))}</span></div>'
              if neto else '<div class="dc-valor"><b>Valor a confirmar en terreno</b></div>')
     tel = solo_digitos(d.get("telefono"))
     cliente = d.get("cliente") or "Cliente sin nombre"
@@ -158,16 +184,33 @@ def filas_vivas() -> list[dict]:
         return []
 
 
+def estado_vivo() -> dict:
+    """El estado de cada destape (cobrado, valor final...) para el respaldo horneado.
+    Sin esto, sin red y sin caché los ya cobrados se verían como atrasados."""
+    url = f"{SUPABASE_URL}/rest/v1/destape_estado?select=*"
+    req = urllib.request.Request(url, headers={"apikey": SUPABASE_ANON_KEY,
+                                               "Authorization": f"Bearer {SUPABASE_ANON_KEY}"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            return {f["id"]: f for f in json.loads(r.read().decode())}
+    except (urllib.error.URLError, ValueError, KeyError, TypeError):
+        return {}
+
+
 CSS = r"""
 :root { --azul:#1F5AA8; --azul-2:#163F78; --tinta:#0F172A; --gris:#64748B; --linea:#E2E8F0; --fondo:#F1F5F9;
   --card:#fff; --suave:#F8FAFC; --verde:#166534; --verde-bg:#F0FDF4; --verde-br:#BBF7D0;
-  --ambar:#92400E; --ambar-bg:#FEF3C7; --rojo:#B91C1C; --rojo-bg:#FEF2F2; --violeta:#5B21B6; --violeta-bg:#EDE9FE;
-  --skel-a:#E2E8F0; --skel-b:#EDF2F7; color-scheme:light dark; }
+  --ambar:#92400E; --ambar-bg:#FEF3C7; --ambar-br:#FCD34D; --oro:#B8860B;
+  --rojo:#B91C1C; --rojo-bg:#FEF2F2; --rojo-br:#FCA5A5;
+  --azul-btn:#1F5AA8; --oro-btn:#A16207; --verde-btn:#15803D;
+  --tinta-2:#334155; --skel-a:#E2E8F0; --skel-b:#EDF2F7; color-scheme:light dark; }
 @media (prefers-color-scheme: dark) {
   :root { --azul:#3B82F6; --azul-2:#1E3A8A; --tinta:#E5E7EB; --gris:#94A3B8; --linea:#273244; --fondo:#0B1220;
     --card:#111A2B; --suave:#0F1726; --verde:#4ADE80; --verde-bg:#0F2A1C; --verde-br:#166534;
-    --ambar:#FCD34D; --ambar-bg:#3A2A06; --rojo:#F87171; --rojo-bg:#3A1212; --violeta:#C4B5FD; --violeta-bg:#2A1F4A;
-    --skel-a:#1E293B; --skel-b:#273449; }
+    --ambar:#FCD34D; --ambar-bg:#3A2A06; --ambar-br:#A16207; --oro:#CA8A04;
+    --rojo:#FCA5A5; --rojo-bg:#3A1212; --rojo-br:#7F1D1D;
+    --azul-btn:#2563EB;
+    --tinta-2:#CBD5E1; --skel-a:#1E293B; --skel-b:#273449; }
 }
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 [hidden] { display:none !important; }
@@ -176,42 +219,53 @@ body { margin:0; background:var(--fondo); color:var(--tinta);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   font-size:16px; line-height:1.45; padding-bottom:calc(90px + env(safe-area-inset-bottom)); }
 header { position:sticky; top:0; z-index:20; background:var(--azul-2); color:#fff;
-  padding:max(14px,env(safe-area-inset-top)) 18px 14px; box-shadow:0 2px 8px rgba(0,0,0,.2); }
+  padding:max(12px,env(safe-area-inset-top)) 16px 12px; box-shadow:0 2px 8px rgba(0,0,0,.2); }
 @media (prefers-color-scheme: light) { header { background:var(--azul); } }
 header h1 { margin:0; font-size:19px; }
-header .sub { margin-top:3px; font-size:13px; opacity:.9; }
+header .sub { margin-top:3px; font-size:14px; opacity:.92; }
 .hdr-com { font-weight:700; }
 header .skel { display:inline-block; vertical-align:middle; height:11px; width:70px; border-radius:6px;
   background:rgba(255,255,255,.3); }
-main { max-width:560px; margin:0 auto; padding:12px 12px 30px; opacity:0; transition:opacity .25s;
+main { max-width:560px; margin:0 auto; padding:12px 16px 30px; opacity:0; transition:opacity .25s;
   animation:velo 0s linear 10s forwards; }
 main.listo { opacity:1; }
 @keyframes velo { to { opacity:1; } }
 body.listo #skel { display:none; }
-#skel { max-width:560px; margin:0 auto; padding:12px 12px 0; }
+#skel { max-width:560px; margin:0 auto; padding:12px 16px 0; }
 .sk { border-radius:12px; margin-bottom:10px;
   background:linear-gradient(90deg,var(--skel-a) 25%,var(--skel-b) 45%,var(--skel-a) 65%);
   background-size:400% 100%; animation:brillo 1.3s ease-in-out infinite; }
-.sk-tabs { height:46px; } .sk-tit { height:14px; width:40%; margin:16px 4px 10px; } .sk-card { height:150px; }
+.sk-tabs { height:48px; } .sk-tit { height:14px; width:40%; margin:16px 4px 10px; } .sk-card { height:150px; }
 @keyframes brillo { 0% { background-position:100% 0; } 100% { background-position:0 0; } }
 @media (prefers-reduced-motion: reduce) { .sk { animation:none; } }
-.aviso-red { background:var(--ambar-bg); color:var(--ambar); border-radius:10px; padding:8px 12px; font-size:13px; margin-bottom:10px; }
-.vistas { display:flex; gap:8px; margin-bottom:6px; }
-.vista-btn { flex:1 1 0; min-height:46px; border-radius:11px; border:1px solid var(--linea); background:var(--card);
-  color:var(--tinta); font:inherit; font-weight:700; font-size:15px; cursor:pointer; }
-.vista-btn.activo { background:var(--azul); border-color:var(--azul); color:#fff; }
+.aviso-red { background:var(--ambar-bg); color:var(--ambar); border-radius:10px; padding:8px 12px; font-size:14px; margin-bottom:10px; }
+.vistas { display:flex; gap:8px; }
+.vista-btn { flex:1 1 0; min-height:48px; border-radius:12px; border:1px solid var(--linea); background:var(--card);
+  color:var(--tinta); font:inherit; font-weight:700; font-size:16px; cursor:pointer; }
+.vista-btn.activo { background:var(--azul-btn); border-color:var(--azul-btn); color:#fff; }
+/* Botones para ver lo realizado y lo cobrado (como "Ver completadas" de baños) */
+.filtros { display:flex; gap:8px; margin-top:10px; }
+.filtro { flex:1 1 0; min-width:0; min-height:48px; border-radius:12px; border:2px solid var(--linea); background:var(--card);
+  color:var(--tinta); font:inherit; font-weight:700; font-size:14.5px; line-height:1.2; cursor:pointer; padding:4px 6px; }
+.filtro.activo { background:var(--azul-btn); border-color:var(--azul-btn); color:#fff; }
+.filtro.alerta { border:2px solid var(--oro); background:var(--ambar-bg); color:var(--ambar); }
+.espacio-fijo { height:84px; }
+.volver-fijo { position:fixed; left:16px; right:16px; bottom:calc(14px + env(safe-area-inset-bottom)); max-width:528px;
+  margin:0 auto; z-index:30; min-height:54px; border:none; border-radius:14px; background:var(--azul-btn); color:#fff;
+  font:inherit; font-size:16px; font-weight:800; cursor:pointer; box-shadow:0 6px 18px rgba(15,23,42,.3); }
 .dia-tit { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; text-transform:uppercase;
-  letter-spacing:.5px; color:var(--gris); margin:16px 0 8px; padding:6px 4px; position:sticky; top:var(--hdr-h,70px);
+  letter-spacing:.5px; color:var(--gris); margin:16px 0 8px; padding:6px 0; position:sticky; top:var(--hdr-h,70px);
   z-index:5; background:var(--fondo); }
 .dia-tit.atrasado { color:var(--rojo); }
 .dia-tit.hoy { color:var(--azul); }
-.dia-n { margin-left:auto; background:var(--card); border:1px solid var(--linea); border-radius:20px; padding:1px 9px; font-size:12px; }
+.dia-n { margin-left:auto; background:var(--card); border:1px solid var(--linea); border-radius:20px; padding:1px 9px; font-size:12px; color:var(--gris); }
 .dw { position:relative; background:var(--card); border:1px solid var(--linea); border-radius:16px; margin-bottom:14px;
-  box-shadow:0 1px 3px rgba(15,23,42,.06); transition:opacity .3s, transform .3s; }
-.dw.is-contactado { border-color:#86EFAC; background:var(--verde-bg); }
-.dw.is-realizado { border-color:#93C5FD; background:#EFF6FF; }
-.dw.is-cobrado { border-color:#FCD34D; background:#FFFBEB; }
-@media (prefers-color-scheme: dark) { .dw.is-realizado { background:#0F1F3D; border-color:#1E40AF; } .dw.is-cobrado { background:#2A2108; border-color:#A16207; } }
+  box-shadow:0 1px 3px rgba(15,23,42,.06); }
+.dw.is-contactado { border-color:var(--verde-br); background:var(--verde-bg); }
+.dw.is-atrasado { border:2px solid var(--rojo-br); }
+.dw.is-realizado { border-color:#93C5FD; }
+.dw.is-cobrado { border-color:var(--ambar-br); }
+@media (prefers-color-scheme: dark) { .dw.is-realizado { border-color:#1E40AF; } }
 .dw.foco { animation:pulso 1.3s ease-in-out 3; }
 @keyframes pulso { 0%,100% { box-shadow:0 0 0 0 rgba(59,130,246,0); } 35% { box-shadow:0 0 0 6px rgba(59,130,246,.5); } }
 /* NUEVO (este teléfono no lo había visto): anillo azul y chip flotante, igual que en baños */
@@ -219,106 +273,142 @@ body.listo #skel { display:none; }
 .dw.nueva::before { content:"✨ Nuevo"; position:absolute; top:-10px; right:14px; background:#3B82F6; color:#fff;
   font-size:11px; font-weight:800; padding:2px 10px; border-radius:999px; box-shadow:0 1px 4px rgba(30,64,175,.35); z-index:2; }
 .dw-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:12px 14px 0; }
-.hora-pill { display:inline-flex; align-items:center; gap:6px; background:var(--azul); color:#fff; font-weight:800;
+.hora-pill { display:inline-flex; align-items:center; gap:6px; background:var(--azul-btn); color:#fff; font-weight:800;
   font-size:17px; padding:6px 12px; border-radius:10px; font-variant-numeric:tabular-nums; letter-spacing:.2px; }
 .hora-pill.sin { background:var(--ambar-bg); color:var(--ambar); font-size:15px; }
-.chip { margin-left:auto; font-size:11.5px; font-weight:800; padding:4px 10px; border-radius:20px; white-space:nowrap; }
+/* Ya hecho (realizado o cobrado): la hora deja de ser lo importante */
+.hora-pill.hecho { background:var(--suave); color:var(--gris); border:1px solid var(--linea); font-size:15px; }
+.pill-atr { display:inline-flex; align-items:center; gap:6px; background:var(--rojo-bg); color:var(--rojo);
+  border:1px solid var(--rojo-br); font-weight:800; font-size:15.5px; padding:6px 12px; border-radius:10px; }
+.hora-chica { font-size:15.5px; font-weight:800; color:var(--tinta-2); }
+.chip { margin-left:auto; font-size:12.5px; font-weight:800; padding:4px 10px; border-radius:20px; white-space:nowrap; }
 .chip.real { background:#DBEAFE; color:#1E40AF; }
-.chip.cob { background:#FEF3C7; color:#92400E; }
+.chip.cob { background:var(--ambar-bg); color:var(--ambar); }
 .chip.cont { background:#DCFCE7; color:#166534; }
-.chip.reag { background:var(--rojo-bg); color:var(--rojo); margin-left:0; }
-@media (prefers-color-scheme: dark) { .chip.real { background:#172554; color:#93C5FD; } .chip.cob { background:#3A2A06; color:#FCD34D; } .chip.cont { background:#052E16; color:#86EFAC; } }
+@media (prefers-color-scheme: dark) { .chip.real { background:#172554; color:#93C5FD; } .chip.cont { background:#052E16; color:#86EFAC; } }
+.reag { margin:8px 14px 0; font-size:14px; font-weight:700; color:var(--rojo); }
 .dw-body { padding:10px 14px 14px; }
 .dw-serv { font-weight:800; font-size:18px; line-height:1.25; }
-.dw-cli { margin-top:2px; font-size:15px; color:var(--gris); }
-.dw-dir { margin-top:8px; font-size:15.5px; overflow-wrap:anywhere; }
+.dw-dir { margin-top:6px; font-size:16px; overflow-wrap:anywhere; }
+.dw-cli { margin-top:4px; font-size:15px; color:var(--tinta-2); overflow-wrap:anywhere; }
 .dc-falta { color:var(--rojo); font-weight:700; }
-.dw-valor { margin-top:10px; background:var(--verde-bg); border:1px solid var(--verde-br); border-radius:12px; padding:10px 12px; color:var(--verde); }
-.dw-valor .etq { display:block; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; }
-.dw-valor b { font-size:24px; font-variant-numeric:tabular-nums; }
-.dw-valor .nota { display:block; font-size:12.5px; opacity:.9; }
-.dw-linea { margin-top:8px; font-size:14px; color:var(--gris); }
+.dw-valor { margin-top:10px; display:flex; flex-wrap:wrap; align-items:baseline; gap:0 6px; background:var(--verde-bg);
+  border:1px solid var(--verde-br); border-radius:12px; padding:8px 12px; color:var(--verde); font-size:16px; }
+.dw-valor b { font-size:22px; font-variant-numeric:tabular-nums; }
+.dw-valor .nota { flex-basis:100%; font-size:14px; opacity:.92; }
+.dw-valor.cob { background:var(--ambar-bg); border-color:var(--ambar-br); color:var(--ambar); }
+.falta-vf, .tag-falta { flex-basis:100%; font-weight:800; font-size:14px; color:var(--ambar); }
+.tag-falta { display:inline-block; background:var(--ambar-bg); border:1px solid var(--ambar-br); border-radius:8px; padding:2px 8px; margin-bottom:4px; }
+.dw-prob { margin-top:4px; color:var(--tinta); font-weight:600; }
+.dw-linea { margin-top:8px; font-size:15.5px; color:var(--tinta-2); overflow-wrap:anywhere; }
 .dw-linea.nota-imp { color:var(--ambar); background:var(--ambar-bg); border-radius:10px; padding:8px 10px; font-weight:600; }
-.btn-contacto { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:12px; min-height:50px;
-  border:none; border-radius:12px; background:#22A45D; color:#fff; font:inherit; font-size:15.5px; font-weight:800; cursor:pointer; }
+.btn-contacto { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:12px; min-height:52px;
+  border:none; border-radius:12px; background:var(--verde-btn); color:#fff; font:inherit; font-size:16px; font-weight:800; cursor:pointer; }
 .btn-contacto:active { filter:brightness(.95); }
-.btn-contacto.hecho { background:#DCFCE7; color:#166534; cursor:default; }
-@media (prefers-color-scheme: dark) { .btn-contacto.hecho { background:#052E16; color:#86EFAC; } }
 .accesos { display:flex; gap:8px; margin-top:8px; }
-.acc { flex:1 1 0; display:flex; align-items:center; justify-content:center; gap:6px; min-height:46px; border-radius:11px;
-  text-decoration:none; font-weight:700; font-size:14px; }
-.acc-wa { background:#25D366; color:#fff; } .acc-map { background:var(--azul); color:#fff; }
-.acc-tel { background:var(--card); color:var(--tinta); border:1px solid var(--linea); }
+.acc { flex:1 1 0; display:flex; align-items:center; justify-content:center; gap:6px; min-height:48px; border-radius:12px;
+  text-decoration:none; font-weight:700; font-size:15px; }
+.acc-wa { background:var(--verde-btn); color:#fff; } .acc-map { background:var(--azul-btn); color:#fff; }
+.acc-tel { background:var(--card); color:var(--tinta); border:2px solid var(--gris); }
+.acc.suave { background:var(--card); color:var(--tinta); border:2px solid var(--linea); }
 .acc:active { filter:brightness(.92); }
 .est-row { display:flex; gap:8px; margin-top:12px; }
-.est-btn { flex:1 1 0; min-height:48px; border-radius:11px; font:inherit; font-weight:800; font-size:15px; cursor:pointer;
+.est-btn { flex:1 1 0; min-height:54px; border-radius:12px; font:inherit; font-weight:800; font-size:16px; cursor:pointer;
   border:2px solid var(--linea); background:var(--card); color:var(--tinta); }
-.est-btn.on.b-real { background:#1E40AF; border-color:#1E40AF; color:#fff; }
-.est-btn.on.b-cob { background:#B8860B; border-color:#B8860B; color:#fff; }
-.dw-mas { margin-top:12px; border-top:1px dashed var(--linea); padding-top:4px; }
-.dw-mas > summary { list-style:none; cursor:pointer; color:var(--azul); font-weight:700; font-size:14px; padding:8px 0; }
+.est-btn.b-real { border-color:var(--gris); font-size:15px; line-height:1.2; padding:4px 8px; }
+.est-btn.b-cob { background:var(--oro-btn); border-color:var(--oro-btn); color:#fff; font-size:17px; }
+.est-btn.b-real.on { background:#1E40AF; border-color:#1E40AF; color:#fff; }
+.dw.is-realizado .est-btn.b-cob, .est-btn.b-cob.fuerte { background:var(--oro-btn); border-color:var(--oro-btn); color:#fff; }
+.est-btn.b-corr { border-color:var(--ambar-br); }
+.est-btn.b-corr.fuerte, .com-btn.fuerte { background:var(--oro-btn); border-color:var(--oro-btn); color:#fff; }
+/* Cobro: "¿Cuánto se cobró?" con el valor ya puesto */
+.cobro { margin-top:12px; background:var(--ambar-bg); border:2px solid var(--oro); border-radius:14px; padding:14px;
+  display:grid; gap:10px; }
+.cobro-lbl { display:grid; gap:6px; font-weight:800; font-size:18px; color:var(--tinta); }
+.cobro-lbl small { font-size:15px; font-weight:700; color:var(--tinta); }
+.cobro-in { font:inherit; font-size:26px; font-weight:800; min-height:58px; width:100%; border-radius:12px;
+  border:2px solid var(--linea); background:var(--card); color:var(--tinta); padding:6px 14px; font-variant-numeric:tabular-nums; }
+.cobro-in:focus { outline:none; border-color:var(--oro); box-shadow:0 0 0 3px rgba(202,138,4,.3); }
+.cobro-calc { font-size:15.5px; color:var(--tinta); }
+.cobro-calc b { white-space:nowrap; }
+.cobro-ok { min-height:56px; border:none; border-radius:12px; background:var(--verde-btn); color:#fff; font:inherit;
+  font-size:18px; font-weight:800; cursor:pointer; }
+.cobro-ok:disabled { background:var(--linea); color:var(--gris); }
+.cobro-no { min-height:50px; border-radius:12px; border:2px solid var(--linea); background:var(--card); color:var(--tinta);
+  font:inherit; font-size:16px; font-weight:700; cursor:pointer; }
+/* La acción que deshace va lejos de Cancelar y pide confirmación */
+.cobro-sacar { margin-top:10px; padding-top:8px; border-top:1px dashed var(--ambar-br); }
+.sacar { background:none; border:none; padding:10px 0; min-height:44px; font:inherit; font-size:15px; font-weight:700;
+  color:var(--rojo); cursor:pointer; text-align:left; }
+.dw-mas { margin-top:12px; border-top:1px dashed var(--linea); padding-top:2px; }
+.dw-mas > summary { list-style:none; cursor:pointer; color:var(--azul); font-weight:700; font-size:15px; padding:10px 0; }
 .dw-mas > summary::-webkit-details-marker { display:none; }
 .dw-mas > summary::after { content:" ▾"; }
 .dw-mas[open] > summary::after { content:" ▴"; }
 .mas-cuerpo { display:grid; gap:10px; padding-bottom:2px; }
-.fila2 { display:flex; gap:8px; }
-.campo { flex:1 1 0; display:flex; flex-direction:column; gap:3px; font-size:12px; font-weight:700; color:var(--gris);
-  text-transform:uppercase; letter-spacing:.4px; min-width:0; }
-.campo input { font:inherit; font-size:16px; min-height:44px; border-radius:10px; border:1px solid var(--linea);
-  background:var(--suave); color:var(--tinta); padding:6px 10px; width:100%; text-transform:none; letter-spacing:0; }
-.campo small { font-weight:500; text-transform:none; letter-spacing:0; font-size:12px; }
-.com-linea { font-size:13.5px; color:var(--gris); background:var(--suave); border-radius:10px; padding:8px 10px; }
-.com-linea b { color:var(--tinta); }
-.quitar { justify-self:start; background:none; border:none; color:var(--rojo); font:inherit; font-size:13px; font-weight:700;
-  cursor:pointer; padding:6px 0; }
-.confirma { display:flex; gap:8px; align-items:center; font-size:14px; flex-wrap:wrap; background:var(--rojo-bg);
+.campo { display:flex; flex-direction:column; gap:4px; font-size:14px; font-weight:700; color:var(--gris); }
+.campo input { font:inherit; font-size:16px; min-height:48px; border-radius:10px; border:1px solid var(--linea);
+  background:var(--suave); color:var(--tinta); padding:6px 10px; width:100%; }
+.quitar { justify-self:start; background:none; border:none; color:var(--rojo); font:inherit; font-size:15px; font-weight:700;
+  cursor:pointer; padding:8px 0; min-height:44px; }
+.confirma { display:flex; gap:8px; align-items:center; font-size:15px; flex-wrap:wrap; background:var(--rojo-bg);
   border-radius:10px; padding:8px 10px; color:var(--rojo); }
-.confirma button { min-height:40px; border-radius:9px; border:none; font:inherit; font-weight:700; padding:0 14px; cursor:pointer; }
+.confirma button { min-height:44px; border-radius:9px; border:none; font:inherit; font-weight:700; padding:0 14px; cursor:pointer; }
 .confirma .si { background:#DC2626; color:#fff; } .confirma .no { background:var(--card); color:var(--tinta); }
-.ver-mas { display:block; width:100%; margin:14px 0 4px; padding:12px; border:1px dashed var(--linea); background:var(--card);
-  color:var(--gris); font:inherit; font-size:14px; font-weight:700; border-radius:12px; cursor:pointer; }
 .vacio { text-align:center; color:var(--gris); padding:36px 12px; }
-.leyenda { font-size:12.5px; color:var(--gris); margin:4px 4px 0; }
 /* Comisión */
 .com-hero { background:var(--card); border:1px solid var(--linea); border-radius:14px; padding:16px; margin-top:12px; }
 .com-hero .r { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--gris); }
-.com-hero .v { font-size:34px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--ambar); }
-.com-hero .s { font-size:13px; color:var(--gris); }
-.com-mini { display:flex; gap:8px; margin-top:10px; }
-.com-mini > div { flex:1 1 0; background:var(--suave); border:1px solid var(--linea); border-radius:10px; padding:8px 10px; }
-.com-mini .r { font-size:11px; } .com-mini .v { font-size:18px; color:var(--tinta); }
-.sec-tit { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--gris); margin:20px 4px 8px; }
-.com-item { display:flex; gap:10px; align-items:center; background:var(--card); border:1px solid var(--linea); border-radius:12px;
-  padding:10px 12px; margin-bottom:8px; }
-.com-item input[type=checkbox] { width:22px; height:22px; flex:none; accent-color:var(--azul); }
-.com-txt { flex:1 1 auto; min-width:0; font-size:14px; }
+.com-hero .v { font-size:36px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--ambar); line-height:1.15; margin-top:2px; }
+.com-hero .v.al-dia { color:var(--verde); }
+.com-hero .s { font-size:14px; color:var(--gris); margin-top:4px; }
+.sec-tit { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--gris); margin:20px 0 8px; }
+.com-item { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:var(--card); border:1px solid var(--linea);
+  border-radius:12px; padding:12px; margin-bottom:8px; }
+.com-item input[type=checkbox] { width:24px; height:24px; flex:none; accent-color:var(--azul); }
+.com-txt { flex:1 1 0; min-width:0; font-size:14px; }
 .com-txt b { display:block; font-size:15px; }
-.com-txt span { color:var(--gris); font-size:13px; overflow-wrap:anywhere; }
-.com-monto { font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; color:var(--ambar); }
+.com-txt span { display:block; color:var(--gris); font-size:13.5px; overflow-wrap:anywhere; }
+.com-monto { font-weight:800; font-size:16px; font-variant-numeric:tabular-nums; white-space:nowrap; color:var(--ambar); text-align:right; }
+.com-monto small { display:block; font-size:11.5px; font-weight:600; color:var(--gris); }
 .com-item.pagada .com-monto { color:var(--verde); }
+.com-acc { flex-basis:100%; display:flex; gap:8px; }
+.com-btn { flex:1 1 auto; min-height:48px; border-radius:12px; border:2px solid var(--ambar-br); background:var(--card);
+  color:var(--tinta); font:inherit; font-weight:800; font-size:15px; cursor:pointer; }
+.com-btn.cob { border-color:var(--oro-btn); background:var(--oro-btn); color:#fff; }
+.com-item .cobro { flex-basis:100%; margin-top:0; }
+.pagos { margin-top:20px; }
+.pagos > summary { list-style:none; cursor:pointer; min-height:50px; display:flex; align-items:center; justify-content:center;
+  border:1px dashed var(--gris); border-radius:12px; background:var(--card); color:var(--tinta); font-weight:700; font-size:15px; }
+.pagos > summary::-webkit-details-marker { display:none; }
+.pagos[open] > summary { margin-bottom:10px; }
 .pago-grupo { background:var(--card); border:1px solid var(--verde-br); border-radius:14px; padding:10px 12px; margin-bottom:10px; }
-.pago-head { display:flex; justify-content:space-between; font-weight:800; margin-bottom:6px; }
-.pago-head span { color:var(--verde); }
+.pago-head { display:flex; justify-content:space-between; gap:8px; font-weight:800; margin-bottom:6px; }
+.pago-head span { color:var(--verde); white-space:nowrap; }
 .pago-grupo .com-item { border:none; padding:6px 0; margin:0; background:none; }
-.revocar { background:none; border:1px solid var(--linea); color:var(--gris); border-radius:8px; font:inherit; font-size:12px; padding:4px 8px; cursor:pointer; }
-.barra-pagar { position:fixed; left:0; right:0; bottom:0; z-index:30; padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+.revocar { background:none; border:1px solid var(--linea); color:var(--gris); border-radius:8px; font:inherit; font-size:13px;
+  padding:6px 10px; min-height:36px; cursor:pointer; }
+.barra-pagar { position:fixed; left:0; right:0; bottom:0; z-index:30; padding:10px 16px calc(10px + env(safe-area-inset-bottom));
   background:var(--card); border-top:1px solid var(--linea); box-shadow:0 -4px 12px rgba(0,0,0,.08); }
-.btn-pagar { display:block; width:100%; max-width:536px; margin:0 auto; min-height:52px; border:none; border-radius:12px;
-  background:#16A34A; color:#fff; font:inherit; font-size:17px; font-weight:800; cursor:pointer; }
+.btn-pagar { display:block; width:100%; max-width:528px; margin:0 auto; min-height:54px; border:none; border-radius:12px;
+  background:var(--verde-btn); color:#fff; font:inherit; font-size:17px; font-weight:800; cursor:pointer; }
 .btn-pagar:disabled { background:var(--linea); color:var(--gris); }
 .modal { position:fixed; inset:0; z-index:50; background:rgba(2,6,23,.6); display:flex; align-items:flex-end; justify-content:center; }
 .modal-box { background:var(--card); color:var(--tinta); width:100%; max-width:560px; border-radius:18px 18px 0 0;
-  padding:18px 18px calc(18px + env(safe-area-inset-bottom)); max-height:90vh; overflow:auto; }
-.modal-box h2 { margin:0 0 6px; font-size:19px; }
+  padding:18px 16px calc(18px + env(safe-area-inset-bottom)); max-height:90vh; overflow:auto; }
+.modal-box h2 { margin:0 0 6px; font-size:20px; }
+.modal-box .s { color:var(--gris); font-size:14px; }
 .banco { background:var(--suave); border:1px solid var(--linea); border-radius:12px; padding:12px; margin:12px 0; font-size:15px; }
 .banco div { display:flex; justify-content:space-between; gap:10px; padding:3px 0; }
 .banco span { color:var(--gris); }
 .modal-acc { display:grid; gap:8px; margin-top:12px; }
-.modal-acc button { min-height:50px; border-radius:12px; border:none; font:inherit; font-weight:800; font-size:16px; cursor:pointer; }
-.m-ok { background:#16A34A; color:#fff; } .m-copiar { background:var(--suave); color:var(--tinta); border:1px solid var(--linea) !important; }
+.modal-acc button { min-height:52px; border-radius:12px; border:none; font:inherit; font-weight:800; font-size:16px; cursor:pointer; }
+.m-ok { background:var(--verde-btn); color:#fff; } .m-copiar { background:var(--suave); color:var(--tinta); border:1px solid var(--linea) !important; }
 .m-no { background:none; color:var(--gris); }
 .toast { position:fixed; left:50%; bottom:calc(84px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:60;
-  background:#0F172A; color:#fff; padding:10px 16px; border-radius:12px; font-size:14px; max-width:92vw; box-shadow:0 6px 18px rgba(0,0,0,.3); }
+  background:#0F172A; color:#fff; padding:12px 16px; border-radius:12px; font-size:15px; width:max-content; max-width:calc(100vw - 32px);
+  box-shadow:0 6px 18px rgba(0,0,0,.3); }
+@media (prefers-color-scheme: dark) { .toast { background:#E5E7EB; color:#0F172A; } }
 footer { text-align:center; color:var(--gris); font-size:12px; padding:20px 16px 30px; }
 """
 
@@ -327,12 +417,13 @@ SCRIPT = r"""
   var APP = window.__APP__;
   var H = { apikey: APP.key, Authorization: 'Bearer ' + APP.key };
   var CK_FILAS = 'destapes_filas_v1', CK_EST = 'destapes_estado_v1', CK_VISTOS = 'destapes_vistos_v1', CK_DESEL = 'destapes_desel_v1';
-  var filas = [], est = {}, verCobrados = false, vista = 'agenda', confirmando = null, primeraVez = false, vistos = {};
+  // modo: 'agenda' (por hacer), 'realizados' (falta cobrar) o 'cobrados'. Como "Ver completadas" de baños.
+  var filas = [], est = {}, modo = 'agenda', vista = 'agenda', confirmando = null, primeraVez = false, vistos = {};
+  var cobrando = null, borrador = {}, masAbierto = {};
 
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin espacio o modo privado */ } }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function clp(n) { n = Math.round(Number(n) || 0); return '$' + n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
   function hoyISO(delta) {
     var d = new Date(Date.now() + (delta || 0) * 864e5);
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(d);
@@ -347,7 +438,30 @@ SCRIPT = r"""
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
   function toast(t) {
     var el = document.getElementById('toast'); el.textContent = t; el.hidden = false;
-    clearTimeout(toast._t); toast._t = setTimeout(function () { el.hidden = true; }, 3200);
+    clearTimeout(toast._t); toast._t = setTimeout(function () { el.hidden = true; }, 3500);
+  }
+
+  // ── plata ──────────────────────────────────────────────────────────────
+  /** 140000 → "$140.000" (el formato de plata de siempre en la página). */
+  function clp(n) { n = Math.round(Number(n) || 0); return (n < 0 ? '-$' : '$') + Math.abs(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  /** Lee lo que escribe la persona: "140", "140 mil", "140.000", "$140.000", "17 mil 750",
+   *  "140 lucas", "1,5 millones". Un número solo menor a mil se lee en miles (140 = $140.000).
+   *  Devuelve 0 si no se entendió. */
+  function leerMonto(txt) {
+    var t = String(txt == null ? '' : txt).toLowerCase()
+      .replace(/mill[oó]n(es)?/g, ' M ').replace(/mil|lucas?|k/g, ' K ').replace(/[^0-9.,\sMK]/g, ' ');
+    var re = /(\d+(?:[.,\s]\d{3})*(?:[.,]\d{1,2})?)\s*([MK])?/g, m, total = 0, mult = false, alguno = false;
+    while ((m = re.exec(t))) {
+      var s = m[1], dec = s.match(/[.,](\d{1,2})$/), n;
+      n = dec ? parseFloat(s.slice(0, -dec[0].length).replace(/[.,\s]/g, '') + '.' + dec[1]) : parseInt(s.replace(/[.,\s]/g, ''), 10);
+      if (isNaN(n)) continue;
+      alguno = true;
+      if (m[2] === 'M') { n *= 1e6; mult = true; } else if (m[2] === 'K') { n *= 1e3; mult = true; }
+      total += n;
+    }
+    if (!alguno) return 0;
+    if (!mult && total > 0 && total < 1000) total *= 1000;
+    return Math.round(total);
   }
 
   // ── datos ──────────────────────────────────────────────────────────────
@@ -359,6 +473,7 @@ SCRIPT = r"""
   function pctDe(f) { var p = f.data && Number(f.data.comision_pct); return p > 0 ? p : APP.pct; }
   function baseDe(f) { var v = Number(E(f.id).valor_final); return v > 0 ? v : (Number(f.data && f.data.precio_neto) || 0); }
   function comDe(f) { return Math.round(baseDe(f) * pctDe(f) / 100); }
+  function atrasado(f) { var fe = fechaEf(f); return estadoDe(f.id) === 'pendiente' && !!fe && fe < hoyISO(0); }
 
   function pedir(ruta) {
     return fetch(APP.url + '/rest/v1/' + ruta, { headers: H }).then(function (r) {
@@ -399,7 +514,7 @@ SCRIPT = r"""
     }).catch(function () {
       var cf = lsGet(CK_FILAS, null);
       if (cf) { filas = cf; est = lsGet(CK_EST, {}); aviso.textContent = 'Sin conexión. Estás viendo lo último guardado en este teléfono.'; }
-      else { filas = APP.respaldo || []; est = {}; aviso.textContent = 'Sin conexión. Estás viendo un respaldo antiguo.'; }
+      else { filas = APP.respaldo || []; est = APP.respaldo_estado || {}; aviso.textContent = 'Sin conexión. Estás viendo un respaldo antiguo.'; }
       aviso.hidden = false;
       listo('Sin conexión');
     });
@@ -419,20 +534,21 @@ SCRIPT = r"""
     document.documentElement.style.setProperty('--hdr-h', h + 'px');
   }
   function irAlHash() {
-    var id = decodeURIComponent((location.hash || '').slice(1));
+    var id = decodeURIComponent((location.hash || '').slice(1)).replace(/"/g, '');
     if (!id) return;
-    var el = document.querySelector('.dw[data-id="' + id.replace(/"/g, '') + '"]');
-    if (!el) {
-      var f = fila(id);
-      if (f && estadoDe(id) === 'cobrado' && !verCobrados) { verCobrados = true; pintar(); el = document.querySelector('.dw[data-id="' + id.replace(/"/g, '') + '"]'); }
+    var sel = '.dw[data-id="' + id + '"]', el = document.querySelector(sel);
+    if (!el && fila(id)) {
+      // Si está realizado o cobrado, se abre esa lista (fuera de la agenda principal).
+      var s = estadoDe(id);
+      modo = s === 'cobrado' ? 'cobrados' : s === 'realizado' ? 'realizados' : 'agenda';
+      vista = 'agenda'; pintar(); el = document.querySelector(sel);
     }
     if (el) { el.classList.add('foco'); el.scrollIntoView({ block: 'center' }); setTimeout(function () { el.classList.remove('foco'); }, 4000); }
   }
 
-  // ── agenda ─────────────────────────────────────────────────────────────
+  // ── tarjeta ────────────────────────────────────────────────────────────
   var ICONOS = { 'destape-hydrojet': '💦', 'destape-camion': '🚛', 'video-inspeccion': '📹', 'succion-fosa': '🚛', 'destape-domiciliario': '🔧' };
-  var masAbierto = {};
-  /** Minutos desde medianoche de la hora pedida («de 9 a 12» → 540). null = sin hora exacta («en la tarde»). */
+  /** Minutos desde medianoche de la hora pedida ("de 9 a 12" → 540). null = sin hora exacta ("en la tarde"). */
   function minutosDe(h) {
     var t = String(h || '').toLowerCase(), m = t.match(/(\d{1,2})(?:[:.](\d{2}))?/);
     if (!m) return null;
@@ -464,113 +580,182 @@ SCRIPT = r"""
     var q = [d.direccion, d.comuna].filter(Boolean).join(', ');
     return q ? 'https://maps.google.com/?q=' + encodeURIComponent(q) : '';
   }
+  function telBonito(d) { return d.length === 11 && d.indexOf('569') === 0 ? '+56 9 ' + d.slice(3, 7) + ' ' + d.slice(7) : '+' + d; }
+  /** ¿Pidió factura? true = sí ("si", "sí", "si, con factura", "con factura"), false = no
+   *  ("no", "sin factura", "boleta"), null = no se sabe (""). OJO: "sin factura" empieza con
+   *  "si", por eso se mira la palabra entera. Igual que con_factura() en Python. */
+  function conFactura(v) {
+    var t = String(v == null ? '' : v).trim().toLowerCase().replace(/í/g, 'i');
+    if (!t) return null;
+    if (/^(sin|no|boleta|false)\b/.test(t)) return false;
+    if (/^(si|true)\b/.test(t) || /^con factura/.test(t) || t === 'factura') return true;
+    return null;
+  }
+  /** El valor es NETO. Regla del dueño: si pide factura se suma el IVA (19 %). */
+  function ivaTxt(d, n) {
+    var fac = conFactura(d.factura);
+    if (fac === true) return 'Con factura: + IVA' + (n ? ' (' + clp(Math.round(n * 1.19)) + ' en total)' : '');
+    if (fac === false) return 'Sin factura';
+    return 'Si pide factura se suma el IVA';
+  }
+
+  // ── cobro: "¿Cuánto se cobró?" ─────────────────────────────────────────
+  function calcTxt(f, n) {
+    if (!n) return 'Escribe el valor. Por ejemplo 140 o 140.000.';
+    return 'Se guarda <b>' + clp(n) + '</b>. Comisión ' + pctDe(f) + ' %: <b>' + clp(Math.round(n * pctDe(f) / 100)) + '</b>'
+      + (conFactura((f.data || {}).factura) === true ? '<br>Con factura el cliente paga <b>' + clp(Math.round(n * 1.19)) + '</b> con IVA' : '');
+  }
+  function cobroHtml(f) {
+    var id = f.id, d = f.data || {}, ya = estadoDe(id) === 'cobrado', base = baseDe(f);
+    var txt = borrador[id] != null ? borrador[id] : (base ? clp(base) : '');
+    var n = leerMonto(txt), fac = conFactura(d.factura);
+    return '<div class="cobro">'
+      + '<label class="cobro-lbl">¿Cuánto se cobró?' + (fac === false ? '' : '<small>Escribe el valor sin IVA</small>')
+      + '<input class="cobro-in" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" data-acc="monto" value="' + esc(txt) + '"></label>'
+      + '<div class="cobro-calc">' + calcTxt(f, n) + '</div>'
+      + '<button type="button" class="cobro-ok" data-acc="cobro-ok"' + (n ? '' : ' disabled') + '>' + (ya ? 'Guardar valor' : 'Guardar cobrado') + '</button>'
+      + '<button type="button" class="cobro-no" data-acc="cobro-no">Cancelar</button>'
+      + (ya ? '<div class="cobro-sacar"><button type="button" class="sacar" data-acc="descobrar">No se cobró, sacar de cobrados</button></div>' : '')
+      + '</div>';
+  }
+  function abrirCobro(id) {
+    if (!id || !fila(id)) return;
+    if (E(id).comision_pagada) { toast('Su comisión ya está pagada. Revoca el pago antes de cambiar el valor.'); return; }
+    cobrando = id; delete borrador[id]; pintar();
+    var inp = document.querySelector('.vista:not([hidden]) .cobro-in');
+    if (inp && inp.focus) { inp.focus(); if (inp.select) inp.select(); }
+  }
+  /** Guarda valor final y estado cobrado JUNTOS (un solo guardado). */
+  function guardarCobro(id, txt) {
+    var f = fila(id); if (!f) return Promise.resolve(false);
+    var n = leerMonto(txt);
+    if (!n) { toast('Escribe cuánto se cobró. Por ejemplo 140.000.'); return Promise.resolve(false); }
+    if (E(id).comision_pagada) { toast('Su comisión ya está pagada. Revoca el pago antes de cambiar el valor.'); return Promise.resolve(false); }
+    var ya = estadoDe(id) === 'cobrado', com = Math.round(n * pctDe(f) / 100);
+    cobrando = null; delete borrador[id];
+    return cambiar(id, { estado: 'cobrado', valor_final: n }, (ya ? 'Valor corregido: ' : 'Cobrado ') + clp(n) + '. Comisión ' + clp(com) + '.')
+      .then(function () { return true; }, function () { cobrando = id; borrador[id] = txt; pintar(); return false; });
+  }
+
   function wrap(f) {
     var id = f.id, st = estadoDe(id), e = E(id), d = f.data || {};
     var fe = fechaEf(f), orig = f.fecha || '';
     var tel = String(d.telefono || '').replace(/\D/g, '');
     var hora = d.hora || '', min = minutosDe(hora);
-    var contactado = !!e.contactado;
+    var contactado = !!e.contactado, atr = atrasado(f);
     var reag = e.fecha && orig && e.fecha !== orig;
-    var cls = st !== 'pendiente' ? ' is-' + st : (contactado ? ' is-contactado' : '');
+    var cls = atr ? ' is-atrasado' : st !== 'pendiente' ? ' is-' + st : (contactado ? ' is-contactado' : '');
     if (!primeraVez && !vistos[id]) cls += ' nueva';
     var chip = st === 'cobrado' ? '<span class="chip cob">💰 Cobrado</span>'
-      : st === 'realizado' ? '<span class="chip real">✓ Realizado, falta cobrar</span>'
-      : contactado ? '<span class="chip cont">✓ Cliente contactado</span>' : '';
-    var top = '<div class="dw-top"><span class="hora-pill' + (min === null ? ' sin' : '') + '">🕐 '
-      + esc(hora ? horaBonita(hora) : 'Horario por confirmar') + '</span>'
-      + (reag ? '<span class="chip reag">Reagendado (era ' + esc(diaLargo(orig)) + ')</span>' : '') + chip + '</div>';
+      : st === 'realizado' ? '<span class="chip real">Falta cobrar</span>'
+      : contactado ? '<span class="chip cont">✓ Cliente avisado</span>' : '';
+    var top = '<div class="dw-top">'
+      + (atr ? '<span class="pill-atr">⚠️ Atrasado · ' + esc(diaLargo(fe)) + '</span>' + (hora ? '<span class="hora-chica">🕐 ' + esc(horaBonita(hora)) + '</span>' : '')
+        : '<span class="hora-pill' + (st !== 'pendiente' ? ' hecho' : min === null ? ' sin' : '') + '">🕐 ' + esc(hora ? horaBonita(hora) : 'Horario por confirmar') + '</span>')
+      + chip + '</div>'
+      + (reag ? '<div class="reag">Cambiado de fecha. Era el ' + esc(diaLargo(orig)) + '</div>' : '');
     var neto = Number(d.precio_neto) || 0, vf = Number(e.valor_final) > 0 ? Number(e.valor_final) : 0;
-    var fac = String(d.factura || '').toLowerCase();
-    var facTxt = /^s[ií]/.test(fac) ? 'Con factura: se suma el IVA' : /^no/.test(fac) ? 'Sin factura' : 'Si pide factura se suma el IVA';
-    var valor = vf
-      ? '<div class="dw-valor"><span class="etq">Valor final</span><b>' + clp(vf) + '</b> neto<span class="nota">' + esc(facTxt) + '</span></div>'
-      : neto ? '<div class="dw-valor"><span class="etq">Valor</span>desde <b>' + clp(neto) + '</b> neto<span class="nota">' + esc(facTxt) + '. El valor final se confirma en terreno.</span></div>'
-      : '<div class="dw-valor"><b>Valor a confirmar en terreno</b></div>';
+    var valor;
+    if (st === 'cobrado') {
+      valor = '<div class="dw-valor cob">' + (vf ? '' : '<span class="falta-vf">⚠️ Falta el valor final</span>')
+        + (vf ? 'Se cobró' : 'Desde') + ' <b>' + clp(baseDe(f)) + '</b>'
+        + '<span class="nota">Comisión ' + pctDe(f) + ' %' + (vf ? '' : ' aprox.') + ': ' + clp(comDe(f)) + (e.comision_pagada ? '. Ya pagada' : '') + '</span></div>';
+    } else if (vf || neto) {
+      valor = '<div class="dw-valor">' + (vf ? 'Valor final' : 'Desde') + ' <b>' + clp(vf || neto) + '</b><span class="nota">' + esc(ivaTxt(d, vf || neto)) + '</span></div>';
+    } else valor = '<div class="dw-valor"><b>Valor a confirmar en terreno</b></div>';
     var servicio = d.servicio || 'Destape', trabajo = d.trabajo || '';
+    var problema = trabajo && trabajo.trim().toLowerCase() !== servicio.trim().toLowerCase() ? '<div class="dw-linea dw-prob">🛠️ ' + esc(cap(trabajo)) + '</div>' : '';
     var lineas = '';
-    if (trabajo && trabajo.trim().toLowerCase() !== servicio.trim().toLowerCase()) lineas += '<div class="dw-linea">🛠️ ' + esc(cap(trabajo)) + '</div>';
     if (d.acceso) lineas += '<div class="dw-linea">🚪 ' + esc(d.acceso) + '</div>';
     if (d.nota) lineas += '<div class="dw-linea nota-imp">📝 ' + esc(d.nota) + '</div>';
-    var contacto = '';
-    if (tel && st === 'pendiente') {
-      contacto = contactado
-        ? '<button type="button" class="btn-contacto hecho" data-acc="contactar">✓ Cliente contactado</button>'
-        : '<button type="button" class="btn-contacto" data-acc="contactar">💬 Avisar al cliente que vamos</button>';
-    }
+    var contacto = tel && st === 'pendiente' && !contactado
+      ? '<button type="button" class="btn-contacto" data-acc="contactar">💬 Avisar al cliente que vamos</button>' : '';
     var mapa = mapaDe(d), acc = '';
-    if (tel && (contactado || st !== 'pendiente')) acc += '<a class="acc acc-wa" href="https://wa.me/' + tel + '" target="_blank" rel="noopener">WhatsApp</a>';
+    var cobrandoAca = cobrando === id && vista === 'agenda';
+    if (tel && (contactado || st !== 'pendiente')) acc += '<a class="acc acc-wa' + (st === 'cobrado' ? ' suave' : '') + '" href="https://wa.me/' + tel + '" target="_blank" rel="noopener">WhatsApp</a>';
     if (tel) acc += '<a class="acc acc-tel" href="tel:+' + tel + '">📞 Llamar</a>';
-    if (mapa) acc += '<a class="acc acc-map" href="' + esc(mapa) + '" target="_blank" rel="noopener">🗺️ Cómo llegar</a>';
+    if (mapa && st !== 'cobrado') acc += '<a class="acc acc-map" href="' + esc(mapa) + '" target="_blank" rel="noopener">🗺️ Llegar</a>';
+    var acciones;
+    if (cobrandoAca) acciones = cobroHtml(f);
+    else if (st === 'cobrado') acciones = '<div class="est-row"><button type="button" class="est-btn b-corr' + (vf ? '' : ' fuerte') + '" data-acc="cobrar">✏️ ' + (vf ? 'Corregir valor cobrado' : 'Poner valor final') + '</button></div>';
+    else acciones = '<div class="est-row">'
+      + '<button type="button" class="est-btn b-cob" data-acc="cobrar">💰 Cobrado</button>'
+      + '<button type="button" class="est-btn b-real' + (st === 'realizado' ? ' on' : '') + '" data-acc="realizado">' + (st === 'realizado' ? '✓ Realizado' : 'Realizado, falta cobrar') + '</button></div>';
     var conf = confirmando === id
       ? '<div class="confirma">¿Quitar este destape de la agenda? <button type="button" class="si" data-acc="quitar-si">Sí, quitar</button><button type="button" class="no" data-acc="quitar-no">No</button></div>'
       : '<button type="button" class="quitar" data-acc="quitar">✕ Quitar de la agenda</button>';
-    var mas = '<details class="dw-mas" data-mas="' + esc(id) + '"' + (masAbierto[id] ? ' open' : '') + '><summary>Reagendar, valor final y comisión</summary><div class="mas-cuerpo">'
-      + '<div class="fila2">'
-      + '<label class="campo">📅 Reagendar<input type="date" data-acc="fecha" value="' + esc(fe) + '"></label>'
-      + '<label class="campo">💵 Valor final neto<input type="text" inputmode="numeric" autocomplete="off" data-acc="valor" placeholder="' + (neto ? esc(clp(neto)) : 'sin IVA') + '" value="' + (vf ? esc(clp(vf)) : '') + '"><small>Si en terreno cambió el valor</small></label>'
-      + '</div>'
-      + '<div class="com-linea">Comisión Destape Rápido (' + pctDe(f) + '%): <b>' + clp(comDe(f)) + '</b>' + (vf ? ' sobre el valor final' : (neto ? ' sobre el valor desde' : '')) + '</div>'
+    var mas = st === 'cobrado' ? '' : '<details class="dw-mas" data-mas="' + esc(id) + '"' + (masAbierto[id] || confirmando === id ? ' open' : '') + '><summary>Cambiar fecha o quitar</summary><div class="mas-cuerpo">'
+      + '<label class="campo">📅 Nueva fecha<input type="date" data-acc="fecha" value="' + esc(fe) + '"></label>'
       + conf + '</div></details>';
     return '<div class="dw' + cls + '" data-id="' + esc(id) + '">' + top
       + '<div class="dw-body"><div class="dw-serv">' + (ICONOS[d.servicio_clave] || '🔧') + ' ' + esc(servicio) + '</div>'
-      + '<div class="dw-cli">👤 ' + esc(d.cliente || 'Cliente sin nombre') + (tel ? ' · ' + esc(telBonito(tel)) : '') + '</div>'
+      + problema
       + '<div class="dw-dir">📍 ' + dirHtml(d) + '</div>'
+      + '<div class="dw-cli">👤 ' + esc(d.cliente || 'Cliente sin nombre') + (tel ? ' · ' + esc(telBonito(tel)) : '') + '</div>'
       + valor + lineas + contacto
-      + (acc ? '<div class="accesos">' + acc + '</div>' : '')
-      + '<div class="est-row">'
-      + '<button type="button" class="est-btn b-real' + (st !== 'pendiente' ? ' on' : '') + '" data-acc="realizado">' + (st !== 'pendiente' ? '✓ Realizado' : 'Realizado') + '</button>'
-      + '<button type="button" class="est-btn b-cob' + (st === 'cobrado' ? ' on' : '') + '" data-acc="cobrado">' + (st === 'cobrado' ? '✓ Cobrado' : 'Cobrado') + '</button>'
-      + '</div>' + mas + '</div></div>';
+      + (acc && !cobrandoAca ? '<div class="accesos">' + acc + '</div>' : '')
+      + acciones + mas + '</div></div>';
   }
-  function telBonito(d) { return d.length === 11 && d.indexOf('569') === 0 ? '+56 9 ' + d.slice(3, 7) + ' ' + d.slice(7) : '+' + d; }
 
-  function pintarAgenda() {
-    var cont = document.getElementById('agenda');
-    var hoy = hoyISO(0), man = hoyISO(1);
-    var vivos = filas.filter(vivo);
-    var abiertos = vivos.filter(function (f) { return estadoDe(f.id) !== 'cobrado'; });
-    var cobrados = vivos.filter(function (f) { return estadoDe(f.id) === 'cobrado'; });
-    var lista = verCobrados ? cobrados : abiertos;
-    var grupos = {}, orden = [];
+  // ── agenda ─────────────────────────────────────────────────────────────
+  /** Agrupa por día. En la agenda: primero "Atrasados" (un grupo, cada tarjeta dice su fecha:
+   *  "Atrasado · jueves 29 de octubre"), después hoy y lo que viene. En realizados y cobrados:
+   *  lo más reciente arriba. */
+  function agrupar(lista, reciente) {
+    var g = {}, orden = [];
     lista.forEach(function (f) {
-      var fe = fechaEf(f), k;
-      if (verCobrados) k = fe || 'sin';
-      else if (!fe) k = 'sin';
-      else if (fe < hoy) k = 'atrasadas';
-      else k = fe;
-      if (!grupos[k]) { grupos[k] = []; orden.push(k); }
-      grupos[k].push(f);
+      var k = !reciente && atrasado(f) ? 'atrasados' : (fechaEf(f) || 'sin');
+      if (!g[k]) { g[k] = []; orden.push(k); } g[k].push(f);
     });
-    orden.sort(function (a, b) {
-      function peso(k) { return k === 'atrasadas' ? '0' : k === 'sin' ? '9' : '1' + k; }
-      var r = peso(a) < peso(b) ? -1 : peso(a) > peso(b) ? 1 : 0;
-      return verCobrados ? -r : r;
-    });
-    var html = '';
-    if (verCobrados) html += '<div class="sec-tit">Cobrados · ' + cobrados.length + '</div>';
-    orden.forEach(function (k) {
-      var items = grupos[k].sort(function (a, b) {
+    function peso(k) { return k === 'atrasados' ? '0' : k === 'sin' ? (reciente ? '0' : '9') : '1' + k; }
+    orden.sort(function (a, b) { var r = peso(a) < peso(b) ? -1 : peso(a) > peso(b) ? 1 : 0; return reciente ? -r : r; });
+    return orden.map(function (k) {
+      return { k: k, items: g[k].sort(function (a, b) {
         var fa = fechaEf(a), fb = fechaEf(b);
         if (fa !== fb) return fa < fb ? -1 : 1;
         // por hora programada; los que no tienen hora exacta van al final del día
         var ma = minutosDe(a.data && a.data.hora), mb = minutosDe(b.data && b.data.hora);
         if (ma !== mb) { if (ma === null) return 1; if (mb === null) return -1; return ma - mb; }
         return (b.informado_at || '') < (a.informado_at || '') ? -1 : 1;
-      });
-      var tit, cls = '';
-      if (k === 'atrasadas') { tit = '⚠️ Atrasados'; cls = ' atrasado'; }
-      else if (k === 'sin') tit = 'Sin fecha';
-      else if (k === hoy) { tit = 'Hoy · ' + diaLargo(k); cls = ' hoy'; }
-      else if (k === man) tit = 'Mañana · ' + diaLargo(k);
-      else tit = cap(diaLargo(k));
-      html += '<section data-grupo="' + esc(k) + '"><h2 class="dia-tit' + cls + '">' + esc(tit) + '<span class="dia-n">' + items.length + '</span></h2>'
-        + items.map(wrap).join('') + '</section>';
+      }) };
     });
-    if (!lista.length) html += '<p class="vacio">' + (verCobrados ? 'Todavía no hay destapes cobrados.' : 'No hay destapes agendados por ahora. Cuando el bot confirme uno, aparece acá solo.') + '</p>';
-    if (cobrados.length || verCobrados) html += '<button type="button" class="ver-mas" data-acc="ver-cobrados">' + (verCobrados ? '← Volver a la agenda' : '✓ Ver cobrados (' + cobrados.length + ')') + '</button>';
-    if (!verCobrados && lista.length) html += '<p class="leyenda">Verde: cliente contactado. Azul: realizado, falta cobrar. Dorado: cobrado. Al marcar Cobrado el destape pasa a la lista de cobrados y suma a la comisión.</p>';
+  }
+  function titDia(k, hist) {
+    var hoy = hoyISO(0);
+    if (k === 'sin') return { t: 'Sin fecha', c: '' };
+    if (k === 'atrasados') return { t: '⚠️ Atrasados', c: ' atrasado' };
+    if (k === hoy) return { t: 'Hoy · ' + diaLargo(k), c: hist ? '' : ' hoy' };
+    if (k === hoyISO(1)) return { t: 'Mañana · ' + diaLargo(k), c: '' };
+    return { t: cap(diaLargo(k)), c: '' };
+  }
+  function pintarAgenda() {
+    var cont = document.getElementById('agenda');
+    var vivos = filas.filter(vivo);
+    function de(s) { return vivos.filter(function (f) { return estadoDe(f.id) === s; }); }
+    var pend = de('pendiente'), real = de('realizado'), cob = de('cobrado');
+    if ((modo === 'realizados' && !real.length) || (modo === 'cobrados' && !cob.length)) modo = 'agenda';
+    var hist = modo !== 'agenda', lista = modo === 'realizados' ? real : modo === 'cobrados' ? cob : pend;
+    var html = '';
+    function filtro(m, txt, n, extra) {
+      var on = modo === m;
+      return '<button type="button" class="filtro' + (on ? ' activo' : (extra || '')) + '" data-acc="modo" data-modo="' + m + '" aria-pressed="' + on + '">' + txt + ' (' + n + ')</button>';
+    }
+    if (real.length || cob.length) {
+      html += '<div class="filtros">' + filtro('agenda', 'Por hacer', pend.length)
+        + (real.length ? filtro('realizados', 'Falta cobrar', real.length, ' alerta') : '')
+        + (cob.length ? filtro('cobrados', 'Cobrados', cob.length) : '') + '</div>';
+    }
+    agrupar(lista, hist).forEach(function (gr) {
+      var t = titDia(gr.k, hist);
+      html += '<section data-grupo="' + esc(gr.k) + '"><h2 class="dia-tit' + t.c + '">' + esc(t.t) + '<span class="dia-n">' + gr.items.length + '</span></h2>'
+        + gr.items.map(wrap).join('') + '</section>';
+    });
+    if (!lista.length) html += '<p class="vacio">No hay destapes por hacer. Cuando el bot confirme uno, aparece acá solo.</p>';
+    if (hist) html += '<div class="espacio-fijo"></div><button type="button" class="volver-fijo" data-acc="modo" data-modo="agenda">← Volver a la agenda</button>';
     cont.innerHTML = html;
-    document.getElementById('hdr-pend').textContent = abiertos.length;
+    var nAtr = pend.filter(atrasado).length;
+    document.getElementById('hdr-pend').textContent = pend.length;
+    document.getElementById('hdr-atr').textContent = nAtr ? ' · ' + nAtr + (nAtr === 1 ? ' atrasado' : ' atrasados') : '';
   }
 
   // ── comisión ───────────────────────────────────────────────────────────
@@ -580,54 +765,52 @@ SCRIPT = r"""
     return porPagar().filter(function (f) { return !d[f.id]; });
   }
   function porPagar() { return filas.filter(function (f) { return vivo(f) && estadoDe(f.id) === 'cobrado' && !E(f.id).comision_pagada; }); }
-  function item(f, conCheck, pagada) {
-    var e = E(f.id), vf = Number(e.valor_final) > 0;
-    var d = f.data || {};
-    var chk = conCheck ? '<input type="checkbox" data-acc="sel" data-id="' + esc(f.id) + '"' + (desel()[f.id] ? '' : ' checked') + ' aria-label="Incluir en el pago">' : '';
-    var rev = pagada ? '<button type="button" class="revocar" data-acc="revocar" data-id="' + esc(f.id) + '">Revocar</button>' : '';
-    return '<div class="com-item' + (pagada ? ' pagada' : '') + '">' + chk
-      + '<div class="com-txt"><b>' + esc(cap(diaLargo(fechaEf(f)))) + ' · ' + esc(d.servicio || 'Destape') + '</b>'
-      + '<span>' + esc([d.direccion, d.comuna].filter(Boolean).join(', ')) + '</span><br>'
-      + '<span>' + (vf ? 'Valor final ' : 'Desde ') + clp(baseDe(f)) + ' neto · ' + pctDe(f) + '%</span></div>'
-      + '<div class="com-monto">' + clp(comDe(f)) + '</div>' + rev + '</div>';
+  function suma(a) { return a.reduce(function (s, f) { return s + comDe(f); }, 0); }
+  /** tipo: 'deuda' (cobrado sin pagar), 'falta' (realizado, falta cobrar) o 'pagada'. */
+  function item(f, tipo) {
+    var id = f.id, e = E(id), d = f.data || {}, vf = Number(e.valor_final) > 0;
+    var chk = tipo === 'deuda' ? '<input type="checkbox" data-acc="sel" data-id="' + esc(id) + '"' + (desel()[id] ? '' : ' checked') + ' aria-label="Incluir en el pago">' : '';
+    var det = (vf ? (tipo === 'falta' ? 'Valor final ' : 'Se cobró ') : 'Desde ') + clp(baseDe(f)) + ' · ' + pctDe(f) + ' %';
+    var acc = '';
+    if (cobrando === id && vista === 'comision') acc = cobroHtml(f);
+    else if (tipo === 'deuda') acc = '<div class="com-acc"><button type="button" class="com-btn' + (vf ? '' : ' fuerte') + '" data-acc="cobrar">✏️ ' + (vf ? 'Corregir valor cobrado' : 'Poner valor final') + '</button></div>';
+    else if (tipo === 'falta') acc = '<div class="com-acc"><button type="button" class="com-btn cob" data-acc="cobrar">💰 Cobrado</button></div>';
+    var rev = tipo === 'pagada' ? '<button type="button" class="revocar" data-acc="revocar">Revocar</button>' : '';
+    return '<div class="com-item' + (tipo === 'pagada' ? ' pagada' : '') + '" data-id="' + esc(id) + '">' + chk
+      + '<div class="com-txt">' + (tipo === 'deuda' && !vf ? '<span class="tag-falta">⚠️ Falta valor final</span>' : '')
+      + '<b>' + esc(cap(diaLargo(fechaEf(f)))) + ' · ' + esc(d.servicio || 'Destape') + '</b>'
+      + '<span>' + esc([d.direccion, d.comuna].filter(Boolean).join(', ')) + '</span>'
+      + '<span>' + esc(det) + '</span></div>'
+      + '<div class="com-monto">' + clp(comDe(f)) + '<small>' + (tipo !== 'pagada' && !vf ? 'comisión aprox.' : 'comisión') + '</small></div>' + rev + acc + '</div>';
   }
   function pintarComision() {
     var vivos = filas.filter(vivo);
-    var deuda = porPagar();
-    var porCobrar = vivos.filter(function (f) { return estadoDe(f.id) !== 'cobrado'; });
+    var deuda = porPagar(), total = suma(deuda);
+    var real = vivos.filter(function (f) { return estadoDe(f.id) === 'realizado'; });
     var pagadas = vivos.filter(function (f) { return estadoDe(f.id) === 'cobrado' && E(f.id).comision_pagada; });
-    function suma(a) { return a.reduce(function (s, f) { return s + comDe(f); }, 0); }
-    var html = '<div class="com-hero"><div class="r">Te deben</div><div class="v">' + clp(suma(deuda)) + '</div>'
-      + '<div class="s">Comisión de Destape Rápido (' + APP.pct + '% del neto) de los destapes ya cobrados. Se calcula sobre el valor final si se anotó, o sobre el valor desde.</div>'
-      + '<div class="com-mini"><div><div class="r">Por cobrar</div><div class="v">' + clp(suma(porCobrar)) + '</div></div>'
-      + '<div><div class="r">Ya pagado</div><div class="v">' + clp(suma(pagadas)) + '</div></div></div></div>';
-    if (deuda.length) {
-      html += '<div class="sec-tit">Cobrados sin pagar · ' + deuda.length + '</div>' + deuda.map(function (f) { return item(f, true, false); }).join('');
-    }
-    if (porCobrar.length) {
-      html += '<div class="sec-tit">Todavía no cobrados · ' + clp(suma(porCobrar)) + '</div>' + porCobrar.map(function (f) { return item(f, false, false); }).join('');
-    }
+    var html = '<div class="com-hero"><div class="r">Comisión por pagar</div>'
+      + '<div class="v' + (total ? '' : ' al-dia') + '">' + (total ? clp(total) : 'Al día ✓') + '</div>'
+      + '<div class="s">Es el ' + APP.pct + ' % de lo que se cobró en cada destape.' + (pagadas.length ? ' Ya pagado: ' + clp(suma(pagadas)) + '.' : '') + '</div></div>';
+    if (deuda.length) html += '<h2 class="sec-tit">Cobrados, comisión sin pagar · ' + deuda.length + '</h2>' + deuda.map(function (f) { return item(f, 'deuda'); }).join('');
+    if (real.length) html += '<h2 class="sec-tit">Realizados, falta cobrar · ' + real.length + '</h2>' + real.map(function (f) { return item(f, 'falta'); }).join('');
     if (pagadas.length) {
       var g = {};
-      pagadas.forEach(function (f) {
-        var k = (E(f.id).pagada_at || '').slice(0, 10) || 'sin-fecha';
-        (g[k] = g[k] || []).push(f);
-      });
+      pagadas.forEach(function (f) { var k = (E(f.id).pagada_at || '').slice(0, 10) || 'sin-fecha'; (g[k] = g[k] || []).push(f); });
       var ks = Object.keys(g).sort();
-      html += '<div class="sec-tit">Mis pagos recibidos · ' + clp(suma(pagadas)) + '</div>';
+      html += '<details class="pagos"><summary>Ver pagos hechos (' + ks.length + ')</summary>';
       ks.slice().reverse().forEach(function (k) {
-        var n = ks.indexOf(k) + 1;
-        html += '<div class="pago-grupo"><div class="pago-head">Pago ' + n + (k !== 'sin-fecha' ? ' · ' + esc(diaLargo(k)) : '') + '<span>' + clp(suma(g[k])) + '</span></div>'
-          + g[k].map(function (f) { return item(f, false, true); }).join('') + '</div>';
+        html += '<div class="pago-grupo"><div class="pago-head">Pago ' + (ks.indexOf(k) + 1) + (k !== 'sin-fecha' ? ' · ' + esc(diaLargo(k)) : '') + '<span>' + clp(suma(g[k])) + '</span></div>'
+          + g[k].map(function (f) { return item(f, 'pagada'); }).join('') + '</div>';
       });
+      html += '</details>';
     }
     if (!vivos.length) html += '<p class="vacio">Sin destapes todavía.</p>';
     document.getElementById('comision').innerHTML = html;
     var sel = seleccion(), btn = document.getElementById('btn-pagar');
-    document.getElementById('barra-pagar').hidden = vista !== 'comision' || !deuda.length;
+    document.getElementById('barra-pagar').hidden = vista !== 'comision' || !deuda.length || !!cobrando;
     btn.disabled = !sel.length;
-    btn.textContent = sel.length ? 'Pagar ' + clp(suma(sel)) + ' (' + sel.length + ')' : 'Selecciona lo que vas a pagar';
-    document.getElementById('hdr-com').textContent = clp(suma(deuda));
+    btn.textContent = sel.length ? 'Pagar ' + clp(suma(sel)) + ' (' + sel.length + ')' : 'Marca lo que vas a pagar';
+    document.getElementById('hdr-com').textContent = total ? clp(total) : 'al día';
   }
 
   function pintar() {
@@ -639,8 +822,7 @@ SCRIPT = r"""
   // ── pago ───────────────────────────────────────────────────────────────
   function abrirPago() {
     var sel = seleccion(); if (!sel.length) return;
-    var total = sel.reduce(function (s, f) { return s + comDe(f); }, 0);
-    var b = APP.banco;
+    var total = suma(sel), b = APP.banco;
     document.getElementById('modal-cuerpo').innerHTML = '<h2>Pagar ' + clp(total) + '</h2>'
       + '<div class="s">Transfiere a esta cuenta y después toca "Ya transferí". Se abre WhatsApp con el detalle para avisar.</div>'
       + '<div class="banco"><div><span>Titular</span><b>' + esc(b.titular) + '</b></div><div><span>Banco</span><b>' + esc(b.banco) + '</b></div>'
@@ -670,57 +852,72 @@ SCRIPT = r"""
 
   // ── eventos ────────────────────────────────────────────────────────────
   document.addEventListener('click', function (ev) {
-    var t = ev.target.closest('[data-acc],[data-vista],[data-accion]'); if (!t) return;
-    if (t.classList.contains('vista-btn')) { vista = t.getAttribute('data-vista'); pintar(); window.scrollTo(0, 0); return; }
-    var w = t.closest('.dw'), id = w && w.getAttribute('data-id');
-    var acc = t.getAttribute('data-acc') || t.getAttribute('data-accion');
+    var t = ev.target.closest('[data-acc],[data-vista]'); if (!t) return;
+    if (t.classList.contains('vista-btn')) { vista = t.getAttribute('data-vista'); cobrando = null; pintar(); window.scrollTo(0, 0); return; }
+    var w = t.closest('[data-id]'), id = w && w.getAttribute('data-id');
+    var acc = t.getAttribute('data-acc');
     if (acc === 'contactar' && id) {
       var f = fila(id), d = (f && f.data) || {}, tel = String(d.telefono || '').replace(/\D/g, '');
       if (E(id).contactado || !tel) return;
       // Se presenta y pregunta UNA cosa, como en baños. Sin emoji ni exclamación.
       var msg = 'Hola, le escribo de Destape Rápido, soy del equipo que va a hacer el ' + (d.servicio || 'destape').toLowerCase()
         + '. Vamos ' + diaRelativo(fechaEf(f)) + (d.hora ? ', ' + d.hora : '') + (d.direccion ? ', a ' + d.direccion : '') + '. ¿Me confirma que nos puede recibir?';
-      cambiar(id, { contactado: true }, 'Cliente contactado').catch(function () {});
+      cambiar(id, { contactado: true }, 'Cliente avisado').catch(function () {});
       window.location.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
       return;
     }
     if (acc === 'realizado') {
       var st = estadoDe(id);
-      cambiar(id, { estado: st === 'pendiente' ? 'realizado' : 'pendiente' }, st === 'pendiente' ? 'Marcado como realizado' : 'Vuelve a quedar por hacer').catch(function () {});
-    } else if (acc === 'cobrado') {
-      var st2 = estadoDe(id);
-      if (st2 === 'cobrado' && E(id).comision_pagada) { toast('Su comisión ya está pagada. Revoca el pago antes de desmarcarlo.'); return; }
-      cambiar(id, { estado: st2 === 'cobrado' ? 'realizado' : 'cobrado' }, st2 === 'cobrado' ? 'Ya no figura como cobrado' : 'Cobrado. Suma a la comisión.').catch(function () {});
+      cambiar(id, { estado: st === 'pendiente' ? 'realizado' : 'pendiente' },
+        st === 'pendiente' ? 'Realizado. Queda en Falta cobrar.' : 'Vuelve a la agenda.').catch(function () {});
+    } else if (acc === 'cobrar') abrirCobro(id);
+    else if (acc === 'cobro-no') { cobrando = null; delete borrador[id]; pintar(); }
+    else if (acc === 'cobro-ok') {
+      var c = t.closest('.cobro'), inp = c && c.querySelector('.cobro-in');
+      guardarCobro(id, inp ? inp.value : '');
+    } else if (acc === 'descobrar') {
+      if (E(id).comision_pagada) { toast('Su comisión ya está pagada. Revoca el pago antes.'); return; }
+      if (!confirm('¿Sacar de cobrados? Vuelve a la lista Falta cobrar.')) return;
+      cobrando = null; delete borrador[id];
+      cambiar(id, { estado: 'realizado' }, 'Ya no figura como cobrado. Queda en Falta cobrar.').catch(function () {});
     } else if (acc === 'quitar') { confirmando = id; pintar(); }
     else if (acc === 'quitar-no') { confirmando = null; pintar(); }
     else if (acc === 'quitar-si') { confirmando = null; cambiar(id, { eliminado: true }, 'Quitado de la agenda').catch(function () {}); }
-    else if (acc === 'ver-cobrados') { verCobrados = !verCobrados; pintar(); window.scrollTo(0, 0); }
+    else if (acc === 'modo') { modo = t.getAttribute('data-modo') || 'agenda'; cobrando = null; pintar(); window.scrollTo(0, 0); }
     else if (acc === 'revocar') {
-      var rid = t.getAttribute('data-id');
-      if (confirm('¿Revocar este pago? La comisión vuelve a quedar pendiente.')) cambiar(rid, { comision_pagada: false, pagada_at: null }, 'Pago revocado').catch(function () {});
+      if (confirm('¿Revocar este pago? La comisión vuelve a quedar por pagar.')) cambiar(id, { comision_pagada: false, pagada_at: null }, 'Pago revocado').catch(function () {});
     } else if (acc === 'sel') {
-      var d2 = desel(), sid = t.getAttribute('data-id');
-      if (t.checked) delete d2[sid]; else d2[sid] = 1;
+      var d2 = desel();
+      if (t.checked) delete d2[id]; else d2[id] = 1;
       lsSet(CK_DESEL, d2); pintarComision();
     }
   });
-  // valor final con formato CLP mientras se escribe ($160.000)
+  // Mientras se escribe el valor: se muestra cómo se va a guardar y la comisión.
   document.addEventListener('input', function (ev) {
-    var t = ev.target; if (!t.getAttribute || t.getAttribute('data-acc') !== 'valor') return;
-    var d = String(t.value).replace(/\D/g, '').replace(/^0+/, '');
-    t.value = d ? clp(Number(d)) : '';
+    var t = ev.target; if (!t.getAttribute || t.getAttribute('data-acc') !== 'monto') return;
+    var w = t.closest('[data-id]'), id = w && w.getAttribute('data-id'), f = id && fila(id); if (!f) return;
+    borrador[id] = t.value;
+    var n = leerMonto(t.value), c = t.closest('.cobro');
+    c.querySelector('.cobro-calc').innerHTML = calcTxt(f, n);
+    c.querySelector('.cobro-ok').disabled = !n;
+  });
+  // Al salir del campo se muestra como plata: "140" o "140 mil" → "$140.000".
+  document.addEventListener('focusout', function (ev) {
+    var t = ev.target; if (!t.getAttribute || t.getAttribute('data-acc') !== 'monto') return;
+    var n = leerMonto(t.value), w = t.closest('[data-id]');
+    if (n) { t.value = clp(n); if (w) borrador[w.getAttribute('data-id')] = t.value; }
+  });
+  document.addEventListener('keydown', function (ev) {
+    var t = ev.target; if (ev.key !== 'Enter' || !t.getAttribute || t.getAttribute('data-acc') !== 'monto') return;
+    ev.preventDefault();
+    var w = t.closest('[data-id]'); if (w) guardarCobro(w.getAttribute('data-id'), t.value);
   });
   document.addEventListener('change', function (ev) {
-    var t = ev.target, acc = t.getAttribute && t.getAttribute('data-acc'); if (!acc) return;
-    var w = t.closest('.dw'), id = w && w.getAttribute('data-id'); if (!id) return;
-    if (acc === 'fecha') {
-      var f = fila(id), v = t.value || null;
-      var cambio = (!v || v === (f && f.fecha)) ? { fecha: null } : { fecha: v };
-      cambiar(id, cambio, v ? 'Reagendado para el ' + diaLargo(v) : 'Fecha original').catch(function () {});
-    } else if (acc === 'valor') {
-      var n = parseInt(String(t.value).replace(/\D/g, ''), 10);
-      cambiar(id, { valor_final: n > 0 ? n : null }, n > 0 ? 'Valor final guardado: ' + clp(n) : 'Valor final borrado').catch(function () {});
-    }
+    var t = ev.target, acc = t.getAttribute && t.getAttribute('data-acc'); if (acc !== 'fecha') return;
+    var w = t.closest('[data-id]'), id = w && w.getAttribute('data-id'); if (!id) return;
+    var f = fila(id), v = t.value || null;
+    var cambio = (!v || v === (f && f.fecha)) ? { fecha: null } : { fecha: v };
+    cambiar(id, cambio, v ? 'Nueva fecha: ' + diaLargo(v) : 'Fecha original').catch(function () {});
   });
   document.getElementById('btn-pagar').addEventListener('click', abrirPago);
   document.querySelector('.m-ok').addEventListener('click', confirmarPago);
@@ -737,7 +934,9 @@ SCRIPT = r"""
   window.addEventListener('hashchange', irAlHash);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) cargar(); });
   // Pruebas sin navegador: expone la lógica pura.
-  window.__DESTAPES__ = { comDe: comDe, baseDe: baseDe, fechaEf: fechaEf, estadoDe: estadoDe, porPagar: porPagar, pintar: function () { pintar(); },
+  window.__DESTAPES__ = { comDe: comDe, baseDe: baseDe, fechaEf: fechaEf, estadoDe: estadoDe, porPagar: porPagar,
+    clp: clp, leerMonto: leerMonto, conFactura: conFactura, abrirCobro: abrirCobro, guardarCobro: guardarCobro,
+    pintar: function () { pintar(); }, _modo: function (m, v) { modo = m; if (v) vista = v; },
     _set: function (f, e) { filas = f; est = e; } };
   cargar();
 })();
@@ -756,7 +955,7 @@ PAGINA = """<!doctype html>
 <body>
 <header>
   <h1>🚛 Agenda de destapes</h1>
-  <div class="sub"><span id="hdr-pend"><span class="skel" style="width:14px"></span></span> por hacer · <span id="hdr-act">Cargando...</span></div>
+  <div class="sub"><b id="hdr-pend"><span class="skel" style="width:14px"></span></b> por hacer<span id="hdr-atr"></span> · <span id="hdr-act">Cargando...</span></div>
   <div class="sub hdr-com">💰 Comisión por pagar: <span id="hdr-com"><span class="skel"></span></span></div>
 </header>
 <div id="skel" aria-hidden="true">
@@ -771,12 +970,12 @@ PAGINA = """<!doctype html>
   <div class="vista" data-vista="agenda"><div id="agenda"></div></div>
   <div class="vista" data-vista="comision" hidden><div id="comision"></div></div>
 </main>
-<div id="barra-pagar" class="barra-pagar" hidden><button type="button" id="btn-pagar" class="btn-pagar" disabled>Selecciona lo que vas a pagar</button></div>
+<div id="barra-pagar" class="barra-pagar" hidden><button type="button" id="btn-pagar" class="btn-pagar" disabled>Marca lo que vas a pagar</button></div>
 <div id="modal" class="modal" hidden><div class="modal-box"><div id="modal-cuerpo"></div>
   <div class="modal-acc"><button type="button" class="m-ok">Ya transferí, avisar por WhatsApp</button>
   <button type="button" class="m-copiar">Copiar datos de la cuenta</button>
   <button type="button" class="m-no">Cancelar</button></div></div></div>
-<div id="toast" class="toast" hidden></div>
+<div id="toast" class="toast" role="status" hidden></div>
 <footer>Destape Rápido · área camión, hidrojet y cámara</footer>
 <script>window.__APP__ = @@APP@@;</script>
 <script>@@SCRIPT@@</script>
@@ -785,7 +984,7 @@ PAGINA = """<!doctype html>
 """
 
 
-def construir_html(respaldo: list[dict]) -> str:
+def construir_html(respaldo: list[dict], respaldo_estado: dict | None = None) -> str:
     app = {
         "url": SUPABASE_URL,
         "key": SUPABASE_ANON_KEY,
@@ -793,6 +992,7 @@ def construir_html(respaldo: list[dict]) -> str:
         "banco": gl.DATOS_BANCARIOS,
         "whatsapp": gl.WHATSAPP_COMISION,
         "respaldo": respaldo,
+        "respaldo_estado": respaldo_estado or {},
         "generado": date.today().isoformat(),
     }
     app_json = json.dumps(app, ensure_ascii=False).replace("</", "<\\/")
@@ -800,9 +1000,11 @@ def construir_html(respaldo: list[dict]) -> str:
 
 
 def main() -> None:
-    respaldo = [] if "--sin-red" in sys.argv else filas_vivas()
+    sin_red = "--sin-red" in sys.argv
+    respaldo = [] if sin_red else filas_vivas()
+    estado = {} if sin_red else estado_vivo()
     out = Path(next((a for a in sys.argv[1:] if not a.startswith("--")), SALIDA))
-    out.write_text(construir_html(respaldo), encoding="utf-8")
+    out.write_text(construir_html(respaldo, estado), encoding="utf-8")
     print(f"✅ {out} ({len(respaldo)} destapes en el respaldo, comisión {pct_comision()} %)")
 
 
