@@ -71,9 +71,11 @@ def listar() -> None:
               f"le toca ${f['monto']:,} ({float(f['fraccion']):.0%})  {est}".replace(",", "."))
 
 
-def publicar(carpeta: Path, fraccion: float, nota: str | None, id_forzado: str | None, dry: bool) -> None:
+def publicar(carpeta: Path, fraccion: float, nota: str | None, id_forzado: str | None, dry: bool,
+             imagen: str = "cobro.png") -> None:
     resumen_p = carpeta / "resumen.json"
-    png = carpeta / "cobro.png"
+    # (2026-11-01) --imagen resumen.png: la imagen que junta lo ganado + la parte + día por día
+    png = carpeta / imagen
     if not resumen_p.exists() or not png.exists():
         sys.exit(f"❌ La carpeta debe traer resumen.json y cobro.png: {carpeta}")
     r = json.loads(resumen_p.read_text(encoding="utf-8"))
@@ -154,6 +156,7 @@ def main() -> None:
     ap.add_argument("--fraccion", type=float, default=0.5, help="parte que paga el repartidor (0.5 = la mitad)")
     ap.add_argument("--nota", default=None)
     ap.add_argument("--id", default=None, help="id de la fila (por defecto, el nombre de la carpeta)")
+    ap.add_argument("--imagen", default="cobro.png", help="qué PNG de la rendición mostrar (cobro.png o resumen.png)")
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--listar", action="store_true")
     a = ap.parse_args()
@@ -164,7 +167,7 @@ def main() -> None:
         ap.error("falta --rendicion (o usa --listar)")
     if not (0 < a.fraccion <= 1):
         ap.error("--fraccion debe estar entre 0 y 1")
-    publicar(a.rendicion.resolve(), a.fraccion, a.nota, a.id, a.dry)
+    publicar(a.rendicion.resolve(), a.fraccion, a.nota, a.id, a.dry, a.imagen)
 
 
 if __name__ == "__main__":
