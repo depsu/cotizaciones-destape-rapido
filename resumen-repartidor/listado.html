@@ -158,6 +158,9 @@
   .pub-dias th { font-size:11px; color:var(--gris); text-transform:uppercase; letter-spacing:.3px; border-top:0; background:#F8FAFC; }
   .pub-dias th:first-child, .pub-dias td:first-child { text-align:left; }
   .pub-dias td.cero { color:#94A3B8; }
+  .pub-dias small { color:var(--gris); font-size:11px; }
+  .pub-retorno { margin-top:10px; padding:10px 12px; border-radius:10px; background:#ECFDF3; border:1px solid #BBF7D0; color:#14532D; font-size:14px; }
+  .pub-retorno b { font-variant-numeric:tabular-nums; }
   .pub-dias tr.sum td { font-weight:800; border-top:2px solid #CBD5E1; }
   .pub-img-link { display:block; margin-top:8px; font-size:13px; color:#1F5AA8; text-align:center; }
   .pub-ir { width:100%; margin-top:10px; padding:11px; border-radius:9px; font-family:inherit; font-weight:700;
@@ -3193,7 +3196,7 @@
       ? '<span class="pub-chip pag">✓ Pagada' + (pb.pagada_at ? ' · ' + fechaLarga(String(pb.pagada_at).split('T')[0]) : '') + '</span>'
       : '<span class="pub-chip pend">Pendiente</span>';
     var imgHtml = pb.imagen ? '<img class="pub-img" alt="Desglose de la publicidad ' + escapeHtml(pb.campana || '') + '" src="' + escapeHtml(pb.imagen) + '">' : '';
-    imgHtml += tablaPorDia(det);
+    imgHtml = tablaPorCampana(det) + tablaPorDia(det) + imgHtml;
     var boton = (conBoton && !pb.pagado) ? '<button type="button" class="pub-ir" data-id="' + escapeHtml(id) + '">💰 Pagar mi parte</button>' : '';
     return '<div class="pub-bloque">'
       + '<div class="pub-bloque-head"><div><div class="pub-bloque-tit">📣 ' + escapeHtml(pb.campana || 'Publicidad') + '</div>'
@@ -3201,8 +3204,29 @@
       + '<div class="bank"><div class="bank-row"><span>Total gastado en publicidad</span><b>' + clp(pb.gasto_total) + '</b></div>'
       + lineas
       + '<div class="bank-row bank-total"><span>Tu parte (' + escapeHtml(pubPorc(pb)) + ')</span><b>' + clp(pb.monto) + '</b></div></div>'
+      + bloqueRetorno(det)
       + (pb.nota ? '<p class="modal-sub">' + escapeHtml(pb.nota) + '</p>' : '')
       + boton + imgHtml + '</div>';
+  }
+
+  // (2026-11-01) Lo que generó la inversión: clientes y total del período, en verde.
+  function bloqueRetorno(det) {
+    var r = det && det.retorno;
+    if (!r || !r.generado) { return ''; }
+    return '<div class="pub-retorno">💪 Con esta publicidad se atendieron <b>' + escapeHtml(String(r.clientes)) + ' clientes</b> por <b>'
+      + clp(r.generado) + '</b>. Por cada $1 invertido volvieron <b>$' + escapeHtml(String(Math.round(r.veces))) + '</b>.</div>';
+  }
+
+  // (2026-11-01) Desglose por campaña: clics, contactos y gasto de cada una (marca las que llevan IVA).
+  function tablaPorCampana(det) {
+    var cs = (det && det.por_campana) || [];
+    if (cs.length < 2) { return ''; }
+    var filas = cs.map(function (c) {
+      return '<tr><td>' + escapeHtml(c.nombre) + (c.iva ? ' <small>+ IVA</small>' : '') + '</td><td>' + (c.clics || 0) + '</td><td>'
+        + (c.contactos != null ? Math.round(c.contactos) : '—') + '</td><td>' + clp(c.gasto || 0) + '</td></tr>';
+    });
+    return '<div class="pub-dias-tit">Por campaña</div><table class="pub-dias"><thead><tr><th>Campaña</th><th>Clics</th><th>Contactos</th><th>Gasto</th></tr></thead><tbody>'
+      + filas.join('') + '</tbody></table>';
   }
 
   // Día por día en texto: cada fila es un día del período con lo que se gastó y cuántos contactaron.
@@ -3212,20 +3236,23 @@
     var dias = (det && det.por_dia) || [];
     if (!dias.length) { return ''; }
     var conContactos = dias.some(function (d) { return Number(d.contactos) > 0; });
-    var tg = 0, tc = 0;
+    var conClics = dias.some(function (d) { return Number(d.clics) > 0; });
+    var tg = 0, tc = 0, tk = 0;
     var filas = dias.map(function (d) {
       var f = new Date(d.fecha + 'T12:00:00');
-      var g = Number(d.gasto) || 0, c = Number(d.contactos) || 0;
-      tg += g; tc += c;
+      var g = Number(d.gasto) || 0, c = Number(d.contactos) || 0, k = Number(d.clics) || 0;
+      tg += g; tc += c; tk += k;
       var lbl = DIAS_CORTO[f.getDay()] + ' ' + f.getDate() + ' ' + MESES_CORTO[f.getMonth()];
       return '<tr><td>' + lbl + '</td>'
+        + (conClics ? '<td class="' + (k ? '' : 'cero') + '">' + (k ? k : '—') + '</td>' : '')
         + (conContactos ? '<td class="' + (c ? '' : 'cero') + '">' + (c ? c : '—') + '</td>' : '')
         + '<td class="' + (g ? '' : 'cero') + '">' + (g ? clp(g) : 'sin gasto') + '</td></tr>';
     });
     return '<div class="pub-dias-tit">Día por día</div><table class="pub-dias"><thead><tr><th>Día</th>'
+      + (conClics ? '<th>Clics</th>' : '')
       + (conContactos ? '<th>Contactos</th>' : '') + '<th>Gasto</th></tr></thead><tbody>'
       + filas.join('')
-      + '<tr class="sum"><td>Total</td>' + (conContactos ? '<td>' + tc + '</td>' : '') + '<td>' + clp(tg) + '</td></tr>'
+      + '<tr class="sum"><td>Total</td>' + (conClics ? '<td>' + tk + '</td>' : '') + (conContactos ? '<td>' + tc + '</td>' : '') + '<td>' + clp(tg) + '</td></tr>'
       + '</tbody></table>';
   }
 

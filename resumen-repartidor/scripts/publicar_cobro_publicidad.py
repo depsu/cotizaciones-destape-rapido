@@ -94,6 +94,15 @@ def publicar(carpeta: Path, fraccion: float, nota: str | None, id_forzado: str |
         # día por día (fecha, gasto, contactos, clics): la página lo pinta como tabla.
         "por_dia": cobro.get("por_dia") or [],
         "campanas_ads": r.get("campanas_ads") or [],
+        # (2026-11-01) desglose por campaña (con marca de IVA) y lo que generó la inversión,
+        # para que la página lo muestre en texto y no solo en la imagen.
+        "por_campana": [{"nombre": k, "gasto": v.get("gasto"), "clics": v.get("clics"),
+                         "contactos": v.get("contactos"), "iva": bool(v.get("iva"))}
+                        for k, v in sorted((cobro.get("por_campana") or {}).items(), key=lambda kv: -(kv[1].get("gasto") or 0))],
+        "retorno": ({"clientes": (r.get("retorno") or {}).get("clientes"),
+                     "generado": int(round((r.get("retorno") or {}).get("generado") or 0)),
+                     "veces": round((r.get("retorno") or {}).get("veces") or 0, 1)}
+                    if r.get("retorno") else None),
     }
     fila = {
         "id": cid,
