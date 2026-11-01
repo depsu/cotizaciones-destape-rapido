@@ -114,6 +114,8 @@ def normalizar(a: dict) -> dict:
         "cliente": _t(a, "cliente", "nombre"),
         "telefono": tel,
         "precio_neto": int(gd.solo_digitos(_t(a, "precio_neto")) or 0),
+        # (31-oct-2026, p-753) el techo de un rango de precios («entre 70 y 90 mil»); 0 = sin rango
+        "precio_hasta": int(gd.solo_digitos(_t(a, "precio_hasta")) or 0),
         "factura": _t(a, "factura"),
         "nota": _t(a, "nota", "mensaje"),
         "comision_pct": pct,

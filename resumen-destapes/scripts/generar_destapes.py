@@ -145,9 +145,15 @@ def tarjeta(d: dict) -> str:
     icono = ICONO_SERVICIO.get(d.get("servicio_clave", ""), "🔧")
     hora = hora_limpia(d.get("hora")) or "Horario a coordinar"
     neto = int(solo_digitos(d.get("precio_neto")) or 0)
-    valor = (f'<div class="dc-valor">desde <b>{esc(clp(neto))}</b>'
-             f'<span class="dc-iva">{esc(iva_txt(d.get("factura")))}</span></div>'
-             if neto else '<div class="dc-valor"><b>Valor a confirmar en terreno</b></div>')
+    hasta = int(solo_digitos(d.get("precio_hasta")) or 0)
+    if neto and hasta > neto:
+        # (31-oct-2026, p-753) un rango: «$70.000 a $90.000», el valor final se confirma en terreno
+        valor = (f'<div class="dc-valor"><b>{esc(clp(neto))} a {esc(clp(hasta))}</b>'
+                 f'<span class="dc-iva">Se confirma en terreno. {esc(iva_txt(d.get("factura")))}</span></div>')
+    else:
+        valor = (f'<div class="dc-valor">desde <b>{esc(clp(neto))}</b>'
+                 f'<span class="dc-iva">{esc(iva_txt(d.get("factura")))}</span></div>'
+                 if neto else '<div class="dc-valor"><b>Valor a confirmar en terreno</b></div>')
     tel = solo_digitos(d.get("telefono"))
     cliente = d.get("cliente") or "Cliente sin nombre"
     mapa = maps_de(d)
@@ -676,11 +682,15 @@ SCRIPT = r"""
       + chip + '</div>'
       + (reag ? '<div class="reag">Cambiado de fecha. Era el ' + esc(diaLargo(orig)) + '</div>' : '');
     var neto = Number(d.precio_neto) || 0, vf = Number(e.valor_final) > 0 ? Number(e.valor_final) : 0;
+    // (31-oct-2026, p-753) un rango de precios: el piso es precio_neto (la comisión aprox. va sobre él) y el techo precio_hasta
+    var hasta = Number(d.precio_hasta) || 0, rango = neto > 0 && hasta > neto ? clp(neto) + ' a ' + clp(hasta) : '';
     var valor;
     if (st === 'cobrado') {
       valor = '<div class="dw-valor cob">' + (vf ? '' : '<span class="falta-vf">⚠️ Falta el valor final</span>')
-        + (vf ? 'Se cobró' : 'Desde') + ' <b>' + clp(baseDe(f)) + '</b>'
+        + (vf ? 'Se cobró <b>' + clp(baseDe(f)) + '</b>' : rango ? 'Valor <b>' + rango + '</b>' : 'Desde <b>' + clp(baseDe(f)) + '</b>')
         + '<span class="nota">Comisión ' + pctDe(f) + ' %' + (vf ? '' : ' aprox.') + ': ' + clp(comDe(f)) + (e.comision_pagada ? '. Ya pagada' : '') + '</span></div>';
+    } else if (!vf && rango) {
+      valor = '<div class="dw-valor">Valor <b>' + rango + '</b><span class="nota">' + esc('Se confirma en terreno. ' + ivaTxt(d, neto)) + '</span></div>';
     } else if (vf || neto) {
       valor = '<div class="dw-valor">' + (vf ? 'Valor final' : 'Desde') + ' <b>' + clp(vf || neto) + '</b><span class="nota">' + esc(ivaTxt(d, vf || neto)) + '</span></div>';
     } else valor = '<div class="dw-valor"><b>Valor a confirmar en terreno</b></div>';

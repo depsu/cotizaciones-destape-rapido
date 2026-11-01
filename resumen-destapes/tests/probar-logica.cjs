@@ -47,12 +47,16 @@ const py = require('child_process').execFileSync('python3', ['-c', [
   'import sys, json; sys.path.insert(0, sys.argv[1]); import generar_destapes as g',
   'vals = json.loads(sys.argv[2])',
   'print(json.dumps({"fac": [g.con_factura(v) for v in vals], "iva": [g.iva_txt(v) for v in ["sin factura", "si, con factura", ""]],',
-  '  "tarjeta": g.tarjeta({"id": "x", "precio_neto": 120000, "factura": "sin factura"})}))'].join('\n'),
+  '  "tarjeta": g.tarjeta({"id": "x", "precio_neto": 120000, "factura": "sin factura"}),',
+  '  "rango": g.tarjeta({"id": "y", "precio_neto": 70000, "precio_hasta": 90000, "factura": ""})}))'].join('\n'),
   path.join(__dirname, '..', 'scripts'), JSON.stringify(FACTURAS.map((x) => x[0]))], { encoding: 'utf8' });
 const P = JSON.parse(py);
 assert.deepStrictEqual(P.fac, FACTURAS.map((x) => x[1]), 'con_factura en Python igual que en JS');
 assert.deepStrictEqual(P.iva, ['Sin factura', 'Con factura: + IVA', 'Si pide factura se suma el IVA']);
 assert.ok(P.tarjeta.includes('desde <b>$120.000</b>') && P.tarjeta.includes('Sin factura') && !P.tarjeta.includes('IVA'), 'tarjeta: desde $120.000, sin factura');
+// (31-oct-2026, p-753) un rango de precios en la tarjeta generada: «$70.000 a $90.000», se confirma en terreno
+assert.ok(P.rango.includes('<b>$70.000 a $90.000</b>') && P.rango.includes('Se confirma en terreno. Si pide factura se suma el IVA') && !P.rango.includes('desde'),
+  'tarjeta con rango: $70.000 a $90.000, se confirma en terreno: ' + P.rango);
 
 // ── datos de prueba ───────────────────────────────────────────────────────
 const dia = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date(Date.now() + d * 864e5));
@@ -89,6 +93,20 @@ function textosLimpios(h, donde) {
 // La primera carga cae al respaldo (fetch rechazado). Esperar y revisar lo pintado.
 setTimeout(async () => {
   assert.ok(/dia-tit|No hay destapes/.test(els.agenda.innerHTML), 'la carga sin red cae al respaldo y pinta');
+
+  // ── (31-oct-2026, p-753) un rango de precios: «$70.000 a $90.000», comisión aprox. sobre el piso, el cobro pide el valor final ──
+  const conRango = [f('rg', hoy, 70000, { precio_hasta: 90000, hora: '9:00 a 11:00' }), f('rz', hoy, 70000, { precio_hasta: 70000 })];
+  T._set(conRango, {}); T.pintar();
+  const agR = els.agenda.innerHTML;
+  const tarjetaR = (id) => { const i = agR.indexOf('data-id="' + id + '"'); const j = agR.indexOf('data-id=', i + 10); return agR.slice(i, j < 0 ? undefined : j); };
+  assert.ok(tarjetaR('rg').includes('Valor <b>$70.000 a $90.000</b>') && tarjetaR('rg').includes('Se confirma en terreno. Si pide factura se suma el IVA'),
+    'la tarjeta muestra el rango y que se confirma en terreno: ' + tarjetaR('rg'));
+  assert.ok(tarjetaR('rz').includes('Desde <b>$70.000</b>') && !tarjetaR('rz').includes(' a $'), 'un techo igual al piso no es rango');
+  assert.strictEqual(T.comDe(conRango[0]), 17500, 'la comisión aprox. va sobre el piso');
+  T.abrirCobro('rg');
+  assert.ok(els.agenda.innerHTML.includes('¿Cuánto se cobró?') && els.agenda.innerHTML.includes('value="$70.000"'), 'el cobro sigue pidiendo el valor final, con el piso puesto');
+  textosLimpios(agR, 'tarjeta con rango');
+
   T._set(filas, JSON.parse(JSON.stringify(est))); T.pintar();
   let ag = els.agenda.innerHTML, com = els.comision.innerHTML;
 
