@@ -45,6 +45,7 @@ CORTO = {
     "video-inspeccion": "camara",
     "succion-fosa": "fosa",
     "destape-domiciliario": "destape",
+    "destape-vertical": "vertical",
 }
 
 

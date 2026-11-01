@@ -57,7 +57,15 @@ ICONO_SERVICIO = {
     "video-inspeccion": "📹",
     "succion-fosa": "🚛",
     "destape-domiciliario": "🔧",
+    "destape-vertical": "🏢",
 }
+
+
+def hora_limpia(h) -> str:
+    """La hora o franja como la ve el equipo. El conector marca la urgencia como «HOY, lo antes posible — URGENTE»
+    (conexiones.json, hora_urgente): la raya larga no se muestra (ley de textos) y la urgencia queda como ⚡ Urgente."""
+    t = re.sub(r"\s*[—–-]\s*URGENTE\b", " ⚡ Urgente", str(h or ""), flags=re.I)
+    return re.sub(r"[.,;\s—–-]+$", "", t).strip()
 
 
 def config_avisos() -> dict:
@@ -135,7 +143,7 @@ def tarjeta(d: dict) -> str:
     """Tarjeta de un destape (solo contenido). Los botones de estado los pone el JS."""
     servicio = d.get("servicio") or "Destape"
     icono = ICONO_SERVICIO.get(d.get("servicio_clave", ""), "🔧")
-    hora = d.get("hora") or "Horario a coordinar"
+    hora = hora_limpia(d.get("hora")) or "Horario a coordinar"
     neto = int(solo_digitos(d.get("precio_neto")) or 0)
     valor = (f'<div class="dc-valor">desde <b>{esc(clp(neto))}</b>'
              f'<span class="dc-iva">{esc(iva_txt(d.get("factura")))}</span></div>'
@@ -547,7 +555,7 @@ SCRIPT = r"""
   }
 
   // ── tarjeta ────────────────────────────────────────────────────────────
-  var ICONOS = { 'destape-hydrojet': '💦', 'destape-camion': '🚛', 'video-inspeccion': '📹', 'succion-fosa': '🚛', 'destape-domiciliario': '🔧' };
+  var ICONOS = { 'destape-hydrojet': '💦', 'destape-camion': '🚛', 'video-inspeccion': '📹', 'succion-fosa': '🚛', 'destape-domiciliario': '🔧', 'destape-vertical': '🏢' };
   /** Minutos desde medianoche de la hora pedida ("de 9 a 12" → 540). null = sin hora exacta ("en la tarde"). */
   function minutosDe(h) {
     var t = String(h || '').toLowerCase(), m = t.match(/(\d{1,2})(?:[:.](\d{2}))?/);
@@ -556,6 +564,13 @@ SCRIPT = r"""
     if (n < 8 && /tarde|pm|noche/.test(t)) n += 12;
     return n * 60 + (+(m[2] || 0));
   }
+  /** La marca de urgencia del conector ("HOY, lo antes posible — URGENTE") es para la ruta: al cliente no se le
+   *  manda y en la página va sin raya larga (ley de textos), como "⚡ Urgente". */
+  function esUrgente(h) { return /[—–-]\s*URGENTE\b/i.test(String(h || '')); }
+  function horaLimpia(h) {
+    return String(h || '').replace(/\s*[—–-]\s*URGENTE\b/i, '').replace(/[.,;\s—–-]+$/, '').trim();
+  }
+  function horaEquipo(h) { var t = horaLimpia(h); return t ? t + (esUrgente(h) ? ' ⚡ Urgente' : '') : ''; }
   function horaBonita(h) {
     var t = String(h || '').trim();
     var r = t.match(/^(?:de\s+|entre\s+)?(\d{1,2})(?:[:.](\d{2}))?\s*(?:a|y|-|hasta)\s*(\d{1,2})(?:[:.](\d{2}))?\s*(?:hrs?|horas)?$/i);
@@ -563,6 +578,12 @@ SCRIPT = r"""
     var u = t.match(/^(?:a las\s+)?(\d{1,2})(?:[:.](\d{2}))?\s*(?:hrs?|horas)?$/i);
     if (u) return u[1] + ':' + (u[2] || '00') + ' hrs';
     return cap(t);
+  }
+  /** El WhatsApp al cliente ("Avisar al cliente que vamos"): sin la marca URGENTE ni raya larga. */
+  function msgCliente(f) {
+    var d = f.data || {}, h = horaLimpia(d.hora);
+    return 'Hola, le escribo de Destape Rápido, soy del equipo que va a hacer el ' + (d.servicio || 'destape').toLowerCase()
+      + '. Vamos ' + diaRelativo(fechaEf(f)) + (h ? ', ' + h : '') + (d.direccion ? ', a ' + d.direccion : '') + '. ¿Me confirma que nos puede recibir?';
   }
   function diaRelativo(iso) {
     if (iso === hoyISO(0)) return 'hoy';
@@ -641,7 +662,7 @@ SCRIPT = r"""
     var id = f.id, st = estadoDe(id), e = E(id), d = f.data || {};
     var fe = fechaEf(f), orig = f.fecha || '';
     var tel = String(d.telefono || '').replace(/\D/g, '');
-    var hora = d.hora || '', min = minutosDe(hora);
+    var hora = horaEquipo(d.hora), min = minutosDe(hora);
     var contactado = !!e.contactado, atr = atrasado(f);
     var reag = e.fecha && orig && e.fecha !== orig;
     var cls = atr ? ' is-atrasado' : st !== 'pendiente' ? ' is-' + st : (contactado ? ' is-contactado' : '');
@@ -860,8 +881,7 @@ SCRIPT = r"""
       var f = fila(id), d = (f && f.data) || {}, tel = String(d.telefono || '').replace(/\D/g, '');
       if (E(id).contactado || !tel) return;
       // Se presenta y pregunta UNA cosa, como en baños. Sin emoji ni exclamación.
-      var msg = 'Hola, le escribo de Destape Rápido, soy del equipo que va a hacer el ' + (d.servicio || 'destape').toLowerCase()
-        + '. Vamos ' + diaRelativo(fechaEf(f)) + (d.hora ? ', ' + d.hora : '') + (d.direccion ? ', a ' + d.direccion : '') + '. ¿Me confirma que nos puede recibir?';
+      var msg = msgCliente(f);
       cambiar(id, { contactado: true }, 'Cliente avisado').catch(function () {});
       window.location.href = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
       return;
@@ -936,6 +956,7 @@ SCRIPT = r"""
   // Pruebas sin navegador: expone la lógica pura.
   window.__DESTAPES__ = { comDe: comDe, baseDe: baseDe, fechaEf: fechaEf, estadoDe: estadoDe, porPagar: porPagar,
     clp: clp, leerMonto: leerMonto, conFactura: conFactura, abrirCobro: abrirCobro, guardarCobro: guardarCobro,
+    horaLimpia: horaLimpia, horaEquipo: horaEquipo, msgCliente: msgCliente,
     pintar: function () { pintar(); }, _modo: function (m, v) { modo = m; if (v) vista = v; },
     _set: function (f, e) { filas = f; est = e; } };
   cargar();

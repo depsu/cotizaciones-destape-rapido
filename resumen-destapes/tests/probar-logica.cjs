@@ -60,7 +60,8 @@ const hoy = dia(0), ayer = dia(-1), anteayer = dia(-2);
 const f = (id, fecha, neto, extra) => ({ id, fecha, informado_at: '2026-10-24T10:00:00Z', card_html: `<article data-id="${id}"></article>`,
   data: Object.assign({ id, fecha, precio_neto: neto, servicio: 'Destape con hidrojet', direccion: 'X 1', telefono: '56912345678' }, extra || {}) });
 const filas = [f('a', hoy, 140000, { hora: '10:00' }), f('b', ayer, 100000), f('c', hoy, 200000), f('d', hoy, 80000, { comision_pct: 30 }),
-  f('e', hoy, 50000), f('g', anteayer, 90000, { hora: '15:00', factura: 'sin factura' }), f('h', ayer, 60000, { factura: 'si, con factura' }), f('r', hoy, 120000)];
+  f('e', hoy, 50000), f('g', anteayer, 90000, { hora: '15:00', factura: 'sin factura' }), f('h', ayer, 60000, { factura: 'si, con factura' }), f('r', hoy, 120000),
+  f('u', hoy, 70000, { hora: 'HOY, lo antes posible — URGENTE', servicio: 'Destape de vertical de edificio', servicio_clave: 'destape-vertical', direccion: 'Torre Sur 120' })];
 const est = { b: { estado: 'cobrado', valor_final: 180000 }, c: { estado: 'cobrado', comision_pagada: true, pagada_at: '2026-10-24T12:00:00Z' },
   e: { eliminado: true, estado: 'cobrado' }, r: { estado: 'realizado' } };
 T._set(filas, est);
@@ -68,6 +69,16 @@ assert.strictEqual(T.comDe(filas[0]), 35000, '25 % de $140.000');
 assert.strictEqual(T.comDe(filas[1]), 45000, 'el valor final manda: 25 % de $180.000');
 assert.strictEqual(T.comDe(filas[3]), 24000, 'el % propio del destape manda');
 assert.deepStrictEqual(T.porPagar().map((x) => x.id), ['b'], 'por pagar = cobrados sin pagar y no eliminados');
+
+// ── la marca URGENTE del conector: nunca la raya larga, al cliente ni la palabra ──
+assert.strictEqual(T.horaLimpia('HOY, lo antes posible — URGENTE'), 'HOY, lo antes posible');
+assert.strictEqual(T.horaLimpia('HOY, lo antes posible - URGENTE'), 'HOY, lo antes posible');
+assert.strictEqual(T.horaLimpia('14:00 a 15:00'), '14:00 a 15:00');
+assert.strictEqual(T.horaEquipo('HOY, lo antes posible — URGENTE'), 'HOY, lo antes posible ⚡ Urgente');
+assert.strictEqual(T.horaEquipo(''), '');
+const msgU = T.msgCliente(filas[8]);
+assert.ok(msgU.includes('Vamos hoy, HOY, lo antes posible, a Torre Sur 120.') && !/URGENTE|—/.test(msgU), 'el WhatsApp al cliente sin URGENTE ni raya: ' + msgU);
+assert.ok(T.msgCliente(filas[0]).includes('Vamos hoy, 10:00, a X 1.'), 'con hora normal, tal cual');
 
 function textosLimpios(h, donde) {
   for (const malo of ['«', '»', '—', '~']) assert.ok(!h.includes(malo), donde + ' sin ' + malo);
@@ -95,15 +106,16 @@ setTimeout(async () => {
   // Realizados y cobrados fuera de la vista principal, detrás de botones.
   assert.ok(!ag.includes('data-id="r"'), 'realizado fuera de la agenda');
   assert.ok(!ag.includes('data-id="b"') && !ag.includes('data-id="c"'), 'cobrados fuera de la agenda');
-  assert.ok(ag.includes('Por hacer (4)') && ag.includes('Falta cobrar (1)') && ag.includes('Cobrados (2)'), 'botones para ver realizados y cobrados');
+  assert.ok(ag.includes('Por hacer (5)') && ag.includes('Falta cobrar (1)') && ag.includes('Cobrados (2)'), 'botones para ver realizados y cobrados');
   assert.ok(ag.indexOf('data-acc="cobrar"') < ag.indexOf('data-acc="realizado"'), 'Cobrado primero en la tarjeta');
-  assert.strictEqual(els['hdr-pend'].textContent, 4, 'por hacer: a, d, g, h');
+  assert.strictEqual(els['hdr-pend'].textContent, 5, 'por hacer: a, d, g, h, u');
   assert.strictEqual(els['hdr-atr'].textContent, ' · 2 atrasados');
   assert.ok(ag.includes('$140.000') && !/\d mil\b/.test(ag), 'montos como $140.000 en la página, nunca "140 mil"');
   const tarjeta = (id) => { const i = ag.indexOf('data-id="' + id + '"'); return ag.slice(i, ag.indexOf('data-id=', i + 10)); };
   assert.ok(tarjeta('g').includes('Sin factura') && !tarjeta('g').includes('Con factura'), '"sin factura" se muestra Sin factura');
   assert.ok(tarjeta('h').includes('Con factura: + IVA ($71.400 en total)'), '"si, con factura" suma el 19 %');
   assert.ok(tarjeta('a').includes('Si pide factura se suma el IVA'), 'sin dato de factura');
+  assert.ok(tarjeta('u').includes('🏢 Destape de vertical de edificio') && tarjeta('u').includes('⚡ Urgente') && !tarjeta('u').includes('—'), 'vertical con su ícono y la urgencia sin raya larga');
   T._modo('realizados'); T.pintar(); ag = els.agenda.innerHTML;
   assert.ok(ag.includes('data-id="r"') && !ag.includes('data-id="a"') && ag.includes('Volver a la agenda'), 'modo falta cobrar');
   T._modo('cobrados'); T.pintar(); ag = els.agenda.innerHTML;
