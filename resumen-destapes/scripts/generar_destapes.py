@@ -459,7 +459,33 @@ body.listo #skel { display:none; }
 .toast-acc { background:none; border:1px solid rgba(255,255,255,.5); color:#fff; font:inherit; font-weight:800; font-size:14px;
   border-radius:8px; padding:6px 10px; cursor:pointer; }
 @media (prefers-color-scheme: dark) { .toast { background:#E5E7EB; color:#0F172A; } .toast-acc { color:#0F172A; border-color:rgba(15,23,42,.4); } }
-footer { text-align:center; color:var(--gris); font-size:12px; padding:20px 16px 30px; }
+footer { text-align:center; color:var(--gris); font-size:12px; padding:20px 16px 10px; }
+/* Cancelados: al pie, detrás de un botón. Lo perdido y por qué. */
+.pie-canc { max-width:560px; margin:0 auto; padding:0 16px 30px; }
+.ver-canc { display:block; width:100%; min-height:46px; border:1px dashed var(--rojo-br); border-radius:12px; background:var(--card);
+  color:var(--rojo); font:inherit; font-weight:700; font-size:14px; cursor:pointer; }
+.ver-canc.abierto { background:var(--rojo-bg); }
+.cancelados { margin-top:12px; animation:abrir .2s ease both; }
+.canc-hero { background:var(--rojo-bg); border:1px solid var(--rojo-br); border-radius:14px; padding:14px; margin-bottom:10px; }
+.canc-hero .r { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--rojo); }
+.canc-hero .v { font-size:30px; font-weight:800; color:var(--rojo); font-variant-numeric:tabular-nums; line-height:1.15; margin-top:2px; }
+.canc-hero .s { font-size:13.5px; color:var(--tinta-2); margin-top:4px; }
+.canc { background:var(--card); border:1px solid var(--linea); border-radius:12px; padding:11px 13px; margin-bottom:8px; }
+.canc-top { display:flex; gap:10px; align-items:flex-start; }
+.canc-main { flex:1 1 140px; min-width:0; }
+.canc-serv { font-weight:800; font-size:15px; }
+.canc-dir { color:var(--gris); font-size:13px; overflow-wrap:anywhere; }
+.canc-dir a { color:var(--azul); font-weight:700; text-decoration:none; }
+.canc-motivo { margin-top:4px; font-size:13.5px; font-weight:700; color:var(--rojo); overflow-wrap:anywhere; }
+.canc-monto { font-weight:800; color:var(--rojo); font-variant-numeric:tabular-nums; white-space:nowrap; font-size:17px; text-align:right; }
+.canc-monto small { display:block; font-size:11px; font-weight:600; color:var(--gris); }
+.canc-acc { display:flex; gap:8px; margin-top:10px; }
+.canc-volver, .canc-sacar { flex:1 1 0; min-height:42px; border-radius:9px; font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+.canc-volver { background:var(--card); color:var(--azul); border:1px solid var(--real-br); }
+.canc-sacar { background:var(--card); color:var(--gris); border:1px solid var(--linea); }
+.motivo-in { width:100%; font:inherit; font-size:15px; min-height:46px; border-radius:10px; border:1px solid var(--rojo-br); background:var(--card);
+  color:var(--tinta); padding:6px 10px; }
+.motivo-in::placeholder { color:var(--gris); font-size:14px; }
 """
 
 SCRIPT = r"""
@@ -469,7 +495,7 @@ SCRIPT = r"""
   var CK_FILAS = 'destapes_filas_v1', CK_EST = 'destapes_estado_v1', CK_VISTOS = 'destapes_vistos_v1', CK_DESEL = 'destapes_desel_v1';
   // modo: 'agenda' (por hacer) o 'completadas' (hechos y cobrados, detrás del botón punteado, como en baños).
   var filas = [], est = {}, modo = 'agenda', vista = 'agenda', confirmando = null, primeraVez = false, vistos = {};
-  var cobrando = null, borrador = {}, infoAbierta = {}, deshacerFn = null, resaltarId = null, animarLista = false;
+  var cobrando = null, borrador = {}, infoAbierta = {}, deshacerFn = null, resaltarId = null, animarLista = false, cancelAbierto = false;
 
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin espacio o modo privado */ } }
@@ -532,7 +558,12 @@ SCRIPT = r"""
    *  baños: un trabajo hecho que falta cobrar sigue a la vista, en azul, hasta que se cobre. */
   function completada(id) { return estadoDe(id) === 'cobrado'; }
   function fechaEf(f) { return E(f.id).fecha || f.fecha || (f.data && f.data.fecha) || ''; }
-  function vivo(f) { return !E(f.id).eliminado; }
+  /** Viva = en la agenda. Cancelada = la quitó el equipo desde la página (estado.eliminado) o el bot porque el cliente
+   *  canceló (destape.eliminado). Oculta = la sacaron también de la lista de cancelados (data.oculto). */
+  function vivo(f) { return !f.eliminado && !E(f.id).eliminado; }
+  function esPrueba(f) { return /^prueba/i.test(String((f.data || {}).pedido_id || '')) || /^prueba/i.test(String((f.data || {}).cliente || '')); }
+  function cancelada(f) { return (!!f.eliminado || !!E(f.id).eliminado) && !(f.data && f.data.oculto) && !esPrueba(f); }
+  function motivoDe(f) { var n = E(f.id).nota; return n ? String(n) : (f.eliminado ? 'Canceló el cliente' : 'Se quitó de la agenda'); }
   function pctDe(f) { var p = f.data && Number(f.data.comision_pct); return p > 0 ? p : APP.pct; }
   function baseDe(f) { var v = Number(E(f.id).valor_final); return v > 0 ? v : (Number(f.data && f.data.precio_neto) || 0); }
   function comDe(f) { return Math.round(baseDe(f) * pctDe(f) / 100); }
@@ -552,6 +583,11 @@ SCRIPT = r"""
       method: 'POST',
       headers: Object.assign({ 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, H),
       body: JSON.stringify(cuerpo)
+    }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); });
+  }
+  function guardarFila(id, cambios) {
+    return fetch(APP.url + '/rest/v1/destape?id=eq.' + encodeURIComponent(id), {
+      method: 'PATCH', headers: Object.assign({ 'Content-Type': 'application/json', Prefer: 'return=minimal' }, H), body: JSON.stringify(cambios)
     }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); });
   }
   /** ¿La tarjeta se va de la lista que se está mirando con este cambio? (se anima al salir) */
@@ -585,7 +621,7 @@ SCRIPT = r"""
   function cargar() {
     var aviso = document.getElementById('aviso-red');
     Promise.all([
-      pedir('destape?select=id,fecha,informado_at,data,card_html&eliminado=eq.false&order=informado_at.desc'),
+      pedir('destape?select=id,fecha,informado_at,data,eliminado&order=informado_at.desc&limit=400'),
       pedir('destape_estado?select=*')
     ]).then(function (res) {
       filas = res[0]; est = {};
@@ -789,7 +825,9 @@ SCRIPT = r"""
     if (tel) acc += '<a class="acc acc-tel" href="tel:+' + tel + '">📞 Llamar</a>';
     if (mapa && !cob) acc += '<a class="acc acc-map" href="' + esc(mapa) + '" target="_blank" rel="noopener">🗺️ Llegar</a>';
     var conf = confirmando === id
-      ? '<div class="confirma">¿Quitar este destape de la agenda?<div class="conf-acc"><button type="button" class="si" data-acc="quitar-si">Sí, quitar</button><button type="button" class="no" data-acc="quitar-no">No</button></div></div>'
+      ? '<div class="confirma">¿Quitar este destape de la agenda?'
+        + '<input type="text" class="motivo-in" data-acc="motivo" maxlength="120" placeholder="Motivo, si quieres (por ejemplo: no quiso el precio)" value="' + esc(borrador['motivo:' + id] || '') + '">'
+        + '<div class="conf-acc"><button type="button" class="si" data-acc="quitar-si">Sí, quitar</button><button type="button" class="no" data-acc="quitar-no">No</button></div></div>'
       : (cob ? '' : '<button type="button" class="quitar" data-acc="quitar">✕ Quitar de la agenda (se canceló o no se hizo)</button>');
     var h = hintDe(f);
     return '<div class="dw' + cls + '" data-id="' + esc(id) + '">' + gt
@@ -957,8 +995,34 @@ SCRIPT = r"""
     document.body.classList.toggle('vista-comision', vista === 'comision');
   }
 
+  // ── cancelados (al pie de la página): lo que se perdió y por qué ────────
+  function pintarCancelados() {
+    var cont = document.getElementById('cancelados'); if (!cont) return;
+    var lista = filas.filter(cancelada).sort(function (a, b) { return fechaEf(a) < fechaEf(b) ? 1 : -1; });
+    var btn = document.getElementById('btn-cancelados');
+    if (!lista.length) { cont.innerHTML = ''; cont.hidden = true; if (btn) btn.hidden = true; cancelAbierto = false; return; }
+    if (btn) { btn.hidden = false; btn.textContent = (cancelAbierto ? '▴ Cerrar cancelados' : '✕ Ver cancelados') + ' (' + lista.length + ')'; btn.classList.toggle('abierto', cancelAbierto); }
+    cont.hidden = !cancelAbierto;
+    if (!cancelAbierto) { cont.innerHTML = ''; return; }
+    var perdido = lista.reduce(function (s, f) { return s + baseDe(f); }, 0), comPerdida = lista.reduce(function (s, f) { return s + comDe(f); }, 0);
+    var html = '<div class="canc-hero"><div class="r">Cancelados · lo que se perdió</div>'
+      + '<div class="v">' + clp(perdido) + '</div><div class="s">en trabajos que no se hicieron · comisión perdida ' + clp(comPerdida) + '</div></div>';
+    html += lista.map(function (f) {
+      var d = f.data || {}, tel = telDe(f);
+      return '<div class="canc" data-id="' + esc(f.id) + '">'
+        + '<div class="canc-top"><div class="canc-main"><div class="canc-serv">' + (ICONOS[d.servicio_clave] || '🔧') + ' ' + esc(d.servicio || 'Destape') + '</div>'
+        + '<div class="canc-dir">👤 ' + esc(d.cliente || 'Cliente sin nombre') + (tel ? ' · <a href="tel:+' + tel + '">' + esc(telJunto(tel)) + '</a>' : '') + '</div>'
+        + '<div class="canc-dir">📍 ' + esc(d.comuna || d.direccion || '') + ' · ' + esc(diaCorto(fechaEf(f))) + '</div>'
+        + '<div class="canc-motivo">✕ ' + esc(motivoDe(f)) + '</div></div>'
+        + '<div class="canc-monto">' + clp(baseDe(f)) + '<small>comisión ' + clp(comDe(f)) + '</small></div></div>'
+        + '<div class="canc-acc"><button type="button" class="canc-volver" data-acc="restaurar">↩ Volver a la agenda</button>'
+        + '<button type="button" class="canc-sacar" data-acc="ocultar">Sacar de acá</button></div></div>';
+    }).join('');
+    cont.innerHTML = html;
+  }
+
   function pintar() {
-    pintarAgenda(); pintarComision();
+    pintarAgenda(); pintarComision(); pintarCancelados();
     document.querySelectorAll('.vista').forEach(function (v) { v.hidden = v.getAttribute('data-vista') !== vista; });
     document.querySelectorAll('.vista-btn').forEach(function (b) { b.classList.toggle('activo', b.getAttribute('data-vista') === vista); });
     if (resaltarId) { var id = resaltarId; resaltarId = null; setTimeout(function () { var el = document.querySelector('.dw[data-id="' + id + '"]'); if (el && el.classList) el.classList.remove('foco'); }, 2600); }
@@ -1025,9 +1089,22 @@ SCRIPT = r"""
       if (E(id).comision_pagada) { toast('Su comisión ya está pagada. Revoca el pago antes.'); return; }
       cobrando = null; delete borrador[id];
       cambiar(id, { estado: 'realizado' }, 'Ya no figura como cobrado. Queda en falta cobrar.', { deshacer: { estado: 'cobrado' } }).catch(function () {});
-    } else if (acc === 'quitar') { confirmando = id; pintar(); }
-    else if (acc === 'quitar-no') { confirmando = null; pintar(); }
-    else if (acc === 'quitar-si') { confirmando = null; cambiar(id, { eliminado: true }, 'Quitado de la agenda.', { deshacer: { eliminado: false } }).catch(function () {}); }
+    } else if (acc === 'quitar') { confirmando = id; pintar(); var mi = document.querySelector('.dw[data-id="' + id + '"] .motivo-in'); if (mi && mi.focus) mi.focus(); }
+    else if (acc === 'quitar-no') { confirmando = null; delete borrador['motivo:' + id]; pintar(); }
+    else if (acc === 'quitar-si') {
+      var motivo = String(borrador['motivo:' + id] || '').trim(); confirmando = null; delete borrador['motivo:' + id];
+      cambiar(id, { eliminado: true, nota: motivo || null }, 'Quitado de la agenda. Queda en Cancelados.', { deshacer: { eliminado: false, nota: null } }).catch(function () {});
+    } else if (acc === 'ver-cancelados') { cancelAbierto = !cancelAbierto; pintar(); if (cancelAbierto) { var sc = document.getElementById('cancelados'); if (sc && sc.scrollIntoView) sc.scrollIntoView({ block: 'start' }); } }
+    else if (acc === 'restaurar') {
+      // vuelve a la agenda: la marca del equipo y, si la canceló el bot, también la de la fila
+      var fr = fila(id); if (!fr) return;
+      if (fr.eliminado) { fr.eliminado = false; guardarFila(id, { eliminado: false }).catch(function () { fr.eliminado = true; pintar(); toast('No se pudo guardar. Revisa la señal e intenta de nuevo.'); }); }
+      cambiar(id, { eliminado: false, nota: null }, 'Vuelve a la agenda.').catch(function () {});
+    } else if (acc === 'ocultar') {
+      var fo = fila(id); if (!fo) return;
+      var dataAntes = fo.data; fo.data = Object.assign({}, fo.data || {}, { oculto: true }); pintar();
+      guardarFila(id, { data: fo.data }).then(function () { toast('Sacado de cancelados.'); }).catch(function () { fo.data = dataAntes; pintar(); toast('No se pudo guardar. Revisa la señal e intenta de nuevo.'); });
+    }
     else if (acc === 'modo') { modo = t.getAttribute('data-modo') || 'agenda'; cobrando = null; animarLista = true; pintar(); window.scrollTo(0, 0); }
     else if (acc === 'info') { infoAbierta[id] = !infoAbierta[id]; pintarComision(); }
     else if (acc === 'revocar') {
@@ -1040,7 +1117,9 @@ SCRIPT = r"""
   });
   // Mientras se escribe el valor: se muestra cómo se va a guardar y la comisión.
   document.addEventListener('input', function (ev) {
-    var t = ev.target; if (!t.getAttribute || t.getAttribute('data-acc') !== 'monto') return;
+    var t = ev.target; if (!t.getAttribute) return;
+    if (t.getAttribute('data-acc') === 'motivo') { var wm = t.closest('[data-id]'); if (wm) borrador['motivo:' + wm.getAttribute('data-id')] = t.value; return; }
+    if (t.getAttribute('data-acc') !== 'monto') return;
     var w = t.closest('[data-id]'), id = w && w.getAttribute('data-id'), f = id && fila(id); if (!f) return;
     borrador[id] = t.value;
     var n = leerMonto(t.value), c = t.closest('.cobro');
@@ -1078,7 +1157,8 @@ SCRIPT = r"""
   // Pruebas sin navegador: expone la lógica pura.
   window.__DESTAPES__ = { comDe: comDe, baseDe: baseDe, fechaEf: fechaEf, estadoDe: estadoDe, porPagar: porPagar,
     clp: clp, leerMonto: leerMonto, conFactura: conFactura, abrirCobro: abrirCobro, guardarCobro: guardarCobro,
-    horaLimpia: horaLimpia, horaEquipo: horaEquipo, msgCliente: msgCliente, hintDe: hintDe,
+    horaLimpia: horaLimpia, horaEquipo: horaEquipo, msgCliente: msgCliente, hintDe: hintDe, cancelada: cancelada, motivoDe: motivoDe,
+    _cancelados: function (v) { cancelAbierto = v; }, _confirmar: function (id) { confirmando = id; }, _motivo: function (id, t) { borrador['motivo:' + id] = t; },
     pintar: function () { pintar(); }, _modo: function (m, v) { modo = (m === 'realizados' || m === 'cobrados') ? 'completadas' : m; if (v) vista = v; },
     _set: function (f, e) { filas = f; est = e; } };
   cargar();
@@ -1120,6 +1200,8 @@ PAGINA = """<!doctype html>
   <button type="button" class="m-no">Cancelar</button></div></div></div>
 <div id="toast" class="toast" role="status" hidden></div>
 <footer>Destape Rápido · área camión, hidrojet y cámara</footer>
+<div class="pie-canc"><button type="button" id="btn-cancelados" class="ver-canc" data-acc="ver-cancelados" hidden>✕ Ver cancelados</button>
+<div id="cancelados" class="cancelados" hidden></div></div>
 <script>window.__APP__ = @@APP@@;</script>
 <script>@@SCRIPT@@</script>
 </body>

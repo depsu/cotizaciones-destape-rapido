@@ -190,6 +190,25 @@ setTimeout(async () => {
   assert.strictEqual(await T.guardarCobro('d', 'nada'), false);
   assert.strictEqual(enviados.length, 2);
 
+  // ── (4-nov-2026) Cancelados al pie: lo perdido y la comisión perdida; quitar con motivo opcional; volver a la agenda ──
+  ctx.fetch = (url, op) => { enviados.push({ url, cuerpo: op && op.body ? JSON.parse(op.body) : null, metodo: op && op.method }); return Promise.resolve({ ok: true }); };
+  const conCanc = [f('v1', hoy, 140000, { cliente: 'Vivo' }), f('q1', ayer, 100000, { cliente: 'Quitado' }), f('k1', ayer, 60000, { cliente: 'Cancelo el cliente' }), f('o1', ayer, 50000, { cliente: 'Oculto', oculto: true }),
+    f('p1', ayer, 200000, { cliente: 'PRUEBA no ir', pedido_id: 'prueba-destapes-1' })];
+  conCanc[2].eliminado = true; conCanc[3].eliminado = true; conCanc[4].eliminado = true;
+  T._set(conCanc, { q1: { eliminado: true, nota: 'no quiso el precio' } }); T._cancelados(true); T._modo('agenda', 'agenda'); T.pintar();
+  assert.ok(T.cancelada(conCanc[1]) && T.cancelada(conCanc[2]) && !T.cancelada(conCanc[3]) && !T.cancelada(conCanc[0]) && !T.cancelada(conCanc[4]), 'canceladas = quitadas o canceladas por el bot, sin las ocultas ni las de prueba');
+  assert.strictEqual(T.motivoDe(conCanc[1]), 'no quiso el precio'); assert.strictEqual(T.motivoDe(conCanc[2]), 'Canceló el cliente');
+  assert.strictEqual(els['btn-cancelados'].textContent, '▴ Cerrar cancelados (2)');
+  const canc = els.cancelados.innerHTML;
+  assert.ok(canc.includes('$160.000') && canc.includes('comisión perdida $40.000'), 'lo perdido: $100.000 + $60.000 y su 25 %: ' + canc.slice(0, 200));
+  assert.ok(canc.includes('✕ no quiso el precio') && canc.includes('✕ Canceló el cliente') && canc.includes('Volver a la agenda') && canc.includes('Sacar de acá'), 'cada cancelado con su motivo y sus dos botones');
+  assert.ok(!els.agenda.innerHTML.includes('data-id="q1"') && els.agenda.innerHTML.includes('data-id="v1"'), 'las canceladas no van en la agenda');
+  // quitar con motivo: la confirmación trae el campo y guarda eliminado + nota en un solo guardado
+  T._confirmar('v1'); T._motivo('v1', 'se fue con otra empresa'); T.pintar();
+  assert.ok(els.agenda.innerHTML.includes('class="motivo-in"') && els.agenda.innerHTML.includes('value="se fue con otra empresa"'), 'el campo del motivo, opcional');
+  textosLimpios(els.agenda.innerHTML, 'quitar con motivo'); textosLimpios(canc, 'cancelados');
+  T._cancelados(false); T._confirmar(null);
+  T._set(filas, JSON.parse(JSON.stringify(est))); T.pintar();   // de vuelta a los datos de siempre
   // Si Supabase falla: no queda cobrado y el formulario vuelve abierto con lo escrito.
   ctx.fetch = () => Promise.resolve({ ok: false, status: 503 });
   T._modo('agenda', 'agenda');
