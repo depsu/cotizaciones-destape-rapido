@@ -71,9 +71,11 @@ def listar() -> None:
               f"le toca ${f['monto']:,} ({float(f['fraccion']):.0%})  {est}".replace(",", "."))
 
 
-def publicar(carpeta: Path, fraccion: float, nota: str | None, id_forzado: str | None, dry: bool) -> None:
+def publicar(carpeta: Path, fraccion: float, nota: str | None, id_forzado: str | None, dry: bool,
+             imagen: str = "cobro.png") -> None:
     resumen_p = carpeta / "resumen.json"
-    png = carpeta / "cobro.png"
+    # (2026-11-01) --imagen resumen.png: la imagen que junta lo ganado + la parte + día por día
+    png = carpeta / imagen
     if not resumen_p.exists() or not png.exists():
         sys.exit(f"❌ La carpeta debe traer resumen.json y cobro.png: {carpeta}")
     r = json.loads(resumen_p.read_text(encoding="utf-8"))
@@ -94,6 +96,15 @@ def publicar(carpeta: Path, fraccion: float, nota: str | None, id_forzado: str |
         # día por día (fecha, gasto, contactos, clics): la página lo pinta como tabla.
         "por_dia": cobro.get("por_dia") or [],
         "campanas_ads": r.get("campanas_ads") or [],
+        # (2026-11-01) desglose por campaña (con marca de IVA) y lo que generó la inversión,
+        # para que la página lo muestre en texto y no solo en la imagen.
+        "por_campana": [{"nombre": k, "gasto": v.get("gasto"), "clics": v.get("clics"),
+                         "contactos": v.get("contactos"), "iva": bool(v.get("iva"))}
+                        for k, v in sorted((cobro.get("por_campana") or {}).items(), key=lambda kv: -(kv[1].get("gasto") or 0))],
+        "retorno": ({"clientes": (r.get("retorno") or {}).get("clientes"),
+                     "generado": int(round((r.get("retorno") or {}).get("generado") or 0)),
+                     "veces": round((r.get("retorno") or {}).get("veces") or 0, 1)}
+                    if r.get("retorno") else None),
     }
     fila = {
         "id": cid,
@@ -145,6 +156,7 @@ def main() -> None:
     ap.add_argument("--fraccion", type=float, default=0.5, help="parte que paga el repartidor (0.5 = la mitad)")
     ap.add_argument("--nota", default=None)
     ap.add_argument("--id", default=None, help="id de la fila (por defecto, el nombre de la carpeta)")
+    ap.add_argument("--imagen", default="cobro.png", help="qué PNG de la rendición mostrar (cobro.png o resumen.png)")
     ap.add_argument("--dry", action="store_true")
     ap.add_argument("--listar", action="store_true")
     a = ap.parse_args()
@@ -155,7 +167,7 @@ def main() -> None:
         ap.error("falta --rendicion (o usa --listar)")
     if not (0 < a.fraccion <= 1):
         ap.error("--fraccion debe estar entre 0 y 1")
-    publicar(a.rendicion.resolve(), a.fraccion, a.nota, a.id, a.dry)
+    publicar(a.rendicion.resolve(), a.fraccion, a.nota, a.id, a.dry, a.imagen)
 
 
 if __name__ == "__main__":
