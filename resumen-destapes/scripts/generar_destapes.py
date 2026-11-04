@@ -15,6 +15,15 @@ lee y escribe SOLO las tablas `destape` y `destape_estado` de Supabase.
   ("140 mil" es solo para lo que el bot le escribe al cliente por WhatsApp, no para acá.)
 - Cobrar = botón "Cobrado" → "¿Cuánto se cobró?" → guarda valor_final y estado cobrado
   juntos. La comisión sale de ese valor final.
+- (4-nov-2026, pedido de Alejandro: «para una persona que no entiende es confuso, analiza cómo está
+  hecho el de baños») la página copia la de baños: SIN filtros arriba, un solo botón punteado
+  "Ver completadas (N)" que muestra hechos y cobrados (y queda fijo abajo para volver), en cada
+  tarjeta la barra de arriba con la fecha (mover de día ahí mismo) y los dos botones de estado
+  "Realizado" y "Cobrado" (blancos sin marcar, de color al marcar), una frase que dice qué toca
+  hacer, "Quitar de la agenda" a la vista (el equipo no lo encontraba escondido), la barra de
+  avance del día con el 🚛, animaciones suaves al cambiar de lista y Deshacer en el aviso. La
+  comisión queda como la de baños: la deuda arriba, "Selecciona las que vas a pagar" con su check,
+  "Revisar en WhatsApp" y "Ver toda la info". Los teléfonos van todo juntos (+569…), de un toque.
 
 Uso:
     python3 resumen-destapes/scripts/generar_destapes.py            # escribe ../destapes.html
@@ -216,14 +225,14 @@ CSS = r"""
   --card:#fff; --suave:#F8FAFC; --verde:#166534; --verde-bg:#F0FDF4; --verde-br:#BBF7D0;
   --ambar:#92400E; --ambar-bg:#FEF3C7; --ambar-br:#FCD34D; --oro:#B8860B;
   --rojo:#B91C1C; --rojo-bg:#FEF2F2; --rojo-br:#FCA5A5;
-  --azul-btn:#1F5AA8; --oro-btn:#A16207; --verde-btn:#15803D;
+  --azul-btn:#1F5AA8; --oro-btn:#B8860B; --verde-btn:#16A34A; --real:#1E40AF; --real-bg:#EFF6FF; --real-br:#93C5FD;
   --tinta-2:#334155; --skel-a:#E2E8F0; --skel-b:#EDF2F7; color-scheme:light dark; }
 @media (prefers-color-scheme: dark) {
   :root { --azul:#3B82F6; --azul-2:#1E3A8A; --tinta:#E5E7EB; --gris:#94A3B8; --linea:#273244; --fondo:#0B1220;
     --card:#111A2B; --suave:#0F1726; --verde:#4ADE80; --verde-bg:#0F2A1C; --verde-br:#166534;
     --ambar:#FCD34D; --ambar-bg:#3A2A06; --ambar-br:#A16207; --oro:#CA8A04;
     --rojo:#FCA5A5; --rojo-bg:#3A1212; --rojo-br:#7F1D1D;
-    --azul-btn:#2563EB;
+    --azul-btn:#2563EB; --real:#60A5FA; --real-bg:#172554; --real-br:#1E40AF;
     --tinta-2:#CBD5E1; --skel-a:#1E293B; --skel-b:#273449; }
 }
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -231,7 +240,9 @@ CSS = r"""
 html, body { max-width:100%; overflow-x:hidden; }
 body { margin:0; background:var(--fondo); color:var(--tinta);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  font-size:16px; line-height:1.45; padding-bottom:calc(90px + env(safe-area-inset-bottom)); }
+  font-size:16px; line-height:1.45; padding-bottom:calc(40px + env(safe-area-inset-bottom)); }
+body.modo-completadas { padding-bottom:calc(150px + env(safe-area-inset-bottom)); }
+body.vista-comision { padding-bottom:calc(110px + env(safe-area-inset-bottom)); }
 header { position:sticky; top:0; z-index:20; background:var(--azul-2); color:#fff;
   padding:max(12px,env(safe-area-inset-top)) 16px 12px; box-shadow:0 2px 8px rgba(0,0,0,.2); }
 @media (prefers-color-scheme: light) { header { background:var(--azul); } }
@@ -251,66 +262,90 @@ body.listo #skel { display:none; }
   background-size:400% 100%; animation:brillo 1.3s ease-in-out infinite; }
 .sk-tabs { height:48px; } .sk-tit { height:14px; width:40%; margin:16px 4px 10px; } .sk-card { height:150px; }
 @keyframes brillo { 0% { background-position:100% 0; } 100% { background-position:0 0; } }
-@media (prefers-reduced-motion: reduce) { .sk { animation:none; } }
 .aviso-red { background:var(--ambar-bg); color:var(--ambar); border-radius:10px; padding:8px 12px; font-size:14px; margin-bottom:10px; }
+/* Las dos vistas, como en baños: Agenda y Comisión. Nada más arriba. */
 .vistas { display:flex; gap:8px; }
 .vista-btn { flex:1 1 0; min-height:48px; border-radius:12px; border:1px solid var(--linea); background:var(--card);
-  color:var(--tinta); font:inherit; font-weight:700; font-size:16px; cursor:pointer; }
+  color:var(--tinta); font:inherit; font-weight:700; font-size:16px; cursor:pointer; transition:background .15s, color .15s; }
 .vista-btn.activo { background:var(--azul-btn); border-color:var(--azul-btn); color:#fff; }
-/* Botones para ver lo realizado y lo cobrado (como "Ver completadas" de baños) */
-.filtros { display:flex; gap:8px; margin-top:10px; }
-.filtro { flex:1 1 0; min-width:0; min-height:48px; border-radius:12px; border:2px solid var(--linea); background:var(--card);
-  color:var(--tinta); font:inherit; font-weight:700; font-size:14.5px; line-height:1.2; cursor:pointer; padding:4px 6px; }
-.filtro.activo { background:var(--azul-btn); border-color:var(--azul-btn); color:#fff; }
-.filtro.alerta { border:2px solid var(--oro); background:var(--ambar-bg); color:var(--ambar); }
-.espacio-fijo { height:84px; }
-.volver-fijo { position:fixed; left:16px; right:16px; bottom:calc(14px + env(safe-area-inset-bottom)); max-width:528px;
-  margin:0 auto; z-index:30; min-height:54px; border:none; border-radius:14px; background:var(--azul-btn); color:#fff;
-  font:inherit; font-size:16px; font-weight:800; cursor:pointer; box-shadow:0 6px 18px rgba(15,23,42,.3); }
+/* "Ver completadas", igual que en baños: un solo botón punteado. Activo, queda fijo abajo y te sigue. */
+.ver-ant { display:block; width:100%; margin-top:12px; min-height:50px; border:1px dashed var(--gris); border-radius:12px;
+  background:var(--card); color:var(--tinta); font:inherit; font-weight:700; font-size:15px; cursor:pointer; transition:background .15s; }
+.ver-ant.modo-activo { position:fixed; bottom:calc(16px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
+  width:calc(100% - 24px); max-width:536px; z-index:30; background:var(--azul-btn); color:#fff; border:1px solid var(--azul-btn);
+  box-shadow:0 6px 18px rgba(15,23,42,.30); }
+.modo-titulo { position:fixed; bottom:calc(74px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%);
+  width:calc(100% - 24px); max-width:536px; z-index:30; margin:0; font-weight:800; color:var(--verde); background:var(--verde-bg);
+  border:1px solid var(--verde-br); border-radius:10px; padding:9px 12px; text-align:center; font-size:13px;
+  box-shadow:0 4px 14px rgba(15,23,42,.18); }
+.resumen-comp { margin:10px 2px 0; font-size:14px; color:var(--gris); font-weight:600; }
+/* Título del día con su barra de avance (el 🚛 va en la punta), como la de baños. */
 .dia-tit { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; text-transform:uppercase;
   letter-spacing:.5px; color:var(--gris); margin:16px 0 8px; padding:6px 0; position:sticky; top:var(--hdr-h,70px);
   z-index:5; background:var(--fondo); }
 .dia-tit.atrasado { color:var(--rojo); }
 .dia-tit.hoy { color:var(--azul); }
-.dia-n { margin-left:auto; background:var(--card); border:1px solid var(--linea); border-radius:20px; padding:1px 9px; font-size:12px; color:var(--gris); }
-.dw { position:relative; background:var(--card); border:1px solid var(--linea); border-radius:16px; margin-bottom:14px;
+.dia-txt { flex:0 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.prog { display:flex; align-items:center; gap:12px; flex:1 1 auto; min-width:0; }
+.prog-bar { position:relative; flex:1 1 auto; min-width:64px; height:16px; background:var(--linea); border-radius:999px; overflow:visible; }
+.prog-fill { position:absolute; left:0; top:0; bottom:0; width:0; background:var(--verde-btn); border-radius:999px;
+  display:flex; align-items:center; justify-content:flex-end; transition:width .5s ease; }
+.prog-truck { font-size:13px; line-height:1; transform:translateX(42%); filter:drop-shadow(0 1px 1px rgba(0,0,0,.25)); }
+.prog-num { flex:none; font-size:12px; font-weight:800; color:var(--gris); font-variant-numeric:tabular-nums; text-transform:none; }
+.dia-n { margin-left:auto; flex:none; background:var(--card); border:1px solid var(--linea); border-radius:20px; padding:1px 9px; font-size:12px; color:var(--gris); }
+/* La tarjeta: barra de gestión ARRIBA (fecha + Realizado + Cobrado) y el cuerpo abajo, como en baños. */
+.dw { position:relative; margin-bottom:12px; border-radius:16px; transition:transform .25s ease, opacity .25s ease; }
+.gt { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 12px; background:var(--card);
+  border:1px solid var(--linea); border-bottom:none; border-radius:16px 16px 0 0; }
+.dw-card { background:var(--card); border:1px solid var(--linea); border-top:none; border-radius:0 0 16px 16px; padding:10px 14px 14px;
   box-shadow:0 1px 3px rgba(15,23,42,.06); }
-.dw.is-contactado { border-color:var(--verde-br); background:var(--verde-bg); }
-.dw.is-atrasado { border:2px solid var(--rojo-br); }
-.dw.is-realizado { border-color:#93C5FD; }
-.dw.is-cobrado { border-color:var(--ambar-br); }
-@media (prefers-color-scheme: dark) { .dw.is-realizado { border-color:#1E40AF; } }
-.dw.foco { animation:pulso 1.3s ease-in-out 3; }
-@keyframes pulso { 0%,100% { box-shadow:0 0 0 0 rgba(59,130,246,0); } 35% { box-shadow:0 0 0 6px rgba(59,130,246,.5); } }
-/* NUEVO (este teléfono no lo había visto): anillo azul y chip flotante, igual que en baños */
-.dw.nueva { margin-top:20px; box-shadow:0 0 0 2px #93C5FD, 0 4px 16px rgba(59,130,246,.28); }
-.dw.nueva::before { content:"✨ Nuevo"; position:absolute; top:-10px; right:14px; background:#3B82F6; color:#fff;
+.gt-fecha { display:flex; align-items:center; gap:5px; font-size:13px; color:var(--gris); font-weight:600; }
+.fecha-input { font-family:inherit; font-size:13px; padding:6px 5px; border:1px solid var(--linea); border-radius:8px;
+  background:var(--card); color:var(--tinta); min-height:38px; width:118px; box-sizing:border-box; }
+.gt-estados { display:flex; gap:6px; margin-left:auto; }
+.est-btn { padding:8px 12px; border:1px solid var(--linea); background:var(--card); color:var(--gris); font-size:13.5px; font-weight:700;
+  border-radius:9px; cursor:pointer; font-family:inherit; min-height:40px; transition:background .18s, color .18s, transform .12s; }
+.est-btn:active { transform:scale(.97); }
+.est-btn.b-real.activo { background:var(--real); color:#fff; border-color:var(--real); }
+.est-btn.b-cob.activo { background:var(--oro-btn); color:#fff; border-color:var(--oro-btn); }
+.chip-atr { width:100%; font-size:12.5px; font-weight:800; color:var(--rojo); background:var(--rojo-bg); border:1px solid var(--rojo-br);
+  padding:5px 9px; border-radius:8px; }
+.chip-reag { width:100%; font-size:12px; font-weight:800; color:var(--rojo); background:var(--rojo-bg); padding:4px 9px; border-radius:8px; }
+/* Color de la tarjeta según estado: azul hecho, dorado cobrado, verde cliente avisado, rojo atrasado. */
+.dw.is-realizado > .gt, .dw.is-realizado > .dw-card { border-color:var(--real-br); background:var(--real-bg); }
+.dw.is-cobrado > .gt, .dw.is-cobrado > .dw-card { border-color:var(--ambar-br); background:var(--ambar-bg); }
+.dw.is-contactado > .gt, .dw.is-contactado > .dw-card { border-color:var(--verde-br); background:var(--verde-bg); }
+.dw.is-atrasado > .gt, .dw.is-atrasado > .dw-card { border-color:var(--rojo-br); }
+.dw.is-atrasado > .gt { border-width:2px; border-bottom:none; } .dw.is-atrasado > .dw-card { border-width:2px; border-top:none; }
+.dw.foco { animation:pulso 1.2s ease-in-out 2; }
+@keyframes pulso { 0%,100% { box-shadow:0 0 0 0 rgba(59,130,246,0); } 35% { box-shadow:0 0 0 6px rgba(59,130,246,.45); } }
+.dw.nueva { margin-top:22px; box-shadow:0 0 0 2px #93C5FD, 0 4px 16px rgba(59,130,246,.28); }
+.dw.nueva::before { content:"✨ Nuevo"; position:absolute; top:-11px; right:14px; background:#3B82F6; color:#fff;
   font-size:11px; font-weight:800; padding:2px 10px; border-radius:999px; box-shadow:0 1px 4px rgba(30,64,175,.35); z-index:2; }
-.dw-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:12px 14px 0; }
+/* Animaciones: entra al pintar un cambio de lista, sale (se encoge) al irse a otra lista. */
+.anim-entrar .dw { animation:entrar .28s ease both; }
+@keyframes entrar { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+.dw.saliendo { animation:salir .32s ease forwards; overflow:hidden; }
+@keyframes salir { to { opacity:0; transform:translateX(-30px); max-height:0; margin-bottom:0; } }
+.dw.saliendo { max-height:900px; }
+@media (prefers-reduced-motion: reduce) { .sk, .dw, .dw.foco, .anim-entrar .dw, .dw.saliendo, .cobro, .toast { animation:none !important; transition:none !important; } }
+.estado-hint { font-size:12.5px; font-weight:700; color:var(--gris); margin-bottom:6px; }
+.estado-hint.rojo { color:var(--rojo); } .estado-hint.verde { color:var(--verde); } .estado-hint.azul { color:var(--real); } .estado-hint.oro { color:var(--ambar); }
 .hora-pill { display:inline-flex; align-items:center; gap:6px; background:var(--azul-btn); color:#fff; font-weight:800;
-  font-size:17px; padding:6px 12px; border-radius:10px; font-variant-numeric:tabular-nums; letter-spacing:.2px; }
+  font-size:17px; padding:6px 12px; border-radius:10px; font-variant-numeric:tabular-nums; letter-spacing:.2px; margin-bottom:8px; }
 .hora-pill.sin { background:var(--ambar-bg); color:var(--ambar); font-size:15px; }
-/* Ya hecho (realizado o cobrado): la hora deja de ser lo importante */
 .hora-pill.hecho { background:var(--suave); color:var(--gris); border:1px solid var(--linea); font-size:15px; }
-.pill-atr { display:inline-flex; align-items:center; gap:6px; background:var(--rojo-bg); color:var(--rojo);
-  border:1px solid var(--rojo-br); font-weight:800; font-size:15.5px; padding:6px 12px; border-radius:10px; }
-.hora-chica { font-size:15.5px; font-weight:800; color:var(--tinta-2); }
-.chip { margin-left:auto; font-size:12.5px; font-weight:800; padding:4px 10px; border-radius:20px; white-space:nowrap; }
-.chip.real { background:#DBEAFE; color:#1E40AF; }
-.chip.cob { background:var(--ambar-bg); color:var(--ambar); }
-.chip.cont { background:#DCFCE7; color:#166534; }
-@media (prefers-color-scheme: dark) { .chip.real { background:#172554; color:#93C5FD; } .chip.cont { background:#052E16; color:#86EFAC; } }
-.reag { margin:8px 14px 0; font-size:14px; font-weight:700; color:var(--rojo); }
-.dw-body { padding:10px 14px 14px; }
 .dw-serv { font-weight:800; font-size:18px; line-height:1.25; }
 .dw-dir { margin-top:6px; font-size:16px; overflow-wrap:anywhere; }
 .dw-cli { margin-top:4px; font-size:15px; color:var(--tinta-2); overflow-wrap:anywhere; }
+.dw-cli a { color:var(--azul); font-weight:700; text-decoration:none; }
 .dc-falta { color:var(--rojo); font-weight:700; }
 .dw-valor { margin-top:10px; display:flex; flex-wrap:wrap; align-items:baseline; gap:0 6px; background:var(--verde-bg);
   border:1px solid var(--verde-br); border-radius:12px; padding:8px 12px; color:var(--verde); font-size:16px; }
 .dw-valor b { font-size:22px; font-variant-numeric:tabular-nums; }
 .dw-valor .nota { flex-basis:100%; font-size:14px; opacity:.92; }
 .dw-valor.cob { background:var(--ambar-bg); border-color:var(--ambar-br); color:var(--ambar); }
+.dw.is-cobrado .dw-valor.cob { background:var(--card); }
 .falta-vf, .tag-falta { flex-basis:100%; font-weight:800; font-size:14px; color:var(--ambar); }
 .tag-falta { display:inline-block; background:var(--ambar-bg); border:1px solid var(--ambar-br); border-radius:8px; padding:2px 8px; margin-bottom:4px; }
 .dw-prob { margin-top:4px; color:var(--tinta); font-weight:600; }
@@ -319,6 +354,7 @@ body.listo #skel { display:none; }
 .btn-contacto { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin-top:12px; min-height:52px;
   border:none; border-radius:12px; background:var(--verde-btn); color:#fff; font:inherit; font-size:16px; font-weight:800; cursor:pointer; }
 .btn-contacto:active { filter:brightness(.95); }
+.btn-contacto.hecho { background:var(--verde-bg); color:var(--verde); border:1px solid var(--verde-br); cursor:default; }
 .accesos { display:flex; gap:8px; margin-top:8px; }
 .acc { flex:1 1 0; display:flex; align-items:center; justify-content:center; gap:6px; min-height:48px; border-radius:12px;
   text-decoration:none; font-weight:700; font-size:15px; }
@@ -326,18 +362,10 @@ body.listo #skel { display:none; }
 .acc-tel { background:var(--card); color:var(--tinta); border:2px solid var(--gris); }
 .acc.suave { background:var(--card); color:var(--tinta); border:2px solid var(--linea); }
 .acc:active { filter:brightness(.92); }
-.est-row { display:flex; gap:8px; margin-top:12px; }
-.est-btn { flex:1 1 0; min-height:54px; border-radius:12px; font:inherit; font-weight:800; font-size:16px; cursor:pointer;
-  border:2px solid var(--linea); background:var(--card); color:var(--tinta); }
-.est-btn.b-real { border-color:var(--gris); font-size:15px; line-height:1.2; padding:4px 8px; }
-.est-btn.b-cob { background:var(--oro-btn); border-color:var(--oro-btn); color:#fff; font-size:17px; }
-.est-btn.b-real.on { background:#1E40AF; border-color:#1E40AF; color:#fff; }
-.dw.is-realizado .est-btn.b-cob, .est-btn.b-cob.fuerte { background:var(--oro-btn); border-color:var(--oro-btn); color:#fff; }
-.est-btn.b-corr { border-color:var(--ambar-br); }
-.est-btn.b-corr.fuerte, .com-btn.fuerte { background:var(--oro-btn); border-color:var(--oro-btn); color:#fff; }
 /* Cobro: "¿Cuánto se cobró?" con el valor ya puesto */
 .cobro { margin-top:12px; background:var(--ambar-bg); border:2px solid var(--oro); border-radius:14px; padding:14px;
-  display:grid; gap:10px; }
+  display:grid; gap:10px; animation:abrir .22s ease both; transform-origin:top; }
+@keyframes abrir { from { opacity:0; transform:scaleY(.92); } to { opacity:1; transform:none; } }
 .cobro-lbl { display:grid; gap:6px; font-weight:800; font-size:18px; color:var(--tinta); }
 .cobro-lbl small { font-size:15px; font-weight:700; color:var(--tinta); }
 .cobro-in { font:inherit; font-size:26px; font-weight:800; min-height:58px; width:100%; border-radius:12px;
@@ -350,58 +378,63 @@ body.listo #skel { display:none; }
 .cobro-ok:disabled { background:var(--linea); color:var(--gris); }
 .cobro-no { min-height:50px; border-radius:12px; border:2px solid var(--linea); background:var(--card); color:var(--tinta);
   font:inherit; font-size:16px; font-weight:700; cursor:pointer; }
-/* La acción que deshace va lejos de Cancelar y pide confirmación */
 .cobro-sacar { margin-top:10px; padding-top:8px; border-top:1px dashed var(--ambar-br); }
 .sacar { background:none; border:none; padding:10px 0; min-height:44px; font:inherit; font-size:15px; font-weight:700;
   color:var(--rojo); cursor:pointer; text-align:left; }
-.dw-mas { margin-top:12px; border-top:1px dashed var(--linea); padding-top:2px; }
-.dw-mas > summary { list-style:none; cursor:pointer; color:var(--azul); font-weight:700; font-size:15px; padding:10px 0; }
-.dw-mas > summary::-webkit-details-marker { display:none; }
-.dw-mas > summary::after { content:" ▾"; }
-.dw-mas[open] > summary::after { content:" ▴"; }
-.mas-cuerpo { display:grid; gap:10px; padding-bottom:2px; }
-.campo { display:flex; flex-direction:column; gap:4px; font-size:14px; font-weight:700; color:var(--gris); }
-.campo input { font:inherit; font-size:16px; min-height:48px; border-radius:10px; border:1px solid var(--linea);
-  background:var(--suave); color:var(--tinta); padding:6px 10px; width:100%; }
-.quitar { justify-self:start; background:none; border:none; color:var(--rojo); font:inherit; font-size:15px; font-weight:700;
-  cursor:pointer; padding:8px 0; min-height:44px; }
-.confirma { display:flex; gap:8px; align-items:center; font-size:15px; flex-wrap:wrap; background:var(--rojo-bg);
-  border-radius:10px; padding:8px 10px; color:var(--rojo); }
-.confirma button { min-height:44px; border-radius:9px; border:none; font:inherit; font-weight:700; padding:0 14px; cursor:pointer; }
-.confirma .si { background:#DC2626; color:#fff; } .confirma .no { background:var(--card); color:var(--tinta); }
+/* Quitar: a la vista (antes estaba escondido y el equipo no lo encontraba). Confirma dentro de la tarjeta. */
+.quitar { display:block; margin-top:10px; background:none; border:none; color:var(--gris); font:inherit; font-size:14px; font-weight:700;
+  cursor:pointer; padding:8px 0; min-height:44px; text-align:left; }
+.quitar:active { color:var(--rojo); }
+.confirma { margin-top:10px; display:flex; flex-direction:column; gap:10px; align-items:center; text-align:center; font-size:14.5px;
+  font-weight:800; background:var(--rojo-bg); border:2px solid var(--rojo-br); border-radius:12px; padding:12px; color:var(--rojo);
+  animation:abrir .2s ease both; }
+.conf-acc { display:flex; gap:10px; }
+.confirma button { min-height:44px; border-radius:9px; border:none; font:inherit; font-weight:700; padding:0 16px; cursor:pointer; }
+.confirma .si { background:#DC2626; color:#fff; } .confirma .no { background:var(--card); color:var(--tinta); border:1px solid var(--linea); }
 .vacio { text-align:center; color:var(--gris); padding:36px 12px; }
-/* Comisión */
-.com-hero { background:var(--card); border:1px solid var(--linea); border-radius:14px; padding:16px; margin-top:12px; }
-.com-hero .r { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--gris); }
-.com-hero .v { font-size:36px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--ambar); line-height:1.15; margin-top:2px; }
-.com-hero .v.al-dia { color:var(--verde); }
-.com-hero .s { font-size:14px; color:var(--gris); margin-top:4px; }
-.sec-tit { font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--gris); margin:20px 0 8px; }
-.com-item { display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:var(--card); border:1px solid var(--linea);
-  border-radius:12px; padding:12px; margin-bottom:8px; }
-.com-item input[type=checkbox] { width:24px; height:24px; flex:none; accent-color:var(--azul); }
-.com-txt { flex:1 1 0; min-width:0; font-size:14px; }
-.com-txt b { display:block; font-size:15px; }
-.com-txt span { display:block; color:var(--gris); font-size:13.5px; overflow-wrap:anywhere; }
-.com-monto { font-weight:800; font-size:16px; font-variant-numeric:tabular-nums; white-space:nowrap; color:var(--ambar); text-align:right; }
-.com-monto small { display:block; font-size:11.5px; font-weight:600; color:var(--gris); }
-.com-item.pagada .com-monto { color:var(--verde); }
-.com-acc { flex-basis:100%; display:flex; gap:8px; }
-.com-btn { flex:1 1 auto; min-height:48px; border-radius:12px; border:2px solid var(--ambar-br); background:var(--card);
-  color:var(--tinta); font:inherit; font-weight:800; font-size:15px; cursor:pointer; }
-.com-btn.cob { border-color:var(--oro-btn); background:var(--oro-btn); color:#fff; }
-.com-item .cobro { flex-basis:100%; margin-top:0; }
-.pagos { margin-top:20px; }
-.pagos > summary { list-style:none; cursor:pointer; min-height:50px; display:flex; align-items:center; justify-content:center;
-  border:1px dashed var(--gris); border-radius:12px; background:var(--card); color:var(--tinta); font-weight:700; font-size:15px; }
-.pagos > summary::-webkit-details-marker { display:none; }
-.pagos[open] > summary { margin-bottom:10px; }
-.pago-grupo { background:var(--card); border:1px solid var(--verde-br); border-radius:14px; padding:10px 12px; margin-bottom:10px; }
-.pago-head { display:flex; justify-content:space-between; gap:8px; font-weight:800; margin-bottom:6px; }
-.pago-head span { color:var(--verde); white-space:nowrap; }
-.pago-grupo .com-item { border:none; padding:6px 0; margin:0; background:none; }
-.revocar { background:none; border:1px solid var(--linea); color:var(--gris); border-radius:8px; font:inherit; font-size:13px;
-  padding:6px 10px; min-height:36px; cursor:pointer; }
+.vacio small { display:block; margin-top:6px; }
+/* Comisión, como la de baños: la deuda arriba, las tarjetas con su check, y abajo el botón fijo de pagar. */
+.cp { background:var(--card); border:1px solid var(--linea); border-top:4px solid var(--oro); border-radius:14px; padding:14px; margin-top:12px;
+  box-shadow:0 2px 10px rgba(184,134,11,.10); }
+.cp-titulo { font-size:15px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:var(--ambar); }
+.com-deuda { display:flex; justify-content:space-between; align-items:baseline; gap:10px; background:var(--ambar-bg);
+  border:1px solid var(--ambar-br); border-radius:12px; padding:12px 14px; margin-top:12px; color:var(--tinta); }
+.com-deuda b { font-size:26px; font-weight:800; color:var(--ambar); font-variant-numeric:tabular-nums; }
+.com-deuda.al-dia { background:var(--verde-bg); border-color:var(--verde-br); } .com-deuda.al-dia b { color:var(--verde); }
+.com-nota { margin-top:8px; font-size:13px; color:var(--gris); }
+.com-sec-tit { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--gris); font-weight:700; margin:18px 2px 8px; }
+.com-sec-tit.cobrar { color:var(--real); }
+.com-card { padding:11px 13px; margin-bottom:8px; background:var(--ambar-bg); border:1px solid var(--ambar-br); border-radius:12px; }
+.com-card.falta { background:var(--real-bg); border-color:var(--real-br); }
+.com-card.pagada { background:var(--verde-bg); border-color:var(--verde-br); opacity:.9; }
+.com-top { display:flex; align-items:center; gap:10px; }
+.com-check { width:24px; height:24px; flex:none; accent-color:var(--verde-btn); }
+.com-main { flex:1 1 140px; min-width:0; }
+.com-cli { font-weight:800; font-size:16px; }
+.com-dir { color:var(--gris); font-size:13px; overflow-wrap:anywhere; }
+.com-monto { font-weight:800; color:var(--ambar); font-variant-numeric:tabular-nums; white-space:nowrap; font-size:18px; text-align:right; }
+.com-monto small { display:block; font-size:11px; font-weight:600; color:var(--gris); }
+.com-card.pagada .com-monto { color:var(--verde); }
+.com-pagada-tag { font-size:10px; font-weight:700; color:var(--verde); background:var(--verde-bg); border:1px solid var(--verde-br); padding:3px 8px;
+  border-radius:20px; flex:none; text-transform:uppercase; letter-spacing:.4px; }
+.com-revocar { font-size:12px; font-weight:600; padding:6px 9px; border:1px solid var(--linea); background:var(--card); border-radius:8px;
+  color:var(--rojo); cursor:pointer; flex:none; }
+.com-acciones { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.com-wa, .com-info, .com-cobrar { flex:1 1 0; min-width:0; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px 4px;
+  border-radius:9px; font-family:inherit; font-size:12.5px; font-weight:700; cursor:pointer; min-height:44px; text-decoration:none; white-space:nowrap; }
+.com-acciones .com-pagada-tag { align-self:center; }
+.com-acciones .com-revocar { margin-left:auto; }
+.com-wa { background:var(--verde-btn); color:#fff; border:none; }
+.com-info { background:var(--card); color:var(--azul); border:1px solid var(--real-br); }
+.com-cobrar { background:var(--oro-btn); color:#fff; border:none; }
+.com-cobrar.ancho { flex-basis:100%; min-height:50px; font-size:15px; }
+.com-detalle { margin-top:10px; background:var(--card); border:1px solid var(--linea); border-radius:10px; padding:10px 12px; font-size:14px;
+  display:grid; gap:4px; animation:abrir .2s ease both; }
+.com-detalle a { color:var(--azul); font-weight:700; text-decoration:none; }
+.com-card .cobro { margin-top:10px; }
+.pago-grupo { background:var(--suave); border:1px solid var(--linea); border-radius:14px; padding:12px; margin-bottom:12px; }
+.pago-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:8px; }
+.pago-tit { font-weight:800; color:var(--verde); } .pago-tot { font-weight:800; color:var(--verde); font-variant-numeric:tabular-nums; }
 .barra-pagar { position:fixed; left:0; right:0; bottom:0; z-index:30; padding:10px 16px calc(10px + env(safe-area-inset-bottom));
   background:var(--card); border-top:1px solid var(--linea); box-shadow:0 -4px 12px rgba(0,0,0,.08); }
 .btn-pagar { display:block; width:100%; max-width:528px; margin:0 auto; min-height:54px; border:none; border-radius:12px;
@@ -409,7 +442,8 @@ body.listo #skel { display:none; }
 .btn-pagar:disabled { background:var(--linea); color:var(--gris); }
 .modal { position:fixed; inset:0; z-index:50; background:rgba(2,6,23,.6); display:flex; align-items:flex-end; justify-content:center; }
 .modal-box { background:var(--card); color:var(--tinta); width:100%; max-width:560px; border-radius:18px 18px 0 0;
-  padding:18px 16px calc(18px + env(safe-area-inset-bottom)); max-height:90vh; overflow:auto; }
+  padding:18px 16px calc(18px + env(safe-area-inset-bottom)); max-height:90vh; overflow:auto; animation:subir .25s ease both; }
+@keyframes subir { from { transform:translateY(30px); opacity:0; } to { transform:none; opacity:1; } }
 .modal-box h2 { margin:0 0 6px; font-size:20px; }
 .modal-box .s { color:var(--gris); font-size:14px; }
 .banco { background:var(--suave); border:1px solid var(--linea); border-radius:12px; padding:12px; margin:12px 0; font-size:15px; }
@@ -421,8 +455,10 @@ body.listo #skel { display:none; }
 .m-no { background:none; color:var(--gris); }
 .toast { position:fixed; left:50%; bottom:calc(84px + env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:60;
   background:#0F172A; color:#fff; padding:12px 16px; border-radius:12px; font-size:15px; width:max-content; max-width:calc(100vw - 32px);
-  box-shadow:0 6px 18px rgba(0,0,0,.3); }
-@media (prefers-color-scheme: dark) { .toast { background:#E5E7EB; color:#0F172A; } }
+  box-shadow:0 6px 18px rgba(0,0,0,.3); display:flex; align-items:center; gap:12px; animation:subir .22s ease both; }
+.toast-acc { background:none; border:1px solid rgba(255,255,255,.5); color:#fff; font:inherit; font-weight:800; font-size:14px;
+  border-radius:8px; padding:6px 10px; cursor:pointer; }
+@media (prefers-color-scheme: dark) { .toast { background:#E5E7EB; color:#0F172A; } .toast-acc { color:#0F172A; border-color:rgba(15,23,42,.4); } }
 footer { text-align:center; color:var(--gris); font-size:12px; padding:20px 16px 30px; }
 """
 
@@ -431,9 +467,9 @@ SCRIPT = r"""
   var APP = window.__APP__;
   var H = { apikey: APP.key, Authorization: 'Bearer ' + APP.key };
   var CK_FILAS = 'destapes_filas_v1', CK_EST = 'destapes_estado_v1', CK_VISTOS = 'destapes_vistos_v1', CK_DESEL = 'destapes_desel_v1';
-  // modo: 'agenda' (por hacer), 'realizados' (falta cobrar) o 'cobrados'. Como "Ver completadas" de baños.
+  // modo: 'agenda' (por hacer) o 'completadas' (hechos y cobrados, detrás del botón punteado, como en baños).
   var filas = [], est = {}, modo = 'agenda', vista = 'agenda', confirmando = null, primeraVez = false, vistos = {};
-  var cobrando = null, borrador = {}, masAbierto = {};
+  var cobrando = null, borrador = {}, infoAbierta = {}, deshacerFn = null, resaltarId = null, animarLista = false;
 
   function lsGet(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
   function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin espacio o modo privado */ } }
@@ -449,10 +485,19 @@ SCRIPT = r"""
     var p = iso.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]);
     return DIAS[d.getDay()] + ' ' + d.getDate() + ' de ' + MESES[d.getMonth()];
   }
+  function diaCorto(iso) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return 'sin fecha';
+    var p = iso.split('-');
+    return (+p[2]) + ' ' + MESES[+p[1] - 1].slice(0, 3) + ' ' + p[0];
+  }
   function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
-  function toast(t) {
-    var el = document.getElementById('toast'); el.textContent = t; el.hidden = false;
-    clearTimeout(toast._t); toast._t = setTimeout(function () { el.hidden = true; }, 3500);
+  function sinMovimiento() { try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } }
+  /** Aviso abajo. Con `accion` ({txt, fn}) trae un botón, por ejemplo "Deshacer". */
+  function toast(t, accion) {
+    var el = document.getElementById('toast');
+    el.innerHTML = esc(t) + (accion ? '<button type="button" class="toast-acc" data-acc="toast-deshacer">' + esc(accion.txt) + '</button>' : '');
+    el.hidden = false; deshacerFn = accion ? accion.fn : null;
+    clearTimeout(toast._t); toast._t = setTimeout(function () { el.hidden = true; deshacerFn = null; }, accion ? 6000 : 3500);
   }
 
   // ── plata ──────────────────────────────────────────────────────────────
@@ -482,12 +527,19 @@ SCRIPT = r"""
   function E(id) { return est[id] || {}; }
   function fila(id) { for (var i = 0; i < filas.length; i++) if (filas[i].id === id) return filas[i]; return null; }
   function estadoDe(id) { return E(id).estado || 'pendiente'; }
+  function hecho(id) { var s = estadoDe(id); return s === 'realizado' || s === 'cobrado'; }
+  /** (4-nov-2026, regla de Alejandro) una tarjeta sale de la agenda SOLO cuando está realizada Y cobrada, como en
+   *  baños: un trabajo hecho que falta cobrar sigue a la vista, en azul, hasta que se cobre. */
+  function completada(id) { return estadoDe(id) === 'cobrado'; }
   function fechaEf(f) { return E(f.id).fecha || f.fecha || (f.data && f.data.fecha) || ''; }
   function vivo(f) { return !E(f.id).eliminado; }
   function pctDe(f) { var p = f.data && Number(f.data.comision_pct); return p > 0 ? p : APP.pct; }
   function baseDe(f) { var v = Number(E(f.id).valor_final); return v > 0 ? v : (Number(f.data && f.data.precio_neto) || 0); }
   function comDe(f) { return Math.round(baseDe(f) * pctDe(f) / 100); }
   function atrasado(f) { var fe = fechaEf(f); return estadoDe(f.id) === 'pendiente' && !!fe && fe < hoyISO(0); }
+  function telDe(f) { return String((f.data || {}).telefono || '').replace(/\D/g, ''); }
+  /** El número va TODO JUNTO (+56912345678): así es un link de un toque, como en WhatsApp. */
+  function telJunto(d) { return d ? '+' + d : ''; }
 
   function pedir(ruta) {
     return fetch(APP.url + '/rest/v1/' + ruta, { headers: H }).then(function (r) {
@@ -502,12 +554,28 @@ SCRIPT = r"""
       body: JSON.stringify(cuerpo)
     }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); });
   }
-  // Cambio optimista: se pinta al tiro y se revierte si Supabase no lo guarda.
-  function cambiar(id, cambios, okTxt) {
+  /** ¿La tarjeta se va de la lista que se está mirando con este cambio? (se anima al salir) */
+  function seVa(id, cambios) {
+    if (vista !== 'agenda') return false;
+    if (cambios.eliminado) return true;
+    if (cambios.estado === undefined) return false;
+    var cobradoDespues = cambios.estado === 'cobrado';
+    return modo === 'agenda' ? cobradoDespues : !cobradoDespues;
+  }
+  /** Cambio optimista: se pinta al tiro y se revierte si Supabase no lo guarda.
+   *  op.deshacer = los valores de antes para el botón Deshacer del aviso. */
+  function cambiar(id, cambios, okTxt, op) {
+    op = op || {};
     var antes = Object.assign({}, E(id));
     est[id] = Object.assign({}, antes, cambios);
-    lsSet(CK_EST, est); pintar();
-    return guardar(id, cambios).then(function () { if (okTxt) toast(okTxt); }).catch(function () {
+    lsSet(CK_EST, est);
+    var card = document.querySelector('.dw[data-id="' + id + '"]');
+    var anima = card && card.getBoundingClientRect && !sinMovimiento() && seVa(id, cambios);
+    if (anima) { card.classList.add('saliendo'); setTimeout(pintar, 330); }
+    else { resaltarId = seVa(id, cambios) ? null : id; pintar(); }
+    return guardar(id, cambios).then(function () {
+      if (okTxt) toast(okTxt, op.deshacer ? { txt: 'Deshacer', fn: function () { cambiar(id, op.deshacer, 'Listo, quedó como estaba'); } } : null);
+    }).catch(function () {
       est[id] = antes; lsSet(CK_EST, est); pintar();
       toast('No se pudo guardar. Revisa la señal e intenta de nuevo.');
       throw new Error('no-guardado');
@@ -552,9 +620,8 @@ SCRIPT = r"""
     if (!id) return;
     var sel = '.dw[data-id="' + id + '"]', el = document.querySelector(sel);
     if (!el && fila(id)) {
-      // Si está realizado o cobrado, se abre esa lista (fuera de la agenda principal).
-      var s = estadoDe(id);
-      modo = s === 'cobrado' ? 'cobrados' : s === 'realizado' ? 'realizados' : 'agenda';
+      // Si ya está cobrado, se abre "Ver completadas".
+      modo = completada(id) ? 'completadas' : 'agenda';
       vista = 'agenda'; pintar(); el = document.querySelector(sel);
     }
     if (el) { el.classList.add('foco'); el.scrollIntoView({ block: 'center' }); setTimeout(function () { el.classList.remove('foco'); }, 4000); }
@@ -585,7 +652,7 @@ SCRIPT = r"""
     if (u) return u[1] + ':' + (u[2] || '00') + ' hrs';
     return cap(t);
   }
-  /** El WhatsApp al cliente ("Avisar al cliente que vamos"): sin la marca URGENTE ni raya larga. */
+  /** El WhatsApp al cliente ("Avisar al cliente que voy"): sin la marca URGENTE ni raya larga. */
   function msgCliente(f) {
     var d = f.data || {}, h = horaLimpia(d.hora);
     return 'Hola, le escribo de Destape Rápido, soy del equipo que va a hacer el ' + (d.servicio || 'destape').toLowerCase()
@@ -607,7 +674,6 @@ SCRIPT = r"""
     var q = [d.direccion, d.comuna].filter(Boolean).join(', ');
     return q ? 'https://maps.google.com/?q=' + encodeURIComponent(q) : '';
   }
-  function telBonito(d) { return d.length === 11 && d.indexOf('569') === 0 ? '+56 9 ' + d.slice(3, 7) + ' ' + d.slice(7) : '+' + d; }
   /** ¿Pidió factura? true = sí ("si", "sí", "si, con factura", "con factura"), false = no
    *  ("no", "sin factura", "boleta"), null = no se sabe (""). OJO: "sin factura" empieza con
    *  "si", por eso se mira la palabra entera. Igual que con_factura() en Python. */
@@ -664,28 +730,40 @@ SCRIPT = r"""
       .then(function () { return true; }, function () { cobrando = id; borrador[id] = txt; pintar(); return false; });
   }
 
+  /** La frase corta que explica el color de la tarjeta y qué toca hacer ahora. */
+  function hintDe(f) {
+    var id = f.id, st = estadoDe(id), e = E(id);
+    if (st === 'cobrado') return { c: 'oro', t: '🟡 Cobrado ' + (Number(e.valor_final) > 0 ? clp(e.valor_final) + ' · comisión ' + clp(comDe(f)) : '· falta el valor final') };
+    if (st === 'realizado') return { c: 'azul', t: '🔵 Realizado · falta cobrar. Toca Cobrado cuando te paguen' };
+    if (atrasado(f)) return { c: 'rojo', t: '🔴 Muévelo de día, márcalo realizado o quítalo' };
+    if (e.contactado) return { c: 'verde', t: '🟢 Cliente avisado · listo para ir' };
+    return { c: '', t: '⚪ Por hacer · avísale al cliente que vas' };
+  }
+
   function wrap(f) {
     var id = f.id, st = estadoDe(id), e = E(id), d = f.data || {};
     var fe = fechaEf(f), orig = f.fecha || '';
-    var tel = String(d.telefono || '').replace(/\D/g, '');
+    var tel = telDe(f);
     var hora = horaEquipo(d.hora), min = minutosDe(hora);
-    var contactado = !!e.contactado, atr = atrasado(f);
+    var contactado = !!e.contactado, atr = atrasado(f), cob = st === 'cobrado', real = hecho(id);
     var reag = e.fecha && orig && e.fecha !== orig;
-    var cls = atr ? ' is-atrasado' : st !== 'pendiente' ? ' is-' + st : (contactado ? ' is-contactado' : '');
+    var cls = cob ? ' is-cobrado' : st === 'realizado' ? ' is-realizado' : atr ? ' is-atrasado' : (contactado ? ' is-contactado' : '');
     if (!primeraVez && !vistos[id]) cls += ' nueva';
-    var chip = st === 'cobrado' ? '<span class="chip cob">💰 Cobrado</span>'
-      : st === 'realizado' ? '<span class="chip real">Falta cobrar</span>'
-      : contactado ? '<span class="chip cont">✓ Cliente avisado</span>' : '';
-    var top = '<div class="dw-top">'
-      + (atr ? '<span class="pill-atr">⚠️ Atrasado · ' + esc(diaLargo(fe)) + '</span>' + (hora ? '<span class="hora-chica">🕐 ' + esc(horaBonita(hora)) + '</span>' : '')
-        : '<span class="hora-pill' + (st !== 'pendiente' ? ' hecho' : min === null ? ' sin' : '') + '">🕐 ' + esc(hora ? horaBonita(hora) : 'Horario por confirmar') + '</span>')
-      + chip + '</div>'
-      + (reag ? '<div class="reag">Cambiado de fecha. Era el ' + esc(diaLargo(orig)) + '</div>' : '');
+    if (resaltarId === id) cls += ' foco';
+    // Barra de arriba, como en baños: la fecha (se mueve de día ahí mismo) y los dos botones de estado.
+    var gt = '<div class="gt">'
+      + '<label class="gt-fecha"><input type="date" class="fecha-input" data-acc="fecha" value="' + esc(fe) + '" aria-label="Mover de día"></label>'
+      + '<div class="gt-estados" role="group" aria-label="Estado">'
+      + '<button type="button" class="est-btn b-real' + (real ? ' activo' : '') + '" data-acc="realizado">' + (real ? '✓ Realizado' : 'Realizado') + '</button>'
+      + '<button type="button" class="est-btn b-cob' + (cob ? ' activo' : '') + '" data-acc="cobrar">' + (cob ? '✓ Cobrado' : 'Cobrado') + '</button></div>'
+      + (atr ? '<div class="chip-atr">⚠️ Atrasado · era el ' + esc(diaLargo(fe)) + '</div>' : '')
+      + (reag && !atr ? '<div class="chip-reag">📅 Cambiado al ' + esc(diaLargo(fe)) + '. Era el ' + esc(diaLargo(orig)) + '</div>' : '')
+      + '</div>';
     var neto = Number(d.precio_neto) || 0, vf = Number(e.valor_final) > 0 ? Number(e.valor_final) : 0;
     // (31-oct-2026, p-753) un rango de precios: el piso es precio_neto (la comisión aprox. va sobre él) y el techo precio_hasta
     var hasta = Number(d.precio_hasta) || 0, rango = neto > 0 && hasta > neto ? clp(neto) + ' a ' + clp(hasta) : '';
     var valor;
-    if (st === 'cobrado') {
+    if (cob) {
       valor = '<div class="dw-valor cob">' + (vf ? '' : '<span class="falta-vf">⚠️ Falta el valor final</span>')
         + (vf ? 'Se cobró <b>' + clp(baseDe(f)) + '</b>' : rango ? 'Valor <b>' + rango + '</b>' : 'Desde <b>' + clp(baseDe(f)) + '</b>')
         + '<span class="nota">Comisión ' + pctDe(f) + ' %' + (vf ? '' : ' aprox.') + ': ' + clp(comDe(f)) + (e.comision_pagada ? '. Ya pagada' : '') + '</span></div>';
@@ -699,39 +777,37 @@ SCRIPT = r"""
     var lineas = '';
     if (d.acceso) lineas += '<div class="dw-linea">🚪 ' + esc(d.acceso) + '</div>';
     if (d.nota) lineas += '<div class="dw-linea nota-imp">📝 ' + esc(d.nota) + '</div>';
-    var contacto = tel && st === 'pendiente' && !contactado
-      ? '<button type="button" class="btn-contacto" data-acc="contactar">💬 Avisar al cliente que vamos</button>' : '';
+    var contacto = '';
+    if (tel && st === 'pendiente') {
+      contacto = contactado ? '<div class="btn-contacto hecho">✓ Cliente avisado</div>'
+        : '<button type="button" class="btn-contacto" data-acc="contactar">💬 Avisar al cliente que voy</button>';
+    }
     var mapa = mapaDe(d), acc = '';
     var cobrandoAca = cobrando === id && vista === 'agenda';
-    if (tel && (contactado || st !== 'pendiente')) acc += '<a class="acc acc-wa' + (st === 'cobrado' ? ' suave' : '') + '" href="https://wa.me/' + tel + '" target="_blank" rel="noopener">WhatsApp</a>';
+    // Accesos siempre a la vista. El WhatsApp se esconde solo cuando el botón verde de arriba ya va a WhatsApp.
+    if (tel && !(st === 'pendiente' && !contactado)) acc += '<a class="acc acc-wa' + (cob ? ' suave' : '') + '" href="https://wa.me/' + tel + '" target="_blank" rel="noopener">WhatsApp</a>';
     if (tel) acc += '<a class="acc acc-tel" href="tel:+' + tel + '">📞 Llamar</a>';
-    if (mapa && st !== 'cobrado') acc += '<a class="acc acc-map" href="' + esc(mapa) + '" target="_blank" rel="noopener">🗺️ Llegar</a>';
-    var acciones;
-    if (cobrandoAca) acciones = cobroHtml(f);
-    else if (st === 'cobrado') acciones = '<div class="est-row"><button type="button" class="est-btn b-corr' + (vf ? '' : ' fuerte') + '" data-acc="cobrar">✏️ ' + (vf ? 'Corregir valor cobrado' : 'Poner valor final') + '</button></div>';
-    else acciones = '<div class="est-row">'
-      + '<button type="button" class="est-btn b-cob" data-acc="cobrar">💰 Cobrado</button>'
-      + '<button type="button" class="est-btn b-real' + (st === 'realizado' ? ' on' : '') + '" data-acc="realizado">' + (st === 'realizado' ? '✓ Realizado' : 'Realizado, falta cobrar') + '</button></div>';
+    if (mapa && !cob) acc += '<a class="acc acc-map" href="' + esc(mapa) + '" target="_blank" rel="noopener">🗺️ Llegar</a>';
     var conf = confirmando === id
-      ? '<div class="confirma">¿Quitar este destape de la agenda? <button type="button" class="si" data-acc="quitar-si">Sí, quitar</button><button type="button" class="no" data-acc="quitar-no">No</button></div>'
-      : '<button type="button" class="quitar" data-acc="quitar">✕ Quitar de la agenda</button>';
-    var mas = st === 'cobrado' ? '' : '<details class="dw-mas" data-mas="' + esc(id) + '"' + (masAbierto[id] || confirmando === id ? ' open' : '') + '><summary>Cambiar fecha o quitar</summary><div class="mas-cuerpo">'
-      + '<label class="campo">📅 Nueva fecha<input type="date" data-acc="fecha" value="' + esc(fe) + '"></label>'
-      + conf + '</div></details>';
-    return '<div class="dw' + cls + '" data-id="' + esc(id) + '">' + top
-      + '<div class="dw-body"><div class="dw-serv">' + (ICONOS[d.servicio_clave] || '🔧') + ' ' + esc(servicio) + '</div>'
+      ? '<div class="confirma">¿Quitar este destape de la agenda?<div class="conf-acc"><button type="button" class="si" data-acc="quitar-si">Sí, quitar</button><button type="button" class="no" data-acc="quitar-no">No</button></div></div>'
+      : (cob ? '' : '<button type="button" class="quitar" data-acc="quitar">✕ Quitar de la agenda (se canceló o no se hizo)</button>');
+    var h = hintDe(f);
+    return '<div class="dw' + cls + '" data-id="' + esc(id) + '">' + gt
+      + '<div class="dw-card"><div class="estado-hint ' + h.c + '">' + esc(h.t) + '</div>'
+      + '<span class="hora-pill' + (real ? ' hecho' : min === null ? ' sin' : '') + '">🕐 ' + esc(hora ? horaBonita(hora) : 'Horario por confirmar') + '</span>'
+      + '<div class="dw-serv">' + (ICONOS[d.servicio_clave] || '🔧') + ' ' + esc(servicio) + '</div>'
       + problema
       + '<div class="dw-dir">📍 ' + dirHtml(d) + '</div>'
-      + '<div class="dw-cli">👤 ' + esc(d.cliente || 'Cliente sin nombre') + (tel ? ' · ' + esc(telBonito(tel)) : '') + '</div>'
+      + '<div class="dw-cli">👤 ' + esc(d.cliente || 'Cliente sin nombre') + (tel ? ' · <a href="tel:+' + tel + '">' + esc(telJunto(tel)) + '</a>' : '') + '</div>'
       + valor + lineas + contacto
       + (acc && !cobrandoAca ? '<div class="accesos">' + acc + '</div>' : '')
-      + acciones + mas + '</div></div>';
+      + (cobrandoAca ? cobroHtml(f) : '')
+      + conf + '</div></div>';
   }
 
   // ── agenda ─────────────────────────────────────────────────────────────
-  /** Agrupa por día. En la agenda: primero "Atrasados" (un grupo, cada tarjeta dice su fecha:
-   *  "Atrasado · jueves 29 de octubre"), después hoy y lo que viene. En realizados y cobrados:
-   *  lo más reciente arriba. */
+  /** Agrupa por día. Por hacer: primero "Atrasados" (un grupo, cada tarjeta dice su fecha), después hoy y lo que
+   *  viene. Completadas (cobrados): por día, lo más reciente arriba. */
   function agrupar(lista, reciente) {
     var g = {}, orden = [];
     lista.forEach(function (f) {
@@ -743,7 +819,7 @@ SCRIPT = r"""
     return orden.map(function (k) {
       return { k: k, items: g[k].sort(function (a, b) {
         var fa = fechaEf(a), fb = fechaEf(b);
-        if (fa !== fb) return fa < fb ? -1 : 1;
+        if (fa !== fb) return (fa < fb ? -1 : 1) * (reciente ? -1 : 1);
         // por hora programada; los que no tienen hora exacta van al final del día
         var ma = minutosDe(a.data && a.data.hora), mb = minutosDe(b.data && b.data.hora);
         if (ma !== mb) { if (ma === null) return 1; if (mb === null) return -1; return ma - mb; }
@@ -751,42 +827,60 @@ SCRIPT = r"""
       }) };
     });
   }
-  function titDia(k, hist) {
-    var hoy = hoyISO(0);
+  /** "miércoles 4 nov": más corto que el largo, para que quepa la barra de avance al lado. */
+  function diaMedio(iso) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso || '')) return 'Sin fecha';
+    var p = iso.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return DIAS[d.getDay()] + ' ' + d.getDate() + ' ' + MESES[d.getMonth()].slice(0, 3);
+  }
+  function titDia(k, conBarra) {
+    var hoy = hoyISO(0), dia = conBarra ? diaMedio : diaLargo;
     if (k === 'sin') return { t: 'Sin fecha', c: '' };
     if (k === 'atrasados') return { t: '⚠️ Atrasados', c: ' atrasado' };
-    if (k === hoy) return { t: 'Hoy · ' + diaLargo(k), c: hist ? '' : ' hoy' };
-    if (k === hoyISO(1)) return { t: 'Mañana · ' + diaLargo(k), c: '' };
-    return { t: cap(diaLargo(k)), c: '' };
+    if (k === hoy) return { t: 'Hoy · ' + dia(k), c: ' hoy' };
+    if (k === hoyISO(1)) return { t: 'Mañana · ' + dia(k), c: '' };
+    return { t: cap(dia(k)), c: '' };
+  }
+  /** Barra de avance del día (hechos / todos los de ese día), como la de baños. */
+  function progHtml(k, vivos) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) return '';
+    var total = 0, hechos = 0;
+    vivos.forEach(function (f) { if (fechaEf(f) === k) { total++; if (hecho(f.id)) hechos++; } });
+    if (!total) return '';
+    var pct = Math.round(hechos * 100 / total);
+    return '<span class="prog"><span class="prog-bar"><span class="prog-fill" style="width:' + pct + '%">' + (pct ? '<span class="prog-truck">🚛</span>' : '') + '</span></span>'
+      + '<span class="prog-num">' + hechos + '/' + total + '</span></span>';
   }
   function pintarAgenda() {
     var cont = document.getElementById('agenda');
     var vivos = filas.filter(vivo);
-    function de(s) { return vivos.filter(function (f) { return estadoDe(f.id) === s; }); }
-    var pend = de('pendiente'), real = de('realizado'), cob = de('cobrado');
-    if ((modo === 'realizados' && !real.length) || (modo === 'cobrados' && !cob.length)) modo = 'agenda';
-    var hist = modo !== 'agenda', lista = modo === 'realizados' ? real : modo === 'cobrados' ? cob : pend;
+    // A la vista: lo pendiente y lo realizado sin cobrar. Completadas: solo lo cobrado (realizado y pagado).
+    var lista0 = vivos.filter(function (f) { return !completada(f.id); }), comp = vivos.filter(function (f) { return completada(f.id); });
+    var pend = lista0.filter(function (f) { return estadoDe(f.id) === 'pendiente'; }), real = lista0.filter(function (f) { return estadoDe(f.id) === 'realizado'; });
+    if (modo === 'completadas' && !comp.length) modo = 'agenda';
+    var hist = modo === 'completadas', lista = hist ? comp : lista0;
     var html = '';
-    function filtro(m, txt, n, extra) {
-      var on = modo === m;
-      return '<button type="button" class="filtro' + (on ? ' activo' : (extra || '')) + '" data-acc="modo" data-modo="' + m + '" aria-pressed="' + on + '">' + txt + ' (' + n + ')</button>';
-    }
-    if (real.length || cob.length) {
-      html += '<div class="filtros">' + filtro('agenda', 'Por hacer', pend.length)
-        + (real.length ? filtro('realizados', 'Falta cobrar', real.length, ' alerta') : '')
-        + (cob.length ? filtro('cobrados', 'Cobrados', cob.length) : '') + '</div>';
+    if (comp.length) {
+      html += '<button type="button" class="ver-ant' + (hist ? ' modo-activo' : '') + '" data-acc="modo" data-modo="' + (hist ? 'agenda' : 'completadas') + '">'
+        + (hist ? '← Volver a ver los por hacer' : '✓ Ver completadas (' + comp.length + ')') + '</button>';
+      if (hist) html += '<p class="modo-titulo">👀 Estás viendo los destapes ya cobrados</p>'
+        + '<div class="resumen-comp">' + comp.length + (comp.length === 1 ? ' cobrado' : ' cobrados') + '</div>';
     }
     agrupar(lista, hist).forEach(function (gr) {
-      var t = titDia(gr.k, hist);
-      html += '<section data-grupo="' + esc(gr.k) + '"><h2 class="dia-tit' + t.c + '">' + esc(t.t) + '<span class="dia-n">' + gr.items.length + '</span></h2>'
+      var barra = hist ? '' : progHtml(gr.k, vivos), t = titDia(gr.k, !!barra);
+      html += '<section data-grupo="' + esc(gr.k) + '"><h2 class="dia-tit' + t.c + '"><span class="dia-txt">' + esc(t.t) + '</span>'
+        + (barra || '<span class="dia-n">' + gr.items.length + '</span>') + '</h2>'
         + gr.items.map(wrap).join('') + '</section>';
     });
-    if (!lista.length) html += '<p class="vacio">No hay destapes por hacer. Cuando el bot confirme uno, aparece acá solo.</p>';
-    if (hist) html += '<div class="espacio-fijo"></div><button type="button" class="volver-fijo" data-acc="modo" data-modo="agenda">← Volver a la agenda</button>';
+    if (!lista.length) html += '<p class="vacio">No hay destapes por hacer. Cuando el bot confirme uno, aparece acá solo.'
+      + (comp.length ? '<small>Los ya cobrados están en Ver completadas.</small>' : '') + '</p>';
     cont.innerHTML = html;
+    cont.classList.toggle('anim-entrar', animarLista); animarLista = false;
     var nAtr = pend.filter(atrasado).length;
     document.getElementById('hdr-pend').textContent = pend.length;
+    document.getElementById('hdr-cobrar').textContent = real.length ? ' · ' + real.length + ' por cobrar' : '';
     document.getElementById('hdr-atr').textContent = nAtr ? ' · ' + nAtr + (nAtr === 1 ? ' atrasado' : ' atrasados') : '';
+    document.body.classList.toggle('modo-completadas', hist && vista === 'agenda');
   }
 
   // ── comisión ───────────────────────────────────────────────────────────
@@ -797,57 +891,77 @@ SCRIPT = r"""
   }
   function porPagar() { return filas.filter(function (f) { return vivo(f) && estadoDe(f.id) === 'cobrado' && !E(f.id).comision_pagada; }); }
   function suma(a) { return a.reduce(function (s, f) { return s + comDe(f); }, 0); }
+  function detalleHtml(f) {
+    var d = f.data || {}, e = E(f.id), tel = telDe(f), vf = Number(e.valor_final) > 0;
+    return '<div class="com-detalle">'
+      + '<div>' + (ICONOS[d.servicio_clave] || '🔧') + ' ' + esc(d.servicio || 'Destape') + (d.trabajo && d.trabajo !== d.servicio ? ' · ' + esc(d.trabajo) : '') + '</div>'
+      + '<div>📍 ' + esc([d.direccion, d.comuna].filter(Boolean).join(', ') || 'sin dirección') + '</div>'
+      + '<div>📅 ' + esc(cap(diaLargo(fechaEf(f)))) + (horaEquipo(d.hora) ? ' · ' + esc(horaBonita(horaEquipo(d.hora))) : '') + '</div>'
+      + '<div>👤 ' + esc(d.cliente || 'Cliente sin nombre') + (tel ? ' · <a href="tel:+' + tel + '">' + esc(telJunto(tel)) + '</a>' : '') + '</div>'
+      + '<div>💵 ' + (vf ? 'Se cobró ' + clp(baseDe(f)) : 'Desde ' + clp(baseDe(f)) + ' (falta el valor final)') + ' · comisión ' + pctDe(f) + ' %: <b>' + clp(comDe(f)) + '</b></div>'
+      + '</div>';
+  }
   /** tipo: 'deuda' (cobrado sin pagar), 'falta' (realizado, falta cobrar) o 'pagada'. */
   function item(f, tipo) {
-    var id = f.id, e = E(id), d = f.data || {}, vf = Number(e.valor_final) > 0;
-    var chk = tipo === 'deuda' ? '<input type="checkbox" data-acc="sel" data-id="' + esc(id) + '"' + (desel()[id] ? '' : ' checked') + ' aria-label="Incluir en el pago">' : '';
-    var det = (vf ? (tipo === 'falta' ? 'Valor final ' : 'Se cobró ') : 'Desde ') + clp(baseDe(f)) + ' · ' + pctDe(f) + ' %';
+    var id = f.id, e = E(id), d = f.data || {}, vf = Number(e.valor_final) > 0, tel = telDe(f);
+    var chk = tipo === 'deuda' ? '<input type="checkbox" class="com-check" data-acc="sel" data-id="' + esc(id) + '"' + (desel()[id] ? '' : ' checked') + ' aria-label="Incluir en el pago">' : '';
     var acc = '';
     if (cobrando === id && vista === 'comision') acc = cobroHtml(f);
-    else if (tipo === 'deuda') acc = '<div class="com-acc"><button type="button" class="com-btn' + (vf ? '' : ' fuerte') + '" data-acc="cobrar">✏️ ' + (vf ? 'Corregir valor cobrado' : 'Poner valor final') + '</button></div>';
-    else if (tipo === 'falta') acc = '<div class="com-acc"><button type="button" class="com-btn cob" data-acc="cobrar">💰 Cobrado</button></div>';
-    var rev = tipo === 'pagada' ? '<button type="button" class="revocar" data-acc="revocar">Revocar</button>' : '';
-    return '<div class="com-item' + (tipo === 'pagada' ? ' pagada' : '') + '" data-id="' + esc(id) + '">' + chk
-      + '<div class="com-txt">' + (tipo === 'deuda' && !vf ? '<span class="tag-falta">⚠️ Falta valor final</span>' : '')
-      + '<b>' + esc(cap(diaLargo(fechaEf(f)))) + ' · ' + esc(d.servicio || 'Destape') + '</b>'
-      + '<span>' + esc([d.direccion, d.comuna].filter(Boolean).join(', ')) + '</span>'
-      + '<span>' + esc(det) + '</span></div>'
-      + '<div class="com-monto">' + clp(comDe(f)) + '<small>' + (tipo !== 'pagada' && !vf ? 'comisión aprox.' : 'comisión') + '</small></div>' + rev + acc + '</div>';
+    else {
+      acc = '<div class="com-acciones">';
+      // El botón que mueve plata va solo en su fila, grande. Debajo, WhatsApp e info.
+      if (tipo === 'falta') acc += '<button type="button" class="com-cobrar ancho" data-acc="cobrar">💰 Cobrado, poner el valor</button>';
+      else if (tipo === 'deuda' && !vf) acc += '<button type="button" class="com-cobrar ancho" data-acc="cobrar">✏️ Poner el valor final</button>';
+      if (tel) acc += '<a class="com-wa" href="https://wa.me/' + tel + '" target="_blank" rel="noopener">Revisar en WhatsApp</a>';
+      acc += '<button type="button" class="com-info" data-acc="info">📋 ' + (infoAbierta[id] ? 'Cerrar la info' : 'Ver toda la info') + '</button></div>';
+      if (infoAbierta[id]) acc += detalleHtml(f) + (tipo === 'deuda' && vf ? '<div class="com-acciones"><button type="button" class="com-info" data-acc="cobrar">✏️ Corregir el valor cobrado</button></div>' : '');
+    }
+    var rev = tipo === 'pagada' ? '<div class="com-acciones"><span class="com-pagada-tag">✓ Pagada</span><button type="button" class="com-revocar" data-acc="revocar">Revocar</button></div>' : '';
+    var sub = tipo === 'falta' ? 'Hecho, falta cobrar' : (vf ? 'Se cobró ' + clp(baseDe(f)) : '⚠️ Falta el valor final') + ' · ' + pctDe(f) + ' %';
+    return '<div class="com-card' + (tipo === 'pagada' ? ' pagada' : tipo === 'falta' ? ' falta' : '') + '" data-id="' + esc(id) + '">'
+      + '<div class="com-top">' + chk
+      + '<div class="com-main"><div class="com-cli">' + esc(d.cliente || d.servicio || 'Destape') + '</div>'
+      + '<div class="com-dir">📍 ' + esc(d.comuna || d.direccion || '') + ' · ' + esc(diaCorto(fechaEf(f))) + '</div>'
+      + '<div class="com-dir">' + esc(sub) + '</div></div>'
+      + '<div class="com-monto">' + clp(comDe(f)) + '<small>' + (tipo !== 'pagada' && !vf ? 'comisión aprox.' : 'comisión') + '</small></div></div>'
+      + rev + acc + '</div>';
   }
   function pintarComision() {
     var vivos = filas.filter(vivo);
     var deuda = porPagar(), total = suma(deuda);
     var real = vivos.filter(function (f) { return estadoDe(f.id) === 'realizado'; });
     var pagadas = vivos.filter(function (f) { return estadoDe(f.id) === 'cobrado' && E(f.id).comision_pagada; });
-    var html = '<div class="com-hero"><div class="r">Comisión por pagar</div>'
-      + '<div class="v' + (total ? '' : ' al-dia') + '">' + (total ? clp(total) : 'Al día ✓') + '</div>'
-      + '<div class="s">Es el ' + APP.pct + ' % de lo que se cobró en cada destape.' + (pagadas.length ? ' Ya pagado: ' + clp(suma(pagadas)) + '.' : '') + '</div></div>';
-    if (deuda.length) html += '<h2 class="sec-tit">Cobrados, comisión sin pagar · ' + deuda.length + '</h2>' + deuda.map(function (f) { return item(f, 'deuda'); }).join('');
-    if (real.length) html += '<h2 class="sec-tit">Realizados, falta cobrar · ' + real.length + '</h2>' + real.map(function (f) { return item(f, 'falta'); }).join('');
+    var html = '<div class="cp"><div class="cp-titulo">💰 Comisión a pagar</div>'
+      + '<div class="com-deuda' + (total ? '' : ' al-dia') + '"><span>' + (total ? 'Por pagar a Alejandro (cobrados sin pagar)' : 'Estás al día') + '</span><b>' + (total ? clp(total) : '✓') + '</b></div>'
+      + '<div class="com-nota">Es el ' + APP.pct + ' % de lo que se cobró en cada destape.' + (pagadas.length ? ' Ya pagado: ' + clp(suma(pagadas)) + '.' : '') + '</div>';
+    if (deuda.length) html += '<div class="com-sec-tit">Selecciona las que vas a pagar · ' + deuda.length + '</div>' + deuda.map(function (f) { return item(f, 'deuda'); }).join('');
+    if (real.length) html += '<div class="com-sec-tit cobrar">Hechos, falta cobrar · ' + real.length + '</div>' + real.map(function (f) { return item(f, 'falta'); }).join('');
     if (pagadas.length) {
       var g = {};
       pagadas.forEach(function (f) { var k = (E(f.id).pagada_at || '').slice(0, 10) || 'sin-fecha'; (g[k] = g[k] || []).push(f); });
       var ks = Object.keys(g).sort();
-      html += '<details class="pagos"><summary>Ver pagos hechos (' + ks.length + ')</summary>';
+      html += '<div class="com-sec-tit">Mis pagos hechos · ' + clp(suma(pagadas)) + '</div>';
       ks.slice().reverse().forEach(function (k) {
-        html += '<div class="pago-grupo"><div class="pago-head">Pago ' + (ks.indexOf(k) + 1) + (k !== 'sin-fecha' ? ' · ' + esc(diaLargo(k)) : '') + '<span>' + clp(suma(g[k])) + '</span></div>'
+        html += '<div class="pago-grupo"><div class="pago-head"><span class="pago-tit">Pago ' + (ks.indexOf(k) + 1) + (k !== 'sin-fecha' ? ' · ' + esc(diaLargo(k)) : '') + '</span><span class="pago-tot">' + clp(suma(g[k])) + '</span></div>'
           + g[k].map(function (f) { return item(f, 'pagada'); }).join('') + '</div>';
       });
-      html += '</details>';
     }
     if (!vivos.length) html += '<p class="vacio">Sin destapes todavía.</p>';
+    html += '</div>';
     document.getElementById('comision').innerHTML = html;
     var sel = seleccion(), btn = document.getElementById('btn-pagar');
     document.getElementById('barra-pagar').hidden = vista !== 'comision' || !deuda.length || !!cobrando;
     btn.disabled = !sel.length;
     btn.textContent = sel.length ? 'Pagar ' + clp(suma(sel)) + ' (' + sel.length + ')' : 'Marca lo que vas a pagar';
     document.getElementById('hdr-com').textContent = total ? clp(total) : 'al día';
+    document.body.classList.toggle('vista-comision', vista === 'comision');
   }
 
   function pintar() {
     pintarAgenda(); pintarComision();
     document.querySelectorAll('.vista').forEach(function (v) { v.hidden = v.getAttribute('data-vista') !== vista; });
     document.querySelectorAll('.vista-btn').forEach(function (b) { b.classList.toggle('activo', b.getAttribute('data-vista') === vista); });
+    if (resaltarId) { var id = resaltarId; resaltarId = null; setTimeout(function () { var el = document.querySelector('.dw[data-id="' + id + '"]'); if (el && el.classList) el.classList.remove('foco'); }, 2600); }
   }
 
   // ── pago ───────────────────────────────────────────────────────────────
@@ -884,9 +998,10 @@ SCRIPT = r"""
   // ── eventos ────────────────────────────────────────────────────────────
   document.addEventListener('click', function (ev) {
     var t = ev.target.closest('[data-acc],[data-vista]'); if (!t) return;
-    if (t.classList.contains('vista-btn')) { vista = t.getAttribute('data-vista'); cobrando = null; pintar(); window.scrollTo(0, 0); return; }
+    if (t.classList.contains('vista-btn')) { vista = t.getAttribute('data-vista'); cobrando = null; animarLista = true; pintar(); window.scrollTo(0, 0); return; }
     var w = t.closest('[data-id]'), id = w && w.getAttribute('data-id');
     var acc = t.getAttribute('data-acc');
+    if (acc === 'toast-deshacer') { var fn = deshacerFn; deshacerFn = null; document.getElementById('toast').hidden = true; if (fn) fn(); return; }
     if (acc === 'contactar' && id) {
       var f = fila(id), d = (f && f.data) || {}, tel = String(d.telefono || '').replace(/\D/g, '');
       if (E(id).contactado || !tel) return;
@@ -898,8 +1013,9 @@ SCRIPT = r"""
     }
     if (acc === 'realizado') {
       var st = estadoDe(id);
-      cambiar(id, { estado: st === 'pendiente' ? 'realizado' : 'pendiente' },
-        st === 'pendiente' ? 'Realizado. Queda en Falta cobrar.' : 'Vuelve a la agenda.').catch(function () {});
+      if (st === 'cobrado') { toast('Ya está cobrado. Si no se cobró, ábrelo con Cobrado y toca "No se cobró".'); return; }
+      if (st === 'pendiente') cambiar(id, { estado: 'realizado' }, 'Realizado. Falta cobrar.', { deshacer: { estado: 'pendiente' } }).catch(function () {});
+      else cambiar(id, { estado: 'pendiente' }, 'Vuelve a por hacer.', { deshacer: { estado: 'realizado' } }).catch(function () {});
     } else if (acc === 'cobrar') abrirCobro(id);
     else if (acc === 'cobro-no') { cobrando = null; delete borrador[id]; pintar(); }
     else if (acc === 'cobro-ok') {
@@ -907,13 +1023,13 @@ SCRIPT = r"""
       guardarCobro(id, inp ? inp.value : '');
     } else if (acc === 'descobrar') {
       if (E(id).comision_pagada) { toast('Su comisión ya está pagada. Revoca el pago antes.'); return; }
-      if (!confirm('¿Sacar de cobrados? Vuelve a la lista Falta cobrar.')) return;
       cobrando = null; delete borrador[id];
-      cambiar(id, { estado: 'realizado' }, 'Ya no figura como cobrado. Queda en Falta cobrar.').catch(function () {});
+      cambiar(id, { estado: 'realizado' }, 'Ya no figura como cobrado. Queda en falta cobrar.', { deshacer: { estado: 'cobrado' } }).catch(function () {});
     } else if (acc === 'quitar') { confirmando = id; pintar(); }
     else if (acc === 'quitar-no') { confirmando = null; pintar(); }
-    else if (acc === 'quitar-si') { confirmando = null; cambiar(id, { eliminado: true }, 'Quitado de la agenda').catch(function () {}); }
-    else if (acc === 'modo') { modo = t.getAttribute('data-modo') || 'agenda'; cobrando = null; pintar(); window.scrollTo(0, 0); }
+    else if (acc === 'quitar-si') { confirmando = null; cambiar(id, { eliminado: true }, 'Quitado de la agenda.', { deshacer: { eliminado: false } }).catch(function () {}); }
+    else if (acc === 'modo') { modo = t.getAttribute('data-modo') || 'agenda'; cobrando = null; animarLista = true; pintar(); window.scrollTo(0, 0); }
+    else if (acc === 'info') { infoAbierta[id] = !infoAbierta[id]; pintarComision(); }
     else if (acc === 'revocar') {
       if (confirm('¿Revocar este pago? La comisión vuelve a quedar por pagar.')) cambiar(id, { comision_pagada: false, pagada_at: null }, 'Pago revocado').catch(function () {});
     } else if (acc === 'sel') {
@@ -947,7 +1063,7 @@ SCRIPT = r"""
     var w = t.closest('[data-id]'), id = w && w.getAttribute('data-id'); if (!id) return;
     var f = fila(id), v = t.value || null;
     var cambio = (!v || v === (f && f.fecha)) ? { fecha: null } : { fecha: v };
-    cambiar(id, cambio, v ? 'Nueva fecha: ' + diaLargo(v) : 'Fecha original').catch(function () {});
+    cambiar(id, cambio, v ? 'Movido al ' + diaLargo(v) : 'Vuelve a su fecha original').catch(function () {});
   });
   document.getElementById('btn-pagar').addEventListener('click', abrirPago);
   document.querySelector('.m-ok').addEventListener('click', confirmarPago);
@@ -956,18 +1072,14 @@ SCRIPT = r"""
     var b = APP.banco, t = b.titular + '\n' + b.banco + '\nCuenta RUT ' + b.cuenta + '\n' + b.email;
     (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Datos copiados'); }).catch(function () { toast(t); });
   });
-  document.addEventListener('toggle', function (ev) {
-    var t = ev.target; if (!t.getAttribute || !t.hasAttribute('data-mas')) return;
-    masAbierto[t.getAttribute('data-mas')] = t.open;
-  }, true);
   window.addEventListener('resize', medirHeader);
   window.addEventListener('hashchange', irAlHash);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) cargar(); });
   // Pruebas sin navegador: expone la lógica pura.
   window.__DESTAPES__ = { comDe: comDe, baseDe: baseDe, fechaEf: fechaEf, estadoDe: estadoDe, porPagar: porPagar,
     clp: clp, leerMonto: leerMonto, conFactura: conFactura, abrirCobro: abrirCobro, guardarCobro: guardarCobro,
-    horaLimpia: horaLimpia, horaEquipo: horaEquipo, msgCliente: msgCliente,
-    pintar: function () { pintar(); }, _modo: function (m, v) { modo = m; if (v) vista = v; },
+    horaLimpia: horaLimpia, horaEquipo: horaEquipo, msgCliente: msgCliente, hintDe: hintDe,
+    pintar: function () { pintar(); }, _modo: function (m, v) { modo = (m === 'realizados' || m === 'cobrados') ? 'completadas' : m; if (v) vista = v; },
     _set: function (f, e) { filas = f; est = e; } };
   cargar();
 })();
@@ -986,7 +1098,7 @@ PAGINA = """<!doctype html>
 <body>
 <header>
   <h1>🚛 Agenda de destapes</h1>
-  <div class="sub"><b id="hdr-pend"><span class="skel" style="width:14px"></span></b> por hacer<span id="hdr-atr"></span> · <span id="hdr-act">Cargando...</span></div>
+  <div class="sub"><b id="hdr-pend"><span class="skel" style="width:14px"></span></b> por hacer<span id="hdr-cobrar"></span><span id="hdr-atr"></span> · <span id="hdr-act">Cargando...</span></div>
   <div class="sub hdr-com">💰 Comisión por pagar: <span id="hdr-com"><span class="skel"></span></span></div>
 </header>
 <div id="skel" aria-hidden="true">

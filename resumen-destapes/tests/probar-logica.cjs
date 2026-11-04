@@ -18,7 +18,7 @@ const ctx = {
   localStorage: { getItem: (k) => store[k] ?? null, setItem: (k, v) => { store[k] = v; } },
   fetch: () => Promise.reject(new Error('sin red en la prueba')),
   document: { getElementById: el, querySelector: (s) => el(s), querySelectorAll: () => [], addEventListener() {},
-    documentElement: { style: { setProperty() {} } }, body: { classList: { add() {} } }, hidden: false },
+    documentElement: { style: { setProperty() {} } }, body: { classList: { add() {}, remove() {}, toggle() {} } }, hidden: false },
 };
 ctx.window = ctx; ctx.addEventListener = () => {}; ctx.scrollTo = () => {}; ctx.open = () => {}; vm.createContext(ctx);
 scripts.forEach((s) => vm.runInContext(s, ctx));
@@ -118,14 +118,24 @@ setTimeout(async () => {
   assert.ok(!ag.includes('data-grupo="' + anteayer + '"') && !ag.includes('data-grupo="' + ayer + '"'), 'sin repetir un título por cada día atrasado');
   assert.ok(ag.indexOf('data-grupo="atrasados"') < ag.indexOf('data-grupo="' + hoy + '"'), 'atrasados antes que hoy');
   assert.ok(ag.indexOf('data-id="g"') < ag.indexOf('data-id="h"'), 'dentro de atrasados, el más antiguo primero');
-  assert.ok(ag.includes('Atrasado · ' + largo(anteayer)) && ag.includes('Atrasado · ' + largo(ayer)), 'cada tarjeta atrasada dice su fecha');
+  assert.ok(ag.includes('Atrasado · era el ' + largo(anteayer)) && ag.includes('Atrasado · era el ' + largo(ayer)), 'cada tarjeta atrasada dice su fecha');
   assert.ok(ag.includes('data-id="a"') && ag.includes('data-id="d"') && ag.includes('data-id="g"') && ag.includes('data-id="h"'), 'por hacer en la agenda');
   assert.ok(!ag.includes('data-id="e"'), 'eliminado no aparece');
   // Realizados y cobrados fuera de la vista principal, detrás de botones.
-  assert.ok(!ag.includes('data-id="r"'), 'realizado fuera de la agenda');
+  // (4-nov-2026) un realizado sin cobrar sigue a la vista (azul); sale de la agenda recién al cobrarse.
+  assert.ok(ag.includes('data-id="r"'), 'realizado sin cobrar sigue en la agenda');
   assert.ok(!ag.includes('data-id="b"') && !ag.includes('data-id="c"'), 'cobrados fuera de la agenda');
-  assert.ok(ag.includes('Por hacer (5)') && ag.includes('Falta cobrar (1)') && ag.includes('Cobrados (2)'), 'botones para ver realizados y cobrados');
-  assert.ok(ag.indexOf('data-acc="cobrar"') < ag.indexOf('data-acc="realizado"'), 'Cobrado primero en la tarjeta');
+  // (4-nov-2026) sin filtros: un solo botón punteado "Ver completadas", como en baños. Realizado va antes que Cobrado.
+  assert.ok(ag.includes('Ver completadas (2)') && !ag.includes('Por hacer (') && !ag.includes('Falta cobrar ('), 'un solo botón: Ver completadas (b, c)');
+  assert.ok(ag.indexOf('data-acc="realizado"') < ag.indexOf('data-acc="cobrar"'), 'Realizado primero en la tarjeta, como Entregado en baños');
+  assert.ok(ag.includes('class="est-btn b-real" data-acc="realizado">Realizado<') && ag.includes('class="est-btn b-cob" data-acc="cobrar">Cobrado<'), 'los dos botones blancos sin marcar');
+  assert.ok(ag.includes('Quitar de la agenda'), 'quitar a la vista, sin esconderlo');
+  assert.ok(ag.includes('⚪ Por hacer · avísale al cliente que vas') && ag.includes('🔴 Muévelo de día, márcalo realizado o quítalo'), 'la frase que dice qué toca hacer');
+  assert.ok(ag.includes('class="prog-fill"') && ag.includes('0/5') === false, 'barra de avance del día');
+  assert.ok(ag.includes('+56912345678') && !ag.includes('+56 9 1234 5678'), 'el teléfono todo junto');
+  const tr = (() => { const i = ag.indexOf('data-id="r"'); const j = ag.indexOf('data-id=', i + 10); return ag.slice(i, j < 0 ? undefined : j); })();
+  assert.ok(tr.includes('class="est-btn b-real activo" data-acc="realizado">✓ Realizado<') && tr.includes('🔵 Realizado · falta cobrar'), 'el realizado va azul con Cobrado pendiente');
+  assert.strictEqual(els['hdr-cobrar'].textContent, ' · 1 por cobrar', 'el encabezado dice cuántos faltan cobrar');
   assert.strictEqual(els['hdr-pend'].textContent, 5, 'por hacer: a, d, g, h, u');
   assert.strictEqual(els['hdr-atr'].textContent, ' · 2 atrasados');
   assert.ok(ag.includes('$140.000') && !/\d mil\b/.test(ag), 'montos como $140.000 en la página, nunca "140 mil"');
@@ -134,19 +144,20 @@ setTimeout(async () => {
   assert.ok(tarjeta('h').includes('Con factura: + IVA ($71.400 en total)'), '"si, con factura" suma el 19 %');
   assert.ok(tarjeta('a').includes('Si pide factura se suma el IVA'), 'sin dato de factura');
   assert.ok(tarjeta('u').includes('🏢 Destape de vertical de edificio') && tarjeta('u').includes('⚡ Urgente') && !tarjeta('u').includes('—'), 'vertical con su ícono y la urgencia sin raya larga');
-  T._modo('realizados'); T.pintar(); ag = els.agenda.innerHTML;
-  assert.ok(ag.includes('data-id="r"') && !ag.includes('data-id="a"') && ag.includes('Volver a la agenda'), 'modo falta cobrar');
-  T._modo('cobrados'); T.pintar(); ag = els.agenda.innerHTML;
-  assert.ok(ag.includes('data-id="b"') && ag.includes('data-id="c"') && !ag.includes('data-id="a"'), 'modo cobrados');
+  T._modo('completadas'); T.pintar(); ag = els.agenda.innerHTML;
+  assert.ok(!ag.includes('data-id="r"') && ag.includes('data-id="b"') && ag.includes('data-id="c"') && !ag.includes('data-id="a"'), 'completadas: solo los cobrados');
+  assert.ok(ag.includes('Volver a ver los por hacer') && ag.includes('Estás viendo los destapes ya cobrados'), 'botón para volver y título del modo');
+  assert.ok(ag.includes('class="est-btn b-cob activo" data-acc="cobrar">✓ Cobrado<'), 'cobrado marcado de color');
   assert.ok(ag.includes('Se cobró <b>$180.000</b>'), 'el cobrado muestra lo que se cobró');
   assert.ok(ag.includes('Falta el valor final'), 'el cobrado sin valor final lo avisa');
   T._modo('agenda'); T.pintar();
 
   // Vista comisión.
   com = els.comision.innerHTML;
-  assert.ok(com.includes('Comisión por pagar') && com.includes('$45.000') && com.includes('Cobrados, comisión sin pagar'), 'vista comisión');
+  assert.ok(com.includes('Comisión a pagar') && com.includes('$45.000') && com.includes('Selecciona las que vas a pagar'), 'vista comisión como la de baños');
+  assert.ok(com.includes('Revisar en WhatsApp') && com.includes('Ver toda la info') && com.includes('class="com-check"'), 'check, WhatsApp e info en cada una');
   assert.ok(!/\d mil\b/.test(com), 'comisión sin "mil"');
-  assert.ok(com.includes('Realizados, falta cobrar') && com.includes('Ver pagos hechos (1)'), 'falta cobrar y pagos hechos');
+  assert.ok(com.includes('Hechos, falta cobrar') && com.includes('Mis pagos hechos') && com.includes('Pago 1'), 'falta cobrar y pagos hechos');
   assert.strictEqual(els['hdr-com'].textContent, '$45.000');
   textosLimpios(els.agenda.innerHTML, 'agenda'); textosLimpios(com, 'comisión');
 
@@ -189,5 +200,5 @@ setTimeout(async () => {
   const visible = html.replace(/<script>[\s\S]*?<\/script>/g, '').replace(/<style>[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, ' ');
   for (const malo of [';', '«', '»', '—', '~']) assert.ok(!visible.includes(malo), 'texto visible sin ' + malo);
   console.log('OK lógica de destapes: montos $140.000, lectura del valor ("140", "140 mil", "$140.000"), cobro con valor final, comisión 25 %, % propio,'
-    + ' atrasados con su fecha, realizados y cobrados escondidos, corregir desde comisión, pagada bloqueada, falla revierte, textos limpios');
+    + ' atrasados con su fecha, Ver completadas, Realizado y Cobrado como en baños, corregir desde comisión, pagada bloqueada, falla revierte, textos limpios');
 }, 50);
