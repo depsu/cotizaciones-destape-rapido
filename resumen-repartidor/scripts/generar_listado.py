@@ -3614,7 +3614,9 @@ def construir_html(data: dict) -> str:
     # (7-nov-2026) la sección «Limpiezas a realizar» se quitó de la página por pedido de Alejandro:
     # mostraba aseos de julio y agosto que nadie iba a hacer. seccion_limpiezas() queda por si vuelve.
     limpiezas_sec, tareas_lim = "", []
-    retiros_sec, tareas_ret = seccion_retiros(entregas)
+    # (7-nov-2026) la sección «Retiros» también se quitó por pedido de Alejandro: solo la información de
+    # entrega. seccion_retiros() queda por si vuelve.
+    retiros_sec, tareas_ret = "", []
     tareas = tareas_lim + tareas_ret
 
     # Metadatos por entrega para el JS (cálculo de comisión y panel).
