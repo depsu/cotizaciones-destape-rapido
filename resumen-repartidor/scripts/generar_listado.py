@@ -1349,11 +1349,18 @@ SCRIPT_ESTADO = r"""<script>
      que el despacho marcó para ese relevo (`data.repartidor_relevo`). Nunca se mezclan: una vez
      llegaron dos personas al mismo punto. El caché local va por vista, para que un teléfono que abrió
      las dos no muestre la lista equivocada sin señal. */
-  var REPARTIDOR_VISTA = (function () {
+  /* (7-nov-2026) CADA PÁGINA SE ABRE CON SU CLAVE: la lista de siempre ya no es la página sin parámetro,
+     es `?repartidor=CLAVE_PRINCIPAL` (destaperapido.cl/entregas la agrega sola). Sin clave no se muestra
+     NADA, ni siquiera las horneadas: así un relevo que le borra la clave al enlace no ve la lista del otro. */
+  var CLAVE_PRINCIPAL = 'p-9t4kqv';
+  var VISTA_PARAM = (function () {
     try { return String(new URLSearchParams(location.search).get('repartidor') || '').trim().toLowerCase(); }
     catch (e) { return ''; }
   })();
+  var SIN_VISTA = VISTA_PARAM === '';
+  var REPARTIDOR_VISTA = (VISTA_PARAM === CLAVE_PRINCIPAL) ? '' : VISTA_PARAM;
   function esDeEstaVista(row) {
+    if (SIN_VISTA) { return false; }
     var rel = String(((row && row.data) || {}).repartidor_relevo || '').trim().toLowerCase();
     return REPARTIDOR_VISTA ? rel === REPARTIDOR_VISTA : rel === '';
   }
@@ -2994,11 +3001,23 @@ SCRIPT_ESTADO = r"""<script>
   }
 
   function load() {
-    // la página de un relevo se reconoce de un vistazo (cabecera y pestaña)
+    // (7-nov-2026) sin clave en el enlace: página vacía con aviso, sin tocar la base
+    if (SIN_VISTA) {
+      document.querySelectorAll('.vista[data-vista="entregas"] .card-wrap[data-id], section.agregado[data-tareas]').forEach(function (c) { c.remove(); });
+      var h0 = document.querySelector('header h1');
+      if (h0) { h0.textContent = 'Enlace incompleto'; }
+      document.title = 'Enlace incompleto';
+      var p0 = document.getElementById('estado-online');
+      if (p0) { p0.hidden = false; p0.textContent = 'Este enlace está incompleto. Abre el enlace completo que te mandaron.'; }
+      setActualizado('sin enlace');
+      CARGADO = true; revelar();
+      return;
+    }
+    // la página de un relevo se reconoce de un vistazo (cabecera y pestaña), sin mostrar su clave
     if (REPARTIDOR_VISTA) {
       var h1 = document.querySelector('header h1');
-      if (h1) { h1.textContent = '🔀 Entregas de relevo · ' + REPARTIDOR_VISTA; }
-      document.title = 'Entregas de relevo · ' + REPARTIDOR_VISTA;
+      if (h1) { h1.textContent = '🔀 Entregas de relevo'; }
+      document.title = 'Entregas de relevo';
     }
     var done = function () { CARGADO = true; pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); renderHeaderPub(); renderComision(); revelar(); irAlAncla(); };
     if (!SUPA.url || !SUPA.key) { setActualizado('sin conexión a la base'); done(); return; }
@@ -3592,7 +3611,9 @@ def construir_html(data: dict) -> str:
         )
 
     # Secciones agregadas (limpiezas / retiros) y sus tareas para el JS.
-    limpiezas_sec, tareas_lim = seccion_limpiezas(entregas)
+    # (7-nov-2026) la sección «Limpiezas a realizar» se quitó de la página por pedido de Alejandro:
+    # mostraba aseos de julio y agosto que nadie iba a hacer. seccion_limpiezas() queda por si vuelve.
+    limpiezas_sec, tareas_lim = "", []
     retiros_sec, tareas_ret = seccion_retiros(entregas)
     tareas = tareas_lim + tareas_ret
 
