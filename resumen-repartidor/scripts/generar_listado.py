@@ -3054,6 +3054,12 @@ SCRIPT_ESTADO = r"""<script>
         rows = [];
         document.querySelectorAll('.vista[data-vista="entregas"] .card-wrap[data-id]').forEach(function (c) { c.remove(); });
       }
+      /* (7-nov-2026) en la página de un relevo los MONTOS horneados tampoco son suyos: la cabecera
+         («llevo X / Y si se cobra todo») y la pestaña Comisión solo cuentan las tarjetas de esta vista */
+      if (REPARTIDOR_VISTA) {
+        var mios = {}; (rows || []).forEach(function (r) { if (r && r.id) { mios[r.id] = true; } });
+        Object.keys(META).forEach(function (id) { if (!mios[id]) { delete META[id]; } });
+      }
       if (rows && rows.length) {
         try { aplicarEntregas(rows); }
         catch (e) { console.warn('No se pudo aplicar entregas de Supabase, uso las horneadas:', e); horneado = true; }
