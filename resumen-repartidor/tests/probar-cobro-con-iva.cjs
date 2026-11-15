@@ -120,9 +120,14 @@ ok(!/undefined|NaN|\[object/.test(mes + mini(0) + mini(1) + mini(2)), 'nada de u
 // la marca horneada desde Python (META de entregas.json) usa la misma regla que la tarjeta
 const horneadas = (JSON.parse(bloques[0].replace(/^\s*window\.__APP__\s*=\s*/, '').replace(/;\s*$/, '')).entregas || []);
 const conMarca = horneadas.filter((e) => e.con_iva === true).length;
-ok(horneadas.length > 0 && horneadas.every((e) => e.con_iva === true || e.con_iva === false || e.con_iva === null),
-  `las ${horneadas.length} entregas horneadas traen la marca con_iva (true/false/null)`);
-console.log(`   (${conMarca} con IVA, ${horneadas.filter((e) => e.con_iva === false).length} sin factura, ${horneadas.filter((e) => e.con_iva === null).length} sin marca)`);
+if (horneadas.length) {
+  ok(horneadas.every((e) => e.con_iva === true || e.con_iva === false || e.con_iva === null),
+    `las ${horneadas.length} entregas horneadas traen la marca con_iva (true/false/null)`);
+  console.log(`   (${conMarca} con IVA, ${horneadas.filter((e) => e.con_iva === false).length} sin factura, ${horneadas.filter((e) => e.con_iva === null).length} sin marca)`);
+} else {
+  // (15-nov-2026) la página ya no hornea entregas: la marca la calcula metaDeData con los datos vivos
+  console.log('·  la página ya no hornea entregas (15-nov-2026): con_iva sale de metaDeData con los datos vivos');
+}
 
 console.log(fallos.length ? `\n❌ ${fallos.length} fallo(s)` : '\n✅ todo verde');
 process.exit(fallos.length ? 1 : 0);

@@ -11,15 +11,18 @@ Una página **mobile-first estática** que usa el repartidor (y el jefe/Alejandr
 - Ver **limpiezas y retiros** pendientes y marcarlos realizados.
 - Llevar la **comisión** de Alejandro (20% del neto) y registrar pagos.
 
-**URL pública:** https://depsu.github.io/cotizaciones-destape-rapido/resumen-repartidor/listado.html
-**Repo público:** `github.com/depsu/cotizaciones-destape-rapido` (rama `main`, GitHub Pages).
+**URL pública:** https://depsu.github.io/cotizaciones-destape-rapido/resumen-repartidor/listado.html?repartidor=p-9t4kqv
+(desde el 7-nov **sin la clave `?repartidor=` no muestra nada**; `https://www.destaperapido.cl/entregas` redirige
+con la clave puesta, y cada relevo tiene la suya: `destaperapido.cl/r/<id>`).
+**Repo público:** `github.com/depsu/cotizaciones-destape-rapido` (rama `main`, GitHub Pages). **PÚBLICO**: nunca
+`git add -A` acá (hay planillas e informes con datos de clientes sin rastrear; ver `.gitignore`).
 
 ## Archivos clave
 
 | Archivo | Qué es |
 |---|---|
-| `resumen-repartidor/entregas.json` | **Input/registro** de las entregas (curado a mano). Se edita para dar de alta una entrega; el `--enviar` la sube a Supabase. Ya **NO** es lo que la página lee en vivo (eso es Supabase), pero se hornea como **respaldo**. |
-| `resumen-repartidor/scripts/generar_listado.py` | **Generador** de `listado.html`. Acá viven el HTML, **todo el CSS** y **todo el JavaScript** embebido. Hornea las entregas de `entregas.json` como RESPALDO; la página, al cargar, las reemplaza por las de Supabase. La función `tarjeta(e)` renderiza cada tarjeta (se reutiliza para el `card_html` de Supabase). |
+| `resumen-repartidor/entregas.json` | **Input/registro** de las entregas (curado a mano). Se edita para dar de alta una entrega; el `--enviar` la sube a Supabase. La página **ya no lo lee ni lo hornea** (15-nov-2026); el generador solo saca de acá `comprobantes` y el geo de respaldo de las entregas viejas. |
+| `resumen-repartidor/scripts/generar_listado.py` | **Generador** de `listado.html`. Acá viven el HTML, **todo el CSS** y **todo el JavaScript** embebido. Desde el 15-nov-2026 el HTML sale **sin tarjetas**: todas llegan de Supabase al abrir la página. La función `tarjeta(e)` renderiza cada tarjeta (es la que hornea el `card_html` de Supabase). |
 | `resumen-repartidor/scripts/sync_entregas_supabase.py` | Sube/actualiza las entregas de `entregas.json` a la tabla **`entrega`** de Supabase (idempotente; `card_html` = `tarjeta(e)`; **preserva** el `informado_at` existente). Expone `upsert_entrega(e)` que usa el flujo del repartidor. |
 | `resumen-repartidor/scripts/resumen_repartidor.py` | Arma el resumen + link/envío de WhatsApp al repartidor. Con `--enviar`/`--abrir` **también sube la entrega a Supabase** (aparece sola en la página, más reciente arriba). |
 | `resumen-repartidor/listado.html` | Salida generada (autocontenida, sin dependencias). **No editar a mano**, se regenera. |
@@ -31,31 +34,70 @@ Una página **mobile-first estática** que usa el repartidor (y el jefe/Alejandr
 ## Agregar una entrega / regenerar / publicar
 
 - **Agregar una entrega (flujo normal):** editar `entregas.json` y correr `python3 resumen-repartidor/scripts/resumen_repartidor.py --id <id> --enviar`. Eso manda el WhatsApp al repartidor **y sube la entrega a Supabase** → **aparece sola en la página, sin regenerar ni publicar**.
-- **Publicar cambios de CÓDIGO/diseño** de la página (o refrescar el respaldo horneado): `publicar.sh` regenera `listado.html`, **re-sincroniza Supabase** y hace commit + push. GitHub Pages publica en ~1 min.
+- **Publicar cambios de CÓDIGO/diseño** de la página: `publicar.sh` regenera `listado.html` y hace commit + push
+  **solo de los archivos de la página** (GitHub Pages publica en ~1 min). Desde el 15-nov-2026 **no** re-sincroniza
+  `entregas.json` sobre Supabase (pisaba con datos de agosto lo que el bot corrigió después) salvo que se pida con
+  `--sincronizar`, y **no** hace `git add -A` (el repo es público).
 
 ```bash
-python3 resumen-repartidor/scripts/generar_listado.py            # solo regenera listado.html (respaldo)
-bash resumen-repartidor/publicar.sh "mensaje del commit"         # regenera + sincroniza Supabase + push
+python3 resumen-repartidor/scripts/generar_listado.py            # solo regenera listado.html
+bash resumen-repartidor/publicar.sh "mensaje del commit"         # regenera + commit/push de la página
 ```
 
-## Arquitectura: página dinámica desde Supabase (con respaldo horneado)
+## Arquitectura: página dinámica desde Supabase (sin respaldo horneado desde el 15-nov-2026)
 
 - El **contenido** de cada entrega (cliente, dirección, monto, servicio…) vive en la tabla **`entrega`** de Supabase, con la tarjeta **ya renderizada** en `card_html` (la genera la misma función Python `tarjeta()`; **NO** se porta el template a JS) y un `informado_at` para el orden.
-- Al cargar, la página hace `fetch` a `entrega` (`select=id,fecha,informado_at,data,card_html&eliminado=eq.false&order=informado_at.desc`) e **inyecta** esas tarjetas. Si el fetch falla o viene vacío (p. ej. Supabase pausado), quedan las **horneadas** desde `entregas.json` como RESPALDO.
+- **Carga en dos pasos (15-nov-2026, ver abajo).** Antes se bajaba el `card_html` de TODAS (~570 KB comprimidos) y se metían todas al DOM.
 - El **estado mutable** que cambia el repartidor desde el celular (entregado/cobrado, fecha reagendada, contactado, comisión pagada, tareas realizadas) vive en **`entrega_estado`**/**`tarea_estado`** y se lee/escribe con la **anon key** vía REST (`/rest/v1/...`). El JS lo aplica encima de las tarjetas. Así el repartidor y Alejandro ven lo mismo en vivo.
 - **Orden (2026-07-17):** agrupado por día; los días en **orden CRONOLÓGICO** (atrasado → hoy → futuro, el orden en que se trabaja), y dentro de cada día lo **más recientemente informado primero** (`informado_at` desc). Una entrega nueva (informado = `now()`) queda arriba de su día.
 - **Geo en VIVO (2026-07-17):** `aplicarEntregas` recomputa también `GEO` desde el `data` de cada fila (`geoDeData`, puerto JS de `derivar_geo`+`maps_query`; tabla `comunas_geo` en `window.__APP__`). Antes una entrega informada después de hornear caía a "Sin comuna" en el Reparto de hoy. El `APP.geo` horneado queda de respaldo.
 - **"✨ Nuevo" (2026-07-17):** las entregas que ESTE dispositivo no había visto se destacan (borde/sombra azul + chip), con memoria en `localStorage` (`entregas_vistas_v1`) — por persona, no choca entre quienes miran el panel. Primera visita solo siembra la memoria, sin marcar.
-- **Carga sin parpadeo (2026-09-02):** el respaldo horneado puede estar VIEJO (entregas.json se
+- **Carga sin parpadeo (2026-09-02, el respaldo horneado se quitó el 15-nov-2026):** el respaldo horneado podía estar VIEJO (entregas.json se
   edita a mano y las entregas nuevas entran por el bot), así que la página ya NO lo revela a los
   1.5 s: muestra un **esqueleto** (`#skel` + cabecera con placeholders) hasta que llegan los datos
   vivos, y recién ahí pinta el contador de pendientes, el «ganado» y la hora real de
   actualización (`#hdr-act`). Si Supabase no responde, usa el **caché de la última visita**
-  (`localStorage`: `entregas_cache_v1`, `estado_cache_v1`, `publicidad_cache_v1`) con aviso «lo
-  último guardado»; y solo si tampoco hay caché cae al respaldo horneado con aviso «respaldo
-  ANTIGUO». Fallback CSS a los 10 s por si el JS muere. Probar los tres caminos con
-  `page.route(/supabase\.co/, r => r.abort())` en Playwright.
-- **Consistencia:** las entregas nuevas entran por `resumen_repartidor.py --enviar` (upsert con `informado_at = now()`); `publicar.sh` re-sincroniza todo `entregas.json` (preservando `informado_at`) para que respaldo horneado y Supabase queden iguales.
+  (`localStorage`: `entregas_lite_v2`, `tarjetas_v2`, `estado_cache_v1`, `publicidad_cache_v1`; desde el
+  15-nov-2026 ya no hay respaldo horneado, ver «Carga en dos pasos») con aviso «lo último guardado».
+  Fallback CSS a los 10 s por si el JS muere. Probar los caminos con
+  `page.route(/supabase\.co/, r => r.abort())` en Playwright (`tests/navegador/probar-bordes.mjs` ya lo hace).
+- **Consistencia:** las entregas nuevas entran por `resumen_repartidor.py --enviar` o el bot (upsert con `informado_at = now()`). `publicar.sh --sincronizar` re-sube `entregas.json` (preservando `informado_at`): casi nunca hace falta y pisa lo que el bot corrigió.
+
+### Carga en dos pasos y fluidez (15-nov-2026)
+
+Medido en un celular de gama media simulado (CPU 4x, 4G lenta): la carga pasó de 4,6 s a 2,1 s (1.ª visita) y de
+4,5 s a 1,1 s (las siguientes); de 747 KB a ~190 KB; de 18.681 a 1.450 nodos; el toque «Entregado» de 388 a 134 ms y
+«Cobrado» de 200 a 38 ms. Con datos reales, una prueba lado a lado (`tests/navegador/probar-equivalencia.mjs`) muestra
+EXACTAMENTE lo mismo que la versión anterior (cabecera, reparto, días con su barra, cada tarjeta con sus clases y texto,
+Comisión, Mes, completadas, modal, y las mismas escrituras), y las capturas salen idénticas píxel a píxel.
+
+- **Las lecturas salen desde el `<head>`** (`<script id="pre-carga">`, `window.__PRE__`), apenas llega el HTML, y van
+  **sin cabeceras propias** (`?apikey=` en la URL): el navegador no hace la consulta previa de CORS (OPTIONS). Las
+  escrituras (POST/PATCH) siguen con cabeceras. Las consultas viven en `CONSULTAS` (Python) y llegan al JS en `APP.q`.
+- **Paso 1:** `entrega_estado` + `entrega` **sin `card_html`** (`select=id,fecha,informado_at,updated_at,data`, ~60 KB)
+  + `cobro_publicidad` + el **delta**: las tarjetas que cambiaron desde la última visita de ese teléfono
+  (`updated_at=gt.<marca>`, la marca vive en `localStorage['tarjetas_v2_desde:<clave>']`). Con eso salen META, GEO,
+  la cabecera, Comisión, Mes y el reparto de hoy.
+- **Paso 2:** el `card_html` **solo de las tarjetas de la lista** (pendientes: no eliminadas y no `cobrado`) que el
+  teléfono no tenga al día (caché `tarjetas_v2[:relevo]`, validada por `updated_at`; el trigger `entrega_touch` lo cambia
+  en cada cambio de la fila), de a 40 por consulta (`id=in.(...)`). Lo normal en una 2.ª visita: cero tarjetas por pedir.
+- **Completadas:** sus tarjetas se traen al tocar «Ver completadas», en tandas (primero las 24 más recientes, el resto
+  detrás) y **salen del DOM al volver** (quedan en memoria). Las 24 más recientes se guardan en el teléfono para que
+  la próxima vez el botón abra al tiro. «Ver toda la info» de una completada que no está en la página arma la tarjeta
+  aparte (`tarjetaSuelta`) o la pide.
+- **Lo que antes se contaba en el DOM ahora sale de META**: la barra de progreso de cada día (`actualizarProgreso`) y el
+  «Ver completadas (N)» (`contarCompletadas`), porque las cobradas ya no están todas puestas.
+- **Por toque:** la pestaña Comisión (todas las comisiones, ~165 tarjetas) se arma solo si está a la vista; si no, queda
+  `comisionSucia` y se arma al abrirla. La vista Mes igual. `reubicarCards` solo mueve nodos si el orden cambió. El
+  FLIP lee todo y después escribe. El alto del header lo mantiene un `ResizeObserver`. Los botones de Comisión van por
+  delegación. El logo de WhatsApp de Comisión es un `<symbol>` único (`#ico-wa-sym`).
+- **`#precalentar`:** una tarjeta «Falta cobrar» de muestra, invisible e inerte, que el navegador arma mientras se ve
+  el esqueleto (el primer «Entregado» del día gastaba ~5 veces más en armar letras y estilos). Se quita a los 2,5 s.
+- **Sin respaldo horneado:** sin red usa `entregas_lite_v2` + `tarjetas_v2` (o la v1 de la versión anterior, que se
+  borra tras la primera carga viva). Sin nada: lista vacía y «Sin conexión con la base. Cuando vuelva la señal,
+  recarga.» (antes mostraba 33 entregas de junio-agosto como pendientes). Las lecturas se cortan a los 30 s.
+- El caché del teléfono bajó de ~1.750 K a ~400 K caracteres (el límite del navegador es ~5 MB por sitio y lo comparte
+  con la página de destapes, que vive en el mismo dominio).
 
 ### Publicidad: la parte que paga el repartidor (2026-09-02)
 
@@ -151,7 +193,10 @@ Helpers en JS: `entregadoDe(id)`, `cobradoDe(id)`, `estadoDe(id)`. La comisión 
 
 - **Todo el CSS** está en `ESTILOS_EXTRA` (string normal, llaves simples) y en el `<style>` del f-string final (llaves **dobles** `{{ }}`). El **JS** está en `SCRIPT_ESTADO` (raw string `r"""..."""`, llaves literales). Datos para el JS van en `window.__APP__` (config blob).
 - **Regla del `[hidden]`**: hay una regla global `[hidden]{display:none!important}` porque muchos contenedores usan `display:flex/block` que de otro modo le ganan al atributo `hidden`. Úsala en vez de pelear con cada elemento.
-- **Probar sin tocar la base**: generar y abrir `listado.html` en Chrome headless y capturar errores. Al cargar, la página hace `fetch` a **DOS** endpoints: `entrega` (contenido → tarjetas) y `entrega_estado`/`tarea_estado` (estado). Dos formas de probar:
+- **Antes de publicar un cambio de carga o de pintado** (15-nov-2026): `node resumen-repartidor/tests/navegador/probar-equivalencia.mjs <listado-publicado.html> <listado-nuevo.html> [p-9t4kqv|r-...]`
+  compara lado a lado, con los datos reales (solo lecturas; toda escritura se intercepta), todo lo que se ve y lo que se
+  escribiría; `probar-bordes.mjs` cubre sin clave, sin red, cachés y el ancla. Ver `tests/LEEME.md`.
+- **Probar sin tocar la base**: generar y abrir `listado.html` en Chrome headless y capturar errores. Al cargar, la página hace `fetch` a `entrega_estado`, `entrega` (sin `card_html`), `cobro_publicidad` y, en el paso 2, al `card_html` de las tarjetas que faltan. Dos formas de probar:
   - **Con Supabase real** (recomendado, es lo que valida CORS + datos): servir por `http` (origen válido) y renderizar — `python3 -m http.server 8791` en `resumen-repartidor/` y abrir `http://localhost:8791/listado.html`. La tabla `entrega` tiene RLS anónima, así que trae los datos reales.
   - **Stub de `window.fetch`** para inyectar filas falsas de `entrega` y/o `entrega_estado` (probar orden, fallback si `entrega` da 503, estado, etc.), capturando `window.onerror`/`console.error`.
   ```bash

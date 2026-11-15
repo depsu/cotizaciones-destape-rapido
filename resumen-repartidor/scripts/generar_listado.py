@@ -54,6 +54,19 @@ SUPABASE_ANON_KEY = (
     "9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho"
 )
 
+# (15-nov-2026) Las lecturas de la página. `entrega` va SIN card_html: la tarjeta armada se pide
+# aparte y solo para las que se ven (ver SCRIPT_ESTADO, «carga en dos pasos»).
+CONSULTAS = {
+    "estado": "/rest/v1/entrega_estado?select=*",
+    "lite": "/rest/v1/entrega?select=id,fecha,informado_at,updated_at,data&eliminado=eq.false&order=informado_at.desc",
+    "pub": "/rest/v1/cobro_publicidad?select=*&eliminado=eq.false&order=hasta.desc",
+    # las tarjetas que cambiaron desde la última visita de ESTE teléfono (se le pega la fecha al final)
+    "delta": "/rest/v1/entrega?select=id,updated_at,card_html&eliminado=eq.false&updated_at=gt.",
+}
+# El dibujo del logo de WhatsApp, para el <symbol> único de la página (la pestaña Comisión lo usa
+# con <use> en vez de repetir 1,4 KB por tarjeta).
+WA_PATH_D = re.search(r'd="([^"]+)"', WA_ICON).group(1)
+
 # Comisión de Alejandro: 20% del valor NETO de cada cliente conseguido.
 TASA_COMISION = 0.20
 IVA = 1.19
@@ -854,6 +867,8 @@ ESTILOS_EXTRA = """
   /* El atributo hidden siempre oculta (varios contenedores usan display:flex/block
      que de otro modo le ganarían al hidden). */
   [hidden] { display: none !important; }
+  /* (15-nov-2026) botones y enlaces sin la espera del doble toque (zoom): responden al tiro */
+  button, a, summary, label, .fecha-titulo { touch-action: manipulation; }
   /* Velo de carga (2026-09-02): el HTML trae un respaldo horneado que puede estar
      VIEJO (clientes de hace semanas). Antes se revelaba a los 1.5-2.2 s aunque
      Supabase no hubiera respondido, y por unos instantes se veían entregas antiguas
@@ -1344,6 +1359,23 @@ SCRIPT_ESTADO = r"""<script>
   var PUB = {};          // id -> fila de cobro_publicidad
   var pubPorPagar = [];  // 'pub:<id>' pendientes (se recalcula en renderComision)
   var CARGADO = false;   // true cuando llegaron los datos vivos (o el caché): recién ahí se pintan cifras en la cabecera
+  /* CARGA EN DOS PASOS (15-nov-2026). Antes se bajaban TODAS las tarjetas ya armadas (233, ~570 KB
+     comprimidos) y se metían todas a la página aunque solo se ven las pendientes (18 de 217): en un
+     celular eran 5 a 6 segundos de carga y casi medio segundo de espera en cada toque. Ahora:
+     (1) el estado + los DATOS de cada entrega, sin la tarjeta armada (~60 KB), que alcanzan para la
+     cabecera, la comisión, el mes y el reparto de hoy; (2) solo las tarjetas que se ven, y de esas
+     solo las que cambiaron desde la última visita (caché local por `updated_at`). Las completadas se
+     traen al tocar «Ver completadas». */
+  var ROWS = [];         // filas livianas de ESTA vista (sin card_html), en el orden del servidor
+  var FILA = {};         // id -> fila liviana
+  var TARJ = {};         // id -> {u: updated_at, h: card_html} (memoria + caché local)
+  var EN_DOM = {};       // id -> .card-wrap ya puesta en la página
+  var NUEVAS = {};       // ids que este teléfono no había visto (✨ Nuevo)
+  var COL_A_ID = {};     // id de la columna de Supabase -> id de la entrega (casi siempre el mismo)
+  var VISTA_ACTUAL = 'entregas';
+  var comisionSucia = true; // la pestaña Comisión se arma recién cuando se mira (ver refrescarComision)
+  var Q = APP.q || {};   // las consultas de lectura (las mismas que salen desde el <head>)
+  var raf = (typeof requestAnimationFrame === 'function') ? requestAnimationFrame : function (f) { return setTimeout(f, 16); };
   /* UNA PÁGINA POR REPARTIDOR (16-oct-2026, relevo del dixdybot). Sin `?repartidor=` esta es la lista
      de siempre y muestra SOLO las tarjetas sin marca de relevo. Con `?repartidor=<id>` muestra SOLO las
      que el despacho marcó para ese relevo (`data.repartidor_relevo`). Nunca se mezclan: una vez
@@ -1366,8 +1398,28 @@ SCRIPT_ESTADO = r"""<script>
   }
   var SUFIJO_VISTA = REPARTIDOR_VISTA ? ':' + REPARTIDOR_VISTA : '';
   var CACHE_ENT = 'entregas_cache_v1' + SUFIJO_VISTA, CACHE_EST = 'estado_cache_v1', CACHE_PUB = 'publicidad_cache_v1';
+  /* (15-nov-2026) caché v2, más chica: los datos de las entregas sin la tarjeta armada, y aparte solo
+     las tarjetas de la lista (pendientes). La v1 guardaba TODO (~1,7 MB) y ya rozaba el límite del
+     navegador; se lee solo como respaldo sin red y se borra tras la primera carga viva. */
+  var CACHE_LITE = 'entregas_lite_v2' + SUFIJO_VISTA, CACHE_TARJ = 'tarjetas_v2' + SUFIJO_VISTA;
+  // hasta cuándo están al día las tarjetas de este teléfono (el <head> pide de una vez las que cambiaron después)
+  var CACHE_DESDE = 'tarjetas_v2_desde:' + VISTA_PARAM;
   function cacheGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
   function cacheSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* sin espacio o modo privado */ } }
+  function cacheDel(k) { try { localStorage.removeItem(k); } catch (e) { /* modo privado */ } }
+  /* Lecturas SIN cabeceras propias: la llave va en la URL (Supabase la acepta así), y entonces el
+     navegador no hace la consulta previa de CORS (OPTIONS) antes de cada lectura: un viaje de ida y
+     vuelta menos. Las escrituras siguen con cabeceras (esas sí la necesitan). Si la red se cuelga,
+     a los 30 s se corta y la página sigue con lo guardado en el teléfono. */
+  function leer(ruta, ms) {
+    var ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+    var t = ctl ? setTimeout(function () { ctl.abort(); }, ms || 30000) : null;
+    var url = SUPA.url + ruta + (ruta.indexOf('?') === -1 ? '?' : '&') + 'apikey=' + encodeURIComponent(SUPA.key);
+    return fetch(url, ctl ? { signal: ctl.signal } : undefined)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function (e) { console.warn(e); return null; })
+      .then(function (x) { if (t) { clearTimeout(t); } return x; });
+  }
   function esPub(id) { return String(id).indexOf('pub:') === 0; }
   function pubIdDe(id) { return String(id).slice(4); }
   function pubActivos() {
@@ -1726,10 +1778,13 @@ SCRIPT_ESTADO = r"""<script>
       .filter(function (c) { return c.offsetParent !== null; });
     var firsts = cards.map(function (c) { return c.getBoundingClientRect().top; });
     fn();
+    // (15-nov) primero TODAS las lecturas y después las escrituras: leer la posición de una tarjeta
+    // justo después de mover otra obliga al navegador a recalcular la página una vez por tarjeta
+    var lasts = cards.map(function (c) { return c.offsetParent === null ? null : c.getBoundingClientRect().top; });
     var movidas = [];
     cards.forEach(function (c, i) {
-      if (c.offsetParent === null) return;
-      var delta = firsts[i] - c.getBoundingClientRect().top;
+      if (lasts[i] == null) return;
+      var delta = firsts[i] - lasts[i];
       if (Math.abs(delta) > 1) { c.style.transition = 'none'; c.style.transform = 'translateY(' + delta + 'px)'; movidas.push(c); }
     });
     if (!movidas.length) return;
@@ -1749,11 +1804,15 @@ SCRIPT_ESTADO = r"""<script>
     var s = DIAS[wd] + ' ' + parseInt(p[2], 10) + ' de ' + (MESESL[parseInt(p[1], 10) - 1] || '');
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
+  // (15-nov) los días que el repartidor colapsó: si su sección se rehace (las completadas salen de la
+  // página al volver y entran de nuevo), vuelve colapsada como estaba
+  var COLAPSADAS = {};
   function getOrCreateSection(cont, fecha) {
     var sec = cont.querySelector('section[data-fecha="' + String(fecha).replace(/"/g, '\\"') + '"]');
     if (sec) return sec;
     sec = document.createElement('section');
     sec.setAttribute('data-fecha', fecha);
+    if (COLAPSADAS[fecha]) { sec.classList.add('colapsada-dia'); }
     var h = document.createElement('h2');
     h.className = 'fecha-titulo';
     h.innerHTML = escapeHtml(encabezadoFecha(fecha)) + PROG + '<span class="sec-chevron">▾</span>';
@@ -1782,42 +1841,60 @@ SCRIPT_ESTADO = r"""<script>
     var secs = Array.prototype.slice.call(cont.querySelectorAll('section[data-fecha]'));
     var dir = modoCompletadas ? -1 : 1;
     secs.sort(function (a, b) { return dir * a.getAttribute('data-fecha').localeCompare(b.getAttribute('data-fecha')); });
+    var vivas = [];
     secs.forEach(function (s) {
-      var n = s.querySelectorAll('.card-wrap[data-id]').length;
+      var cards = Array.prototype.slice.call(s.querySelectorAll('.card-wrap[data-id]'));
+      var n = cards.length;
       if (!n) { s.remove(); return; }
       var c = s.querySelector('.conteo'); if (c) { c.textContent = n; }
       var h2 = s.querySelector('h2');
-      // Dentro del día, las cards por informado DESC (la más reciente informada arriba).
-      if (h2 && usaInformado) {
-        Array.prototype.slice.call(s.querySelectorAll('.card-wrap[data-id]'))
-          .sort(function (a, b) { var ia = a.getAttribute('data-informado') || '', ib = b.getAttribute('data-informado') || ''; return ia < ib ? 1 : (ia > ib ? -1 : 0); })
-          .forEach(function (cw) { s.appendChild(cw); });
-      }
-      // Las reagendadas (urgentes) van primero dentro del día.
       if (h2) {
-        Array.prototype.slice.call(s.querySelectorAll('.card-wrap.is-reagendado')).reverse().forEach(function (cw) {
-          h2.insertAdjacentElement('afterend', cw);
+        // Dentro del día, las cards por informado DESC (la más reciente informada arriba).
+        var orden = !usaInformado ? cards : cards.slice().sort(function (a, b) {
+          var ia = a.getAttribute('data-informado') || '', ib = b.getAttribute('data-informado') || '';
+          return ia < ib ? 1 : (ia > ib ? -1 : 0);
         });
+        // Las reagendadas (urgentes) van primero dentro del día.
+        var reag = orden.filter(function (cw) { return cw.classList.contains('is-reagendado'); });
+        if (reag.length) { orden = reag.concat(orden.filter(function (cw) { return !cw.classList.contains('is-reagendado'); })); }
+        ponerEnOrden(s, cards, orden);
       }
-      cont.appendChild(s);
+      vivas.push(s);
     });
+    // las secciones van después de lo fijo de arriba (reparto de hoy y el botón de completadas)
+    ponerEnOrden(cont, Array.prototype.filter.call(cont.children, function (x) { return x.matches && x.matches('section[data-fecha]'); }), vivas);
     // Las secciones agregadas (limpiezas / retiros) siempre al final.
     cont.querySelectorAll('section.agregado').forEach(function (s) { cont.appendChild(s); });
+  }
+  /* (15-nov) mover un nodo, aunque quede en el mismo lugar, obliga al navegador a rehacer la página
+     (y le quita el foco al que se está tocando): solo se mueve si el orden de verdad cambió. Mismo
+     resultado que antes, que los volvía a poner todos en cada toque. */
+  function ponerEnOrden(padre, actuales, orden) {
+    var igual = actuales.length === orden.length;
+    for (var i = 0; igual && i < orden.length; i++) { if (actuales[i] !== orden[i]) { igual = false; } }
+    if (!igual) { orden.forEach(function (x) { padre.appendChild(x); }); }
   }
 
   // Barra de progreso por día: avanza según los baños ya entregados/cobrados.
   function actualizarProgreso() {
+    /* (15-nov) los baños del día se cuentan desde los DATOS (META), no desde las tarjetas de la
+       página: las completadas ya no están todas puestas, y la barra tiene que seguir diciendo
+       «2/3» aunque la cobrada no esté a la vista. Mismo día que usa reubicarCards (el efectivo). */
+    var porDia = {};
+    Object.keys(META).forEach(function (id) {
+      var m = META[id];
+      if (!m || m.tipo !== 'bano') return; // limpiezas/retiros no cuentan baños
+      if (eliminadoDe(id)) return; // eliminada no cuenta en el progreso
+      var f = fechaDe(id) || '';
+      var d = porDia[f] || (porDia[f] = { total: 0, done: 0 });
+      var b = m.banos || 1;
+      d.total += b;
+      var e = estadoDe(id);
+      if (e === 'entregado' || e === 'cobrado') { d.done += b; }
+    });
     document.querySelectorAll('.vista[data-vista="entregas"] section[data-fecha]').forEach(function (sec) {
-      var total = 0, done = 0;
-      sec.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
-        var id = cw.getAttribute('data-id');
-        if (!META[id] || META[id].tipo !== 'bano') return; // limpiezas/retiros no cuentan baños
-        if (eliminadoDe(id)) return; // eliminada no cuenta en el progreso
-        var b = META[id].banos || 1;
-        total += b;
-        var e = estadoDe(id);
-        if (e === 'entregado' || e === 'cobrado') { done += b; }
-      });
+      var d = porDia[sec.getAttribute('data-fecha') || ''] || { total: 0, done: 0 };
+      var total = d.total, done = d.done;
       var pct = total ? Math.round(done / total * 100) : 0;
       var fill = sec.querySelector('.prog-fill'); if (fill) { fill.style.width = pct + '%'; }
       var num = sec.querySelector('.prog-num'); if (num) { num.textContent = done + '/' + total; }
@@ -1987,15 +2064,25 @@ SCRIPT_ESTADO = r"""<script>
   }
 
   // Fija la altura real del header para el 'top' de los encabezados sticky.
+  // (15-nov) con ResizeObserver: se actualiza sola cuando el header cambia de alto, en vez de
+  // medirlo (y obligar al navegador a rehacer la página) en cada toque.
+  var hdrObs = null;
   function setHeaderH() {
     var h = document.querySelector('header');
-    if (h) { document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px'); }
+    if (!h) { return; }
+    if (hdrObs) { return; }
+    if (typeof ResizeObserver === 'function') {
+      hdrObs = new ResizeObserver(function () { document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px'); });
+      hdrObs.observe(h);
+      return;
+    }
+    document.documentElement.style.setProperty('--header-h', h.offsetHeight + 'px');
   }
 
   // ---- Completadas (estado 'cobrado'). En modo normal se ocultan; en "Ver
   //      completadas" se muestran SOLO ellas y se oculta todo lo demás. ----
   function aplicarAnteriores() {
-    var nComp = 0;
+    var nCompDom = 0;
     document.querySelectorAll('.card-wrap[data-id]').forEach(function (cw) {
       if (cw.classList.contains('celebrando') || cw.classList.contains('saliendo')) { return; } // animándose
       var id = cw.getAttribute('data-id');
@@ -2003,10 +2090,13 @@ SCRIPT_ESTADO = r"""<script>
       cw.classList.toggle('oculto-eliminado', elim);
       if (elim) { cw.classList.remove('oculto-anterior'); return; } // eliminada: fuera de la vista y de los conteos
       var completada = estadoDe(id) === 'cobrado';
-      if (completada) { nComp++; }
+      if (completada) { nCompDom++; }
       var ocultar = modoCompletadas ? !completada : completada;
       cw.classList.toggle('oculto-anterior', ocultar);
     });
+    // (15-nov) las completadas se cuentan desde los datos: sus tarjetas se traen recién al tocar el botón.
+    // Sin datos cargados (respaldo de prueba) se cuentan las tarjetas, como antes.
+    var nComp = ROWS.length ? contarCompletadas() : nCompDom;
     document.querySelectorAll('.vista[data-vista="entregas"] section[data-fecha]').forEach(function (sec) {
       var vis = sec.querySelectorAll('.card-wrap:not(.oculto-anterior):not(.oculto-eliminado)').length;
       sec.style.display = vis ? '' : 'none';
@@ -2249,10 +2339,11 @@ SCRIPT_ESTADO = r"""<script>
   }
 
   function loadTareas() {
-    if (!SUPA.url || !SUPA.key) { pintarTareas(); aplicarTareas(); return; }
-    fetch(SUPA.url + '/rest/v1/tarea_estado?select=*', { headers: headers() })
-      .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (rows) { rows.forEach(function (row) { tEstado[row.id] = row; }); })
+    // (15-nov) sin tareas en la página (las secciones de limpiezas y retiros se quitaron el 7-nov)
+    // no se pide su estado: una lectura menos en cada carga
+    if (!SUPA.url || !SUPA.key || !Object.keys(TAREAS).length) { pintarTareas(); aplicarTareas(); return; }
+    leer('/rest/v1/tarea_estado?select=*')
+      .then(function (rows) { (rows || []).forEach(function (row) { tEstado[row.id] = row; }); })
       .catch(function (e) { console.warn(e); })
       .then(function () { pintarTareas(); aplicarTareas(); });
   }
@@ -2274,14 +2365,13 @@ SCRIPT_ESTADO = r"""<script>
     for (var k in patch) { row[k] = patch[k]; }
     if (row.fecha === '') { row.fecha = null; }
     estado[id] = row;
-    var card = qCard(id);
+    var card = EN_DOM[id] || qCard(id);
     if (card) { pintarCard(card); }
     reubicarCards();
     actualizarProgreso();
     aplicarAnteriores();
     aplicarTareas();
-    actualizarGanado();
-    renderComision();
+    refrescarComision(); // la cabecera al tiro; la pestaña Comisión solo si está a la vista
     if (!SUPA.url || !SUPA.key) return Promise.resolve(true);
     return fetch(SUPA.url + '/rest/v1/entrega_estado', {
       method: 'POST',
@@ -2421,7 +2511,9 @@ SCRIPT_ESTADO = r"""<script>
     var pc = document.getElementById('pend-count');
     if (pc) { pc.textContent = pend; }
     setHeaderH(); // el alto del header cambia con la línea de "ganado"
-    renderMes();  // la vista del mes sale del mismo cálculo: se repinta junto con él
+    // la vista del mes sale del mismo cálculo: se repinta junto con él si está a la vista
+    // (15-nov); si no, se pinta al abrirla (irAVista siempre la repinta)
+    if (VISTA_ACTUAL === 'mes') { renderMes(); }
   }
 
   function setActualizado(txt) { var a = document.getElementById('hdr-act'); if (a) { a.textContent = txt; } }
@@ -2434,7 +2526,7 @@ SCRIPT_ESTADO = r"""<script>
     for (var k in prev) { row[k] = prev[k]; }
     for (var q in patch) { row[q] = patch[q]; }
     PUB[id] = row;
-    renderHeaderPub(); renderComision();
+    renderHeaderPub(); refrescarComision();
     if (!SUPA.url || !SUPA.key) return Promise.resolve(true);
     return fetch(SUPA.url + '/rest/v1/cobro_publicidad?id=eq.' + encodeURIComponent(id), {
       method: 'PATCH',
@@ -2470,10 +2562,8 @@ SCRIPT_ESTADO = r"""<script>
     setHeaderH();
   }
 
-  function irAVista(v) {
-    var b = document.querySelector('.vista-btn[data-vista="' + v + '"]');
-    if (b) { b.click(); }
-  }
+  // (15-nov) acá había una primera versión de irAVista (la que pulsaba el botón); nunca corría porque
+  // la de más abajo, con el mismo nombre, la pisa. Se quitó para que no confunda.
 
   function bloquePub(id, conBoton) {
     var pb = PUB[id] || {};
@@ -2543,16 +2633,33 @@ SCRIPT_ESTADO = r"""<script>
     bg.querySelectorAll('.pub-ir').forEach(function (b) {
       b.addEventListener('click', function () {
         comDesel.delete('pub:' + b.getAttribute('data-id')); saveSel();
-        cerrar(); irAVista('comision'); renderComision();
+        comisionSucia = true; // cambió la selección: la pestaña se vuelve a armar al abrirla
+        cerrar(); irAVista('comision');
       });
     });
   }
 
   // Modal con TODA la info del cliente/entrega (reusa el detalle de su card).
+  // (15-nov) si la tarjeta no está puesta en la página (una completada que nadie abrió), se arma
+  // aparte desde su HTML, pintada con su estado como si estuviera en la lista; si tampoco está en
+  // memoria, el modal abre al tiro con «Cargando…» y se rellena cuando llega.
+  function detalleDe(cw) {
+    var d = cw && cw.querySelector('.detalle');
+    return d ? d.innerHTML : '<p>Sin detalle disponible.</p>';
+  }
   function verInfoEntrega(id) {
     var m = META[id] || {};
-    var card = document.querySelector('.card-wrap[data-id="' + String(id).replace(/"/g, '\\"') + '"]');
-    var detalle = card ? card.querySelector('.detalle').innerHTML : '<p>Sin detalle disponible.</p>';
+    // con red, una tarjeta guardada que ya no está al día se pide de nuevo (sin red sirve la guardada)
+    var enLinea = !!(SUPA.url && FILA[id] && navigator.onLine !== false);
+    var card = EN_DOM[id] || document.querySelector('.card-wrap[data-id="' + String(id).replace(/"/g, '\\"') + '"]')
+      || ((!enLinea || tarjetaAlDia(id)) ? tarjetaSuelta(id) : null);
+    var detalle = card ? detalleDe(card) : (enLinea ? '<p>Cargando…</p>' : '<p>Sin detalle disponible.</p>');
+    if (!card && enLinea) {
+      pedirTarjetas([id], 15000).then(function () {
+        var dest = document.querySelector('.modal .info-clon[data-info-id="' + String(id).replace(/"/g, '\\"') + '"]');
+        if (dest) { dest.innerHTML = detalleDe(tarjetaSuelta(id)); }
+      });
+    }
     var estLbl = (ESTADOS[estadoDe(id)] || ESTADOS['pendiente'])[0];
     var fOrig = m.fecha, fAct = fechaDe(id);
     var reag = (fAct && fOrig && fAct !== fOrig)
@@ -2562,7 +2669,7 @@ SCRIPT_ESTADO = r"""<script>
     bg.innerHTML = '<div class="modal"><h3>' + escapeHtml(m.cliente || 'Cliente') + '</h3>'
       + '<div class="modal-sub">Estado: ' + estLbl + ' · Entrega: ' + fechaLarga(fAct || fOrig) + '</div>'
       + reag
-      + '<div class="info-clon">' + detalle + '</div>'
+      + '<div class="info-clon" data-info-id="' + escapeHtml(id) + '">' + detalle + '</div>'
       + '<div class="modal-acciones"><button type="button" class="btn-modal cancelar">Cerrar</button></div></div>';
     document.body.appendChild(bg);
     bg.addEventListener('click', function (ev) { if (ev.target === bg) { document.body.removeChild(bg); } });
@@ -2594,7 +2701,17 @@ SCRIPT_ESTADO = r"""<script>
     bg.querySelector('.cancelar').addEventListener('click', function () { document.body.removeChild(bg); });
   }
 
+  /* (15-nov) La pestaña Comisión lista TODAS las comisiones, también las ya pagadas (~165 tarjetas):
+     rearmarla en cada toque de «Entregado» o «Cobrado» era lo que más demoraba la página. Ahora la
+     cabecera se actualiza al tiro y la pestaña se arma solo si está a la vista; si no, queda marcada
+     y se arma al abrirla. */
+  function refrescarComision() {
+    if (VISTA_ACTUAL === 'comision') { renderComision(); return; }
+    comisionSucia = true;
+    actualizarGanado();
+  }
   function renderComision() {
+    comisionSucia = false;
     actualizarGanado();
     var cont = document.getElementById('comision-panel');
     if (!cont) return;
@@ -2636,7 +2753,8 @@ SCRIPT_ESTADO = r"""<script>
         ? '<span class="com-pagada-tag">✓ Pagada</span>'
         : '<input type="checkbox" class="com-check" data-id="' + escapeHtml(id) + '"' + (comDesel.has(id) ? '' : ' checked') + '>';
       var rev = paid ? '<button type="button" class="com-revocar" data-id="' + escapeHtml(id) + '">Revocar</button>' : '';
-      var wa = m.tel ? '<button type="button" class="com-wa" data-id="' + escapeHtml(id) + '"><svg class="ico-wa" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg> Revisar en WhatsApp</button>' : '';
+      // (15-nov) el logo sale de un solo <symbol> de la página: antes cada tarjeta repetía 1,4 KB de dibujo
+      var wa = m.tel ? '<button type="button" class="com-wa" data-id="' + escapeHtml(id) + '"><svg class="ico-wa" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><use href="#ico-wa-sym"></use></svg> Revisar en WhatsApp</button>' : '';
       return '<div class="com-card' + (paid ? ' com-pagada' : '') + '">'
         + '<div class="com-top">' + check
         + '<div class="com-main"><div class="com-cli">' + escapeHtml(m.cliente) + '</div>'
@@ -2688,16 +2806,25 @@ SCRIPT_ESTADO = r"""<script>
       });
     }
     cont.innerHTML = html;
-
-    cont.querySelectorAll('.com-check').forEach(function (ch) {
-      ch.addEventListener('change', function () {
-        var id = ch.getAttribute('data-id');
-        if (ch.checked) comDesel.delete(id); else comDesel.add(id);
-        saveSel(); updateBarra();
-      });
+    wireComision(cont);
+    updateBarra();
+  }
+  /* (15-nov) los botones de la pestaña Comisión van por delegación: UN escuchador en el panel en vez
+     de ~500 que se volvían a enganchar cada vez que se armaba. Mismas acciones que antes. */
+  function wireComision(cont) {
+    if (cont.__wired) { return; }
+    cont.__wired = true;
+    cont.addEventListener('change', function (ev) {
+      var ch = ev.target && ev.target.closest ? ev.target.closest('.com-check') : null;
+      if (!ch || !cont.contains(ch)) { return; }
+      var id = ch.getAttribute('data-id');
+      if (ch.checked) comDesel.delete(id); else comDesel.add(id);
+      saveSel(); updateBarra();
     });
-    cont.querySelectorAll('.com-revocar').forEach(function (b) {
-      b.addEventListener('click', function () {
+    cont.addEventListener('click', function (ev) {
+      var b = ev.target && ev.target.closest ? ev.target.closest('button') : null;
+      if (!b || !cont.contains(b)) { return; }
+      if (b.classList.contains('com-revocar')) {
         var rid = b.getAttribute('data-id');
         if (esPub(rid)) {
           if (confirm('¿Revocar el pago de esta publicidad? Volverá a quedar como pendiente.')) {
@@ -2708,24 +2835,17 @@ SCRIPT_ESTADO = r"""<script>
         if (confirm('¿Revocar el pago de esta comisión? Volverá a quedar como pendiente.')) {
           upsert(rid, { comision_pagada: false, pagada_at: null });
         }
-      });
-    });
-    cont.querySelectorAll('.com-wa').forEach(function (b) {
-      b.addEventListener('click', function () {
+        return;
+      }
+      if (b.classList.contains('com-wa')) {
         var tel = (META[b.getAttribute('data-id')] || {}).tel;
         if (tel) { window.location.href = 'whatsapp://send?phone=' + tel; }
-      });
+        return;
+      }
+      if (b.classList.contains('pub-info')) { abrirModalPublicidad(b.getAttribute('data-id')); return; }
+      if (b.classList.contains('com-info')) { verInfoEntrega(b.getAttribute('data-id')); return; }
+      if (b.classList.contains('com-ver-transf')) { verTransferencia(b.getAttribute('data-key')); }
     });
-    cont.querySelectorAll('.com-info:not(.pub-info)').forEach(function (b) {
-      b.addEventListener('click', function () { verInfoEntrega(b.getAttribute('data-id')); });
-    });
-    cont.querySelectorAll('.pub-info').forEach(function (b) {
-      b.addEventListener('click', function () { abrirModalPublicidad(b.getAttribute('data-id')); });
-    });
-    cont.querySelectorAll('.com-ver-transf').forEach(function (b) {
-      b.addEventListener('click', function () { verTransferencia(b.getAttribute('data-key')); });
-    });
-    updateBarra();
   }
 
   function seleccionTotal() {
@@ -2791,7 +2911,7 @@ SCRIPT_ESTADO = r"""<script>
             else if (estado[id]) { estado[id].comision_pagada = false; estado[id].pagada_at = null; }
           });
           if (fallo) {
-            renderHeaderPub(); renderComision();
+            renderHeaderPub(); refrescarComision();
             btn.disabled = false; btn.textContent = 'Marcar pagadas y abrir WhatsApp';
             alert('No se pudo registrar el pago (sin conexión). Reintenta cuando tengas señal.');
             return;
@@ -2918,66 +3038,255 @@ SCRIPT_ESTADO = r"""<script>
   // "✨ Nuevo": destaca lo que ESTE dispositivo no había visto (memoria en
   // localStorage, por persona: no choca con otros que miren el panel a la vez).
   var VISTAS_KEY = 'entregas_vistas_v1';
+  // (15-nov) calcula cuáles son nuevas (NUEVAS) sin tocar la página: la marca se le pone a cada
+  // tarjeta cuando se inyecta, también a las completadas que llegan después.
   function marcarNuevas(rows) {
     var prev = null;
     try { prev = JSON.parse(localStorage.getItem(VISTAS_KEY) || 'null'); } catch (e) { prev = null; }
     var conocidas = {};
     (Array.isArray(prev) ? prev : []).forEach(function (id) { conocidas[id] = 1; });
     var todas = [];
+    NUEVAS = {};
     rows.forEach(function (row) {
-      var e = (row && row.data) || {};
-      var id = e.id || (row && row.id);
+      var id = idDeFila(row);
       if (!id) { return; }
       todas.push(id);
       // Primera visita (sin memoria previa): no marcar nada, solo aprender lo actual.
-      if (Array.isArray(prev) && !conocidas[id]) {
-        var cw = document.querySelector('.card-wrap[data-id="' + id + '"]');
-        if (cw) { cw.classList.add('card-nueva'); }
-      }
+      if (Array.isArray(prev) && !conocidas[id]) { NUEVAS[id] = true; }
     });
     try { localStorage.setItem(VISTAS_KEY, JSON.stringify(todas)); } catch (e) { /* modo privado: sin memoria */ }
   }
 
-  // Reemplaza las cards horneadas por las de Supabase (ya ordenadas por el fetch).
+  function idDeFila(row) { return ((row && row.data) || {}).id || (row && row.id) || ''; }
+
+  // Los DATOS de las entregas (sin tocar la página): META, GEO y la marca ✨ Nuevo.
   function aplicarEntregas(rows) {
-    // 1) META y GEO desde el `data` crudo → comisión, progreso, ganado y el
-    //    "Reparto de hoy" se recomputan solos aunque el HTML horneado esté viejo.
-    //    El geo horneado queda solo de respaldo si la deducción en vivo no da comuna.
-    var nuevo = {}, geoNuevo = {};
+    // META y GEO desde el `data` crudo → comisión, progreso, ganado y el
+    // "Reparto de hoy" se recomputan solos aunque el HTML horneado esté viejo.
+    // El geo horneado queda solo de respaldo si la deducción en vivo no da comuna.
+    var nuevo = {}, geoNuevo = {}, fila = {}, col = {};
     rows.forEach(function (row) {
       var e = (row && row.data) || {};
-      var id = e.id || (row && row.id);
+      var id = idDeFila(row);
       if (!id) { return; }
+      if (row.id) { col[row.id] = id; }
       nuevo[id] = metaDeData(e);
       var g = geoDeData(e);
       var baked = (APP.geo || {})[id];
       geoNuevo[id] = (g.comuna === 'Sin comuna' && baked && baked.comuna && baked.comuna !== 'Sin comuna') ? baked : g;
+      fila[id] = row;
+      // una fila completa (caché de la versión anterior) ya trae su tarjeta
+      if (row.card_html) { TARJ[id] = { u: row.updated_at || '', h: row.card_html }; }
     });
     META = nuevo;
     GEO = geoNuevo;
-    // 2) Inyecta las tarjetas pre-renderizadas, en el orden recibido (informado DESC).
-    var cont = document.querySelector('.vista[data-vista="entregas"]');
-    if (!cont) { return; }
-    cont.querySelectorAll('.card-wrap[data-id]').forEach(function (c) { c.remove(); });
-    cont.querySelectorAll('section[data-fecha]').forEach(function (s) {
-      if (!s.querySelector('.card-wrap[data-id]')) { s.remove(); }
+    FILA = fila;
+    COL_A_ID = col;
+    ROWS = rows;
+    marcarNuevas(rows);
+  }
+  // Las tarjetas que cambiaron desde la última visita (pedidas desde el <head>): son las más nuevas.
+  function aplicarDelta(filas) {
+    (filas || []).forEach(function (r) {
+      if (!r || !r.card_html) { return; }
+      TARJ[COL_A_ID[r.id] || r.id] = { u: r.updated_at || '', h: r.card_html };
     });
-    var tpl = document.createElement('template');
-    rows.forEach(function (row) {
-      if (!row || !row.card_html) { return; }
-      tpl.innerHTML = String(row.card_html).trim();
+  }
+
+  // Qué tarjetas van en la lista de siempre (pendientes) y cuáles son las completadas.
+  function enLista(id) { return !eliminadoDe(id) && estadoDe(id) !== 'cobrado'; }
+  function completadaDe(id) { return !eliminadoDe(id) && estadoDe(id) === 'cobrado'; }
+  function idsDe(pred) {
+    var vistos = {}, out = [];
+    ROWS.forEach(function (row) {
+      var id = idDeFila(row);
+      if (!id || vistos[id] || !FILA[id]) { return; }
+      vistos[id] = 1;
+      if (pred(id)) { out.push(id); }
+    });
+    return out;
+  }
+  function contarCompletadas() {
+    var n = 0;
+    Object.keys(META).forEach(function (id) {
+      if (!completadaDe(id)) { return; }
+      var cw = EN_DOM[id];
+      if (cw && (cw.classList.contains('celebrando') || cw.classList.contains('saliendo'))) { return; } // animándose
+      n++;
+    });
+    return n;
+  }
+  // ¿La tarjeta guardada es la de la versión vigente de la entrega? (updated_at la cambia el trigger
+  // entrega_touch de Supabase en cada cambio de la fila)
+  function tarjetaAlDia(id) {
+    var t = TARJ[id], f = FILA[id];
+    return !!(t && typeof t.h === 'string' && f && (t.u || '') === (f.updated_at || ''));
+  }
+  // Trae de Supabase las tarjetas que faltan o cambiaron, de a 40 por consulta (la URL no crece sin
+  // límite). Devuelve true si quedaron todas disponibles.
+  // `ms`: cuánto esperar (lo que se pide al tocar un botón espera 15 s, no 30)
+  function pedirTarjetas(ids, ms) {
+    var faltan = ids.filter(function (id) { return !tarjetaAlDia(id); });
+    if (!faltan.length) { return Promise.resolve(true); }
+    if (!SUPA.url || !SUPA.key) { return Promise.resolve(false); }
+    var deCol = {}, cols = faltan.map(function (id) { var c = (FILA[id] && FILA[id].id) || id; deCol[c] = id; return c; });
+    var tandas = [];
+    for (var i = 0; i < cols.length; i += 40) { tandas.push(cols.slice(i, i + 40)); }
+    return Promise.all(tandas.map(function (t) {
+      var lista = t.map(function (c) { return '"' + String(c).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"'; }).join(',');
+      return leer('/rest/v1/entrega?select=id,updated_at,card_html&id=in.(' + encodeURIComponent(lista) + ')', ms);
+    })).then(function (res) {
+      var ok = true;
+      res.forEach(function (filas) {
+        if (!filas) { ok = false; return; }
+        filas.forEach(function (r) {
+          var id = deCol[r.id] || COL_A_ID[r.id] || r.id;
+          // una fila sin tarjeta armada queda anotada como vacía (no se muestra, como antes) y no se
+          // cuenta como falla de red
+          if (r) { TARJ[id] = { u: r.updated_at || '', h: r.card_html || '' }; }
+        });
+      });
+      return ok && faltan.every(function (id) { return !!(TARJ[id] && typeof TARJ[id].h === 'string'); });
+    });
+  }
+  // Pone en la página las tarjetas de esos ids que aún no están (en su día, con su marca de
+  // informado y de ✨ Nuevo, con sus botones enganchados). Devuelve las recién puestas.
+  function inyectar(ids) {
+    var cont = document.querySelector('.vista[data-vista="entregas"]');
+    if (!cont) { return []; }
+    var tpl = document.createElement('template'), puestas = [];
+    ids.forEach(function (id) {
+      if (EN_DOM[id] || !TARJ[id] || !TARJ[id].h) { return; }
+      tpl.innerHTML = String(TARJ[id].h).trim();
       var cw = tpl.content.firstElementChild;
       if (!cw) { return; }
+      var row = FILA[id] || {};
       // data-informado: sella cuándo se informó, para ordenar por eso en JS.
       if (row.informado_at) { cw.setAttribute('data-informado', row.informado_at); }
-      var f = cw.getAttribute('data-fecha') || (row.fecha || '');
-      getOrCreateSection(cont, f).appendChild(cw);
+      if (NUEVAS[id]) { cw.classList.add('card-nueva'); }
+      getOrCreateSection(cont, cw.getAttribute('data-fecha') || (row.fecha || '')).appendChild(cw);
+      EN_DOM[id] = cw;
+      puestas.push(cw);
     });
-    // 3) Destaca las entregas que este dispositivo aún no había visto.
-    marcarNuevas(rows);
-    // Re-engancha los listeners sobre las cards inyectadas (guardado por card.__wired
-    // y wire.__globals: no duplica listeners de cards ni globales ya enganchados).
-    wire();
+    puestas.forEach(wireCard);
+    return puestas;
+  }
+  // Una tarjeta armada aparte (no se pone en la página), pintada con su estado: para el modal
+  // «Ver toda la info» de una completada que no está en la lista.
+  function tarjetaSuelta(id) {
+    var t = TARJ[id];
+    if (!t || !t.h) { return null; }
+    var tpl = document.createElement('template');
+    tpl.innerHTML = String(t.h).trim();
+    var cw = tpl.content && tpl.content.firstElementChild;
+    if (!cw) { return null; }
+    pintarCard(cw);
+    return cw;
+  }
+  // «Ver completadas»: trae (una vez por visita) las tarjetas de las cobradas y las pone en la página.
+  // De a poco: primero las más recientes (las que se ven arriba en ese modo) y el resto detrás, en
+  // tandas, para que la lista aparezca al tiro aunque sean cientos.
+  var TANDA_COMP = 24, genComp = 0;
+  function completadasListas() { return idsDe(completadaDe).every(function (id) { return !!EN_DOM[id]; }); }
+  function completadasRecientes() {
+    return idsDe(completadaDe).sort(function (a, b) { return (fechaDe(b) || '').localeCompare(fechaDe(a) || ''); });
+  }
+  function ordenCompletadas() { return completadasRecientes().filter(function (id) { return !EN_DOM[id]; }); }
+  function ponerCompletadas(ids) {
+    var puestas = inyectar(ids);
+    puestas.forEach(pintarCard);
+    if (puestas.length) {
+      // a su día, con la barra de su día y visibles u ocultas según el modo
+      reubicarCards(); actualizarProgreso(); aplicarAnteriores();
+    }
+  }
+  // la primera tanda (lo que se ve arriba); devuelve true si llegó
+  function cargarCompletadas() {
+    var primeras = ordenCompletadas().slice(0, TANDA_COMP);
+    var habiaQuePedir = primeras.some(function (id) { return !tarjetaAlDia(id); });
+    return pedirTarjetas(primeras, 15000).then(function (ok) {
+      ponerCompletadas(primeras);
+      if (habiaQuePedir && ok && ROWS.length) { setTimeout(guardarTarjetas, 600); } // para la próxima visita
+      return ok || primeras.every(function (id) { return !!EN_DOM[id]; });
+    });
+  }
+  // el resto, detrás (se corta si se vuelve a la lista)
+  function seguirCompletadas() {
+    var gen = ++genComp;
+    var resto = ordenCompletadas();
+    if (!resto.length) { return; }
+    pedirTarjetas(resto, 15000).then(function (ok) {
+      var i = 0;
+      var tanda = function () {
+        if (gen !== genComp || !modoCompletadas) { return; }
+        try { ponerCompletadas(resto.slice(i, i + TANDA_COMP)); } catch (e) { console.warn('Tanda de completadas con error:', e); }
+        i += TANDA_COMP;
+        if (i < resto.length) { setTimeout(tanda, 40); return; }
+        if (!ok && !completadasListas()) {
+          var p = document.getElementById('estado-online');
+          if (p) { p.hidden = false; p.textContent = '⚠ Sin conexión: no se pudieron cargar todas las completadas. Reintenta.'; }
+        }
+      };
+      setTimeout(tanda, 0);
+    });
+  }
+  function sacarCompletadas() {
+    Object.keys(EN_DOM).forEach(function (id) {
+      var cw = EN_DOM[id];
+      if (!completadaDe(id)) { return; }
+      if (cw.classList.contains('celebrando') || cw.classList.contains('saliendo') || cw.classList.contains('con-confirm')) { return; }
+      if (cw.parentNode) { cw.parentNode.removeChild(cw); }
+      delete EN_DOM[id];
+    });
+  }
+  // Lo que se guarda en el teléfono para abrir sin señal: sale después de pintar, cuando el
+  // celular está libre (escribir ~300 KB en el almacenamiento demora en un teléfono lento).
+  function guardarCaches(vivo, completa) {
+    var tarea = function () {
+      if (vivo.estado) { cacheSet(CACHE_EST, vivo.estado); }
+      if (vivo.lite) {
+        cacheSet(CACHE_LITE, vivo.lite);
+        // la caché v1 (todo, ~1,7 MB) ya no hace falta, pero solo se borra si esta carga trajo TODAS
+        // las tarjetas de la lista (si no, es el único respaldo de las que faltaron)
+        if (completa) { cacheDel(CACHE_ENT); }
+      }
+      if (vivo.pub) { cacheSet(CACHE_PUB, vivo.pub); }
+      if (vivo.lite) {
+        guardarTarjetas();
+        // la marca: la fila más reciente que se vio en esta carga (lo que cambie después lo trae el delta)
+        var max = '', maxT = -Infinity;
+        vivo.lite.forEach(function (r) { var x = Date.parse((r && r.updated_at) || ''); if (x > maxT) { maxT = x; max = r.updated_at; } });
+        if (max) { try { localStorage.setItem(CACHE_DESDE, max); } catch (e) { /* sin espacio */ } }
+      }
+    };
+    if (typeof requestIdleCallback === 'function') { requestIdleCallback(tarea, { timeout: 4000 }); }
+    else { setTimeout(tarea, 1200); }
+  }
+  // Las tarjetas que se guardan en el teléfono: las de la lista y la primera tanda de completadas
+  // (las más recientes, si ya se trajeron alguna vez): así «Ver completadas» abre al tiro la próxima vez.
+  function guardarTarjetas() {
+    var t = {};
+    idsDe(enLista).forEach(function (id) { if (TARJ[id] && TARJ[id].h) { t[id] = TARJ[id]; } });
+    completadasRecientes().slice(0, TANDA_COMP).forEach(function (id) { if (TARJ[id] && TARJ[id].h) { t[id] = TARJ[id]; } });
+    cacheSet(CACHE_TARJ, t);
+  }
+  // Si faltan tarjetas (sin red o se cortó en el paso 2) y este teléfono todavía tiene la caché v1 de
+  // la versión anterior (con todas armadas), se completan desde ahí: mejor una tarjeta guardada que
+  // ninguna. Quedan marcadas como no al día (u vacío), así que con red se vuelven a pedir.
+  function completarDesdeV1(ids) {
+    var falta = ids.filter(function (id) { return !TARJ[id] || !TARJ[id].h; });
+    if (!falta.length) { return; }
+    var v1 = cacheGet(CACHE_ENT);
+    if (!Array.isArray(v1)) { return; }
+    var porId = {};
+    v1.forEach(function (r) { var i = idDeFila(r); if (i && r && r.card_html) { porId[i] = r.card_html; } });
+    falta.forEach(function (id) { if (porId[id]) { TARJ[id] = { u: '', h: porId[id] }; } });
+  }
+  function cargarCacheTarjetas() {
+    var t = cacheGet(CACHE_TARJ);
+    if (t && typeof t === 'object') {
+      Object.keys(t).forEach(function (id) { if (t[id] && t[id].h && !TARJ[id]) { TARJ[id] = t[id]; } });
+    }
   }
 
   // El ancla del link de WhatsApp: #8582 (cola del id) o el id completo. Corre DESPUÉS
@@ -2994,7 +3303,7 @@ SCRIPT_ESTADO = r"""<script>
     }
     if (!card) { return; }
     var sec = card.closest('section');
-    if (sec) { sec.classList.remove('colapsada-dia'); }
+    if (sec) { sec.classList.remove('colapsada-dia'); COLAPSADAS[sec.getAttribute('data-fecha') || ''] = false; }
     card.scrollIntoView({ block: 'center' });
     card.classList.add('resalta');
     setTimeout(function () { card.classList.remove('resalta'); }, 5000);
@@ -3019,69 +3328,99 @@ SCRIPT_ESTADO = r"""<script>
       if (h1) { h1.textContent = '🔀 Entregas de relevo'; }
       document.title = 'Entregas de relevo';
     }
-    var done = function () { CARGADO = true; pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); renderHeaderPub(); renderComision(); revelar(); irAlAncla(); };
+    var vivoDe = { estado: null, lite: null, pub: null }; // lo que llegó vivo (se guarda en el teléfono al final)
+    var completa = false, terminado = false;
+    var done = function () {
+      if (terminado) { return; }
+      terminado = true;
+      CARGADO = true;
+      // (15-nov) pase lo que pase al pintar, la página se muestra (antes una excepción dejaba el velo)
+      try { pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); renderHeaderPub(); refrescarComision(); }
+      catch (e) { console.warn('Error al pintar la página:', e); }
+      revelar(); irAlAncla(); guardarCaches(vivoDe, completa);
+    };
     if (!SUPA.url || !SUPA.key) { setActualizado('sin conexión a la base'); done(); return; }
+    // Las tres lecturas ya salieron desde el <head> (window.__PRE__); si ese script no corrió, se piden acá.
+    var pre = window.__PRE__ || {};
     // Estado mutable (entregado/cobrado/…): puebla el mapa `estado`. null = no llegó.
-    var pEstado = fetch(SUPA.url + '/rest/v1/entrega_estado?select=*', { headers: headers() })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .catch(function (e) { console.warn(e); return null; });
-    // Contenido de entregas (card_html) ordenado por informado_at DESC.
-    var pEntrega = fetch(SUPA.url + '/rest/v1/entrega?select=id,fecha,informado_at,data,card_html&eliminado=eq.false&order=informado_at.desc', { headers: headers() })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .catch(function (e) { console.warn(e); return null; });
+    var pEstado = pre.estado || leer(Q.estado);
+    // DATOS de las entregas, sin la tarjeta armada, ordenados por informado_at DESC.
+    var pLite = pre.lite || leer(Q.lite);
     // Cobros de publicidad (la parte que le toca al repartidor). Si falla, simplemente no se muestra.
-    var pPub = fetch(SUPA.url + '/rest/v1/cobro_publicidad?select=*&eliminado=eq.false&order=hasta.desc', { headers: headers() })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .catch(function (e) { console.warn(e); return null; });
-    Promise.all([pEstado, pEntrega, pPub]).then(function (res) {
-      var est = res[0], rows = res[1], pubs = res[2];
-      var vivo = true, horneado = false;
+    var pPub = pre.pub || leer(Q.pub);
+    // Tarjetas que cambiaron desde la última visita de este teléfono (la entrega nueva del aviso).
+    var desde = ('desde' in pre) ? pre.desde : (function () { try { return localStorage.getItem(CACHE_DESDE); } catch (e) { return null; } })();
+    var pDelta = pre.delta || ((desde && Q.delta) ? leer(Q.delta + encodeURIComponent(desde)) : Promise.resolve(null));
+    Promise.all([pEstado, pLite, pPub, pDelta]).then(function (res) {
+      var est = res[0], rows = res[1], pubs = res[2], delta = res[3];
+      var vivo = true, sinNada = false, incompleta = false;
       // solo las tarjetas de ESTA vista (la lista de siempre o la del relevo): ver REPARTIDOR_VISTA
       if (rows) { rows = rows.filter(esDeEstaVista); }
       // la publicidad es del reparto de siempre: en la página de un relevo no se muestra
       if (REPARTIDOR_VISTA) { pubs = []; }
-      // Estado: vivo → guarda caché; si no llegó, usa el de la última visita (si hay).
-      if (est) { cacheSet(CACHE_EST, est); }
+      // Estado: vivo → se guarda al final; si no llegó, usa el de la última visita (si hay).
+      if (est) { vivoDe.estado = est; }
       else { vivo = false; est = cacheGet(CACHE_EST) || []; }
       est.forEach(function (row) { estado[row.id] = row; });
-      // Entregas: vivo → guarda caché; si no llegó, el caché de la última visita; y si
-      // tampoco hay, quedan las horneadas del HTML (respaldo de último recurso).
-      if (rows && res[1]) { cacheSet(CACHE_ENT, rows); }
-      else { vivo = false; rows = (cacheGet(CACHE_ENT) || []).filter(esDeEstaVista); if (!rows || !rows.length) { horneado = true; } }
-      /* en la página de un relevo las tarjetas HORNEADAS (las de siempre) no son suyas: si no hay
-         datos vivos ni caché, se vacía y se dice; la lista de siempre sigue cayendo al respaldo */
-      if (REPARTIDOR_VISTA && (!rows || !rows.length)) {
-        rows = [];
-        document.querySelectorAll('.vista[data-vista="entregas"] .card-wrap[data-id]').forEach(function (c) { c.remove(); });
+      // Tarjetas guardadas en este teléfono (solo se usan si siguen al día).
+      cargarCacheTarjetas();
+      // Entregas: vivas; si no llegaron, las de la última visita (caché v2 o, si este teléfono aún
+      // no la tiene, la v1 con sus tarjetas). (15-nov) Ya no hay respaldo horneado en el HTML: era de
+      // junio a agosto y, sin red, mostraba 33 entregas viejas como pendientes. Sin nada, la lista
+      // queda vacía y se dice.
+      if (rows) { vivoDe.lite = rows; }
+      else {
+        vivo = false;
+        rows = (cacheGet(CACHE_LITE) || []).filter(esDeEstaVista);
+        if (!rows.length) { rows = (cacheGet(CACHE_ENT) || []).filter(esDeEstaVista); }
+        if (!rows.length) { sinNada = true; }
       }
-      /* (7-nov-2026) en la página de un relevo los MONTOS horneados tampoco son suyos: la cabecera
+      if (rows.length) {
+        try { aplicarEntregas(rows); }
+        catch (e) { console.warn('No se pudo aplicar las entregas:', e); }
+      }
+      if (vivoDe.lite) { aplicarDelta(delta); }
+      /* (7-nov-2026) en la página de un relevo los MONTOS que no son suyos no cuentan: la cabecera
          («llevo X / Y si se cobra todo») y la pestaña Comisión solo cuentan las tarjetas de esta vista */
       if (REPARTIDOR_VISTA) {
-        var mios = {}; (rows || []).forEach(function (r) { if (r && r.id) { mios[r.id] = true; } });
+        var mios = {}; rows.forEach(function (r) { var i = idDeFila(r); if (i) { mios[i] = true; } });
         Object.keys(META).forEach(function (id) { if (!mios[id]) { delete META[id]; } });
       }
-      if (rows && rows.length) {
-        try { aplicarEntregas(rows); }
-        catch (e) { console.warn('No se pudo aplicar entregas de Supabase, uso las horneadas:', e); horneado = true; }
-      }
-      if (pubs) { cacheSet(CACHE_PUB, pubs); } else { pubs = cacheGet(CACHE_PUB) || []; }
+      if (pubs) { vivoDe.pub = pubs; } else { pubs = cacheGet(CACHE_PUB) || []; }
       pubs.forEach(function (pb) { if (pb && pb.id) { PUB[pb.id] = pb; } });
-      setActualizado(vivo ? 'Actualizado ' + horaCorta(new Date()) : (horneado ? 'Sin conexión · respaldo antiguo' : 'Sin conexión · lo último guardado'));
-      if (!vivo) {
-        var p = document.getElementById('estado-online');
-        if (p) {
-          p.hidden = false;
-          p.textContent = horneado
-            ? '⚠ Sin conexión con la base: estás viendo un respaldo ANTIGUO. Cuando vuelva la señal, recarga.'
-            : '⚠ Sin conexión con la base: estás viendo lo último guardado en este teléfono.';
+      // Paso 2: las tarjetas de la lista (pendientes) que este teléfono no tiene o que cambiaron.
+      // Se piden si los datos llegaron vivos (aunque el estado venga de la caché).
+      var ids = idsDe(enLista);
+      var paso2 = vivoDe.lite ? pedirTarjetas(ids) : Promise.resolve(true);
+      return paso2.then(function (todas) {
+        if (!todas) { incompleta = true; }
+        // lo que no se pudo traer (o sin red lo que no estaba guardado): la caché v1 de este teléfono, si hay
+        if (incompleta || !vivoDe.lite) { completarDesdeV1(ids); }
+        completa = !!vivoDe.lite && !incompleta;
+        try { inyectar(ids); } catch (e) { console.warn('No se pudieron poner las tarjetas:', e); incompleta = true; }
+        setActualizado(vivo && !incompleta ? 'Actualizado ' + horaCorta(new Date())
+          : (sinNada ? 'Sin conexión' : 'Sin conexión · lo último guardado'));
+        if (!vivo || incompleta) {
+          var p = document.getElementById('estado-online');
+          if (p) {
+            p.hidden = false;
+            p.textContent = sinNada
+              ? '⚠ Sin conexión con la base. Cuando vuelva la señal, recarga.'
+              : (vivo ? '⚠ Sin conexión: puede que falten entregas o que alguna no esté al día. Recarga cuando tengas señal.'
+                : '⚠ Sin conexión con la base: estás viendo lo último guardado en este teléfono.');
+          }
         }
-      }
-      done();
-    });
+        done();
+      });
+    }).catch(function (e) { console.warn('La carga terminó con un error:', e); done(); });
   }
 
+  // (15-nov) wire() engancha las tarjetas que haya y lo global; inyectar() engancha solo las nuevas.
   function wire() {
-    document.querySelectorAll('.card-wrap[data-id]').forEach(function (card) {
+    document.querySelectorAll('.card-wrap[data-id]').forEach(wireCard);
+    wireGlobales();
+  }
+  function wireCard(card) {
       var id = card.getAttribute('data-id');
       if (card.__wired) { return; } // no re-enganchar (cards ya inyectadas desde Supabase)
       card.__wired = true;
@@ -3104,11 +3443,11 @@ SCRIPT_ESTADO = r"""<script>
               var mm = META[id] || {};
               var msgC = (mm.tipo === 'limpieza') ? '✅ Limpieza realizada con éxito'
                 : '✅ ' + ((mm.banos > 1) ? 'Baños entregados' : 'Baño entregado') + ' con éxito';
-              celebrar(card, msgC, function () { aplicarAnteriores(); reubicarCards(); actualizarProgreso(); renderComision(); });
+              celebrar(card, msgC, function () { aplicarAnteriores(); reubicarCards(); actualizarProgreso(); refrescarComision(); });
             } else if (sale) {
               salirIzquierda(card, function () {
                 card.classList.remove('saliendo');
-                aplicarAnteriores(); reubicarCards(); actualizarProgreso(); renderComision();
+                aplicarAnteriores(); reubicarCards(); actualizarProgreso(); refrescarComision();
               });
             }
           }
@@ -3136,7 +3475,7 @@ SCRIPT_ESTADO = r"""<script>
             upsert(id, { eliminado: true });
             salirIzquierda(card, function () {
               card.classList.remove('saliendo');
-              reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); actualizarGanado(); renderComision();
+              reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); refrescarComision();
             });
           });
         });
@@ -3203,17 +3542,49 @@ SCRIPT_ESTADO = r"""<script>
           }
         });
       }
-    });
+  }
+  function wireGlobales() {
     if (wire.__globals) { return; } // los listeners globales se enganchan una sola vez
     wire.__globals = true;
     var ta = document.getElementById('toggle-anteriores');
     if (ta) {
-      ta.addEventListener('click', function () {
+      var alternar = function () {
         modoCompletadas = !modoCompletadas;
+        // (15-nov) al volver a la lista, las completadas salen de la página (quedan en memoria y
+        // vuelven sin pedir nada si se toca otra vez): con 180 tarjetas puestas, cada toque costaba
+        // lo mismo que antes del arreglo
+        if (!modoCompletadas) { genComp++; sacarCompletadas(); }
         aplicarAnteriores();
         aplicarTareas();
         reubicarCards(); // el historial se ordena al revés (lo más reciente arriba)
         window.scrollTo({ top: 0, behavior: 'smooth' });
+      };
+      ta.addEventListener('click', function () {
+        if (ta.__cargando) { return; }
+        // (15-nov) las tarjetas de las completadas se traen recién acá: la primera tanda antes de
+        // cambiar de modo (con «Cargando…» si hay que pedirla) y el resto detrás
+        if (!modoCompletadas && ROWS.length && !completadasListas()) {
+          var antes = ta.textContent;
+          ta.__cargando = true;
+          var aviso = setTimeout(function () { ta.textContent = 'Cargando completadas…'; }, 120);
+          cargarCompletadas().catch(function (e) { console.warn('Completadas con error:', e); return false; }).then(function (ok) {
+            clearTimeout(aviso);
+            ta.__cargando = false;
+            // si mientras cargaba se fue a otra pestaña, no se cambia de modo a escondidas
+            if (ok && VISTA_ACTUAL !== 'entregas') { aplicarAnteriores(); return; }
+            if (!ok) {
+              ta.textContent = antes;
+              var p = document.getElementById('estado-online');
+              if (p) { p.hidden = false; p.textContent = '⚠ Sin conexión: no se pudieron cargar las completadas. Reintenta.'; }
+              return;
+            }
+            alternar();
+            seguirCompletadas();
+          });
+          return;
+        }
+        alternar();
+        if (modoCompletadas) { seguirCompletadas(); }
       });
     }
     // Pinchar el encabezado de un día lo colapsa/expande (delegado, también sirve
@@ -3224,7 +3595,7 @@ SCRIPT_ESTADO = r"""<script>
         var h = ev.target.closest('.fecha-titulo');
         if (!h) return;
         var sec = h.closest('section[data-fecha]');
-        if (sec) { sec.classList.toggle('colapsada-dia'); }
+        if (sec) { COLAPSADAS[sec.getAttribute('data-fecha')] = sec.classList.toggle('colapsada-dia'); }
       });
     }
     var bp = document.getElementById('barra-pagar');
@@ -3232,8 +3603,11 @@ SCRIPT_ESTADO = r"""<script>
   }
 
   function irAVista(v) {
+    VISTA_ACTUAL = v;
     var btns = document.querySelectorAll('.vista-btn');
     btns.forEach(function (x) { x.classList.toggle('activo', x.getAttribute('data-vista') === v); });
+    // (15-nov) la Comisión se arma al abrirla si algo cambió mientras no se miraba
+    if (v === 'comision' && comisionSucia) { renderComision(); }
     document.querySelectorAll('.vista').forEach(function (sec) {
       sec.hidden = (sec.getAttribute('data-vista') !== v);
     });
@@ -3269,13 +3643,17 @@ SCRIPT_ESTADO = r"""<script>
     document.body.classList.add('listo');
     var sk = document.getElementById('skel'); if (sk) { sk.hidden = true; }
     setHeaderH();
+    // (15-nov) la muestra invisible de tarjeta «Falta cobrar» ya cumplió (ver #precalentar en el HTML)
+    setTimeout(function () { var pc = document.getElementById('precalentar'); if (pc && pc.parentNode) { pc.parentNode.removeChild(pc); } }, 2500);
   }
 
   setHeaderH();
   window.addEventListener('resize', setHeaderH);
   // Pintura inicial con META (bajo el velo) para que, si la red tarda, lo que se
   // revele ya esté lo más correcto posible. El velo se levanta en done() tras el fetch.
-  pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); renderComision();
+  // (15-nov) la selección de comisiones se lee al partir: la pestaña se arma recién al abrirla
+  if (comDesel === null) { comDesel = new Set(loadSel() || []); }
+  pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); refrescarComision();
   pintarTareas(); aplicarTareas();
   setTimeout(function () { if (!CARGADO) { setActualizado('La base no responde…'); } revelar(); }, 10000); // fallback si la red no responde
   var hp = document.getElementById('hdr-pub');
@@ -3598,23 +3976,60 @@ def meta_entrega(e: dict) -> dict:
     }
 
 
+# (15-nov-2026) Una tarjeta «Falta cobrar» de muestra, INVISIBLE (fuera de la pantalla, inerte, sin
+# botones de verdad): el navegador arma sus letras y su estilo mientras se ve el esqueleto de carga, y
+# el primer «Entregado» del día ya no se traba (medido: el primer toque gastaba 40 ms de layout en un
+# computador, unas 5 veces más en un celular). El JS la quita 2,5 s después de mostrar la página.
+MUESTRA_PRECALENTAR = (
+    '<div id="precalentar" inert aria-hidden="true" style="position:absolute;left:-9999px;top:0;'
+    'width:360px;opacity:0;pointer-events:none">'
+    '<div class="card-wrap cobro-pendiente"><span class="cobro-chip cobro-chip-top">💰 Falta cobrar</span>'
+    '<div class="cobro-mini"><div class="cobro-mini-row"><div class="cobro-mini-info">'
+    '<b>Cliente</b> · <b class="cobro-monto">$100.000</b> <span class="cobro-cond">con IVA</span>'
+    '<div class="cobro-sub">📍 <b>Maipú</b> · Entregado el mar 28 oct · hace 18 días</div></div>'
+    '<div class="cobro-mini-btns"><span class="btn-cobrar">Cobrar</span>'
+    '<span class="btn-cobro-mas">Ver más ▾</span></div></div></div></div></div>'
+)
+
+# (15-nov-2026) Las tres lecturas de Supabase salen desde el <head>, apenas llega el HTML, sin
+# esperar a que el celular lea el resto de la página: el script principal (al final) las toma de
+# window.__PRE__. Lleva id= para que los arneses de tests/ (que buscan `<script>` pelado) no lo cuenten.
+PRE_CARGA = """<script id="pre-carga">
+(function () {
+  try {
+    // sin clave en el enlace no se pide nada (la página dice «Enlace incompleto»)
+    var vista = String(new URLSearchParams(location.search).get('repartidor') || '').trim().toLowerCase();
+    if (!vista) { return; }
+    var c = __CFG__;
+    // sin cabeceras propias (la llave va en la URL): el navegador no hace la consulta previa de CORS
+    var leer = function (ruta) {
+      var ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+      var t = ctl ? setTimeout(function () { ctl.abort(); }, 30000) : null;
+      var url = c.url + ruta + (ruta.indexOf('?') === -1 ? '?' : '&') + 'apikey=' + encodeURIComponent(c.key);
+      return fetch(url, ctl ? { signal: ctl.signal } : undefined)
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; })
+        .then(function (x) { if (t) { clearTimeout(t); } return x; });
+    };
+    // si este teléfono ya tiene tarjetas guardadas, se piden de una vez las que cambiaron desde entonces
+    // (lo normal: la entrega nueva del aviso de WhatsApp), sin esperar a saber cuáles faltan
+    var desde = null;
+    try { desde = localStorage.getItem('tarjetas_v2_desde:' + vista); } catch (e) { desde = null; }
+    window.__PRE__ = { estado: leer(c.q.estado), lite: leer(c.q.lite), pub: leer(c.q.pub), desde: desde,
+      delta: desde ? leer(c.q.delta + encodeURIComponent(desde)) : null };
+  } catch (e) { /* el script principal vuelve a pedir todo */ }
+})();
+</script>"""
+
+
 def construir_html(data: dict) -> str:
     entregas = data.get("entregas", [])
-    # Ordenar por fecha y agrupar.
-    entregas_ordenadas = sorted(entregas, key=lambda e: (e.get("fecha", ""), e.get("hora", "")))
-
-    grupos: dict[str, list] = {}
-    for e in entregas_ordenadas:
-        grupos.setdefault(e.get("fecha", ""), []).append(e)
-
-
-    secciones = []
-    for fecha, items in grupos.items():
-        tarjetas = "".join(tarjeta(e) for e in items)
-        secciones.append(
-            f'<section data-fecha="{esc(fecha)}"><h2 class="fecha-titulo">{esc(encabezado_fecha(fecha))}'
-            f'{PROG_MARKUP}{CHEVRON}</h2>{tarjetas}</section>'
-        )
+    pre_carga = PRE_CARGA.replace("__CFG__", json.dumps(
+        {"url": SUPABASE_URL, "key": SUPABASE_ANON_KEY, "q": CONSULTAS}, ensure_ascii=False).replace("</", "<\\/"))
+    # (15-nov-2026) Las tarjetas ya NO se hornean en el HTML. Todas llegan de Supabase; las de
+    # entregas.json (junio a agosto) se tiraban apenas cargaba la página, pesaban 264 KB y, sin red,
+    # mostraban 33 entregas viejas como pendientes. El HTML queda con la página vacía y el JS la llena.
+    secciones: list[str] = []
 
     # Secciones agregadas (limpiezas / retiros) y sus tareas para el JS.
     # (7-nov-2026) la sección «Limpiezas a realizar» se quitó de la página por pedido de Alejandro:
@@ -3625,15 +4040,16 @@ def construir_html(data: dict) -> str:
     retiros_sec, tareas_ret = "", []
     tareas = tareas_lim + tareas_ret
 
-    # Metadatos por entrega para el JS (cálculo de comisión y panel).
-    meta = [meta_entrega(e) for e in entregas]
+    # (15-nov-2026) Sin metadatos horneados: el META del JS sale de los datos vivos de Supabase.
+    # `entregas` queda vacío (los arneses de tests/ lo llenan con sus casos de prueba).
     config_json = json.dumps(
         {
             "url": SUPABASE_URL,
             "key": SUPABASE_ANON_KEY,
+            "q": CONSULTAS,
             "whatsapp": WHATSAPP_COMISION,
             "banco": DATOS_BANCARIOS,
-            "entregas": meta,
+            "entregas": [],
             "tareas": tareas,
             "comprobantes": data.get("comprobantes", {}),
             # Geo por entrega (+ cliente + dirección real de navegación) + etiquetas de
@@ -3662,10 +4078,9 @@ def construir_html(data: dict) -> str:
     # Recomendación de reparto de hoy (agrupa por zona; se rellena por JS en vivo).
     reco_block = '<div id="recomendacion-hoy" class="reco" hidden></div>'
 
-    if secciones:
-        vista_entregas = reco_block + boton_anteriores + "".join(secciones) + limpiezas_sec + retiros_sec
-    else:
-        vista_entregas = '<p class="vacio">No hay entregas cargadas.</p>'
+    # (15-nov-2026) siempre el reparto de hoy y el botón de completadas: las secciones de cada día
+    # las crea el JS cuando llegan las tarjetas
+    vista_entregas = reco_block + boton_anteriores + "".join(secciones) + limpiezas_sec + retiros_sec
 
     # Barra de pestañas + dos vistas (entregas / comisión). El JS las alterna sin
     # regenerar la página. El aviso de conexión queda arriba, visible en ambas.
@@ -3699,6 +4114,7 @@ def construir_html(data: dict) -> str:
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Entregas — Destape Rápido</title>
+{pre_carga}
 <style>
   :root {{ --azul:#1F5AA8; --tinta:#0F172A; --gris:#64748B; --linea:#E2E8F0; --fondo:#F1F5F9; }}
   * {{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }}
@@ -3793,6 +4209,8 @@ def construir_html(data: dict) -> str:
 {ESTILOS_EXTRA}</style>
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false"><symbol id="ico-wa-sym" viewBox="0 0 24 24"><path d="{WA_PATH_D}"/></symbol></svg>
+  {MUESTRA_PRECALENTAR}
   <header>
     <div class="hdr-row">
       <div class="hdr-txt">
@@ -3836,8 +4254,8 @@ def main() -> None:
         sys.exit(f"❌ entregas.json tiene un error de formato: {e}")
 
     out.write_text(construir_html(data), encoding="utf-8")
-    n = len(data.get("entregas", []))
-    print(f"✅ Listado generado: {out}  ({n} entrega(s))")
+    # (15-nov-2026) ya no se hornean tarjetas: las entregas llegan de Supabase al abrir la página
+    print(f"✅ Listado generado: {out}  (las entregas llegan en vivo desde Supabase)")
 
 
 if __name__ == "__main__":

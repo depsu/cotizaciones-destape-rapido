@@ -27,3 +27,11 @@ correo-worker/.wrangler/
 
 # Cotizaciones con PII de clientes (RUT, email, dirección) — nunca públicas
 cotizaciones/*.json
+
+# (15-nov-2026) Lo que un `git add -A` subiría a este repo PÚBLICO sin querer: planillas de
+# cotización e informes con datos de clientes, la caché de wrangler, respaldos y bytecode.
+cotizaciones/
+informes/
+.wrangler/
+__pycache__/
+*.bak-*

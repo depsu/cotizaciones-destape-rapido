@@ -28,7 +28,7 @@ Cuando Alejandro diga **"resumen para repartidor"** y pegue un chat de cliente c
 
 ### FASE 2 — DESPUÉS (ya enviado el WhatsApp): el resto, en el mismo turno
 
-5. **La página ya se actualizó sola** (el `--enviar` subió la entrega a Supabase). **NO hace falta `publicar.sh`** para que aparezca una entrega. `publicar.sh` solo se usa cuando cambia el CÓDIGO/diseño de la página o para refrescar el respaldo horneado (por si Supabase se pausa). Ver [[project-migracion-entregas-supabase]].
+5. **La página ya se actualizó sola** (el `--enviar` subió la entrega a Supabase). **NO hace falta `publicar.sh`** para que aparezca una entrega. `publicar.sh` solo se usa cuando cambia el CÓDIGO/diseño de la página (desde el 15-nov-2026 la página ya no hornea entregas). Ver [[project-migracion-entregas-supabase]].
 6. **Actualizar** la ficha del cliente en `clientes/historial.md`.
 7. **Confirmar** al final que la entrega quedó publicada (la reporta el propio `--enviar`: "Entrega publicada en Supabase").
 
@@ -87,10 +87,10 @@ Agregar (o editar) el objeto correspondiente en `entregas.json`. Extraer del men
 
 ### 3. "Muéstrame / genera / actualiza el listado de entregas" → página web
 
-La página **ya está publicada y en vivo** en GitHub Pages: **https://depsu.github.io/cotizaciones-destape-rapido/** — mobile-first, autocontenida, con las entregas agrupadas por fecha; al tocar una se despliega el detalle, con botones de **WhatsApp al cliente**, **Cómo llegar** (Google Maps) y **Llamar**. Lee las entregas de Supabase en vivo, así que se actualiza sola.
+La página **ya está publicada y en vivo** en GitHub Pages: **https://www.destaperapido.cl/entregas** (redirige con la clave; sin `?repartidor=` dice «Enlace incompleto») — mobile-first, autocontenida, con las entregas agrupadas por fecha; al tocar una se despliega el detalle, con botones de **WhatsApp al cliente**, **Cómo llegar** (Google Maps) y **Llamar**. Lee las entregas de Supabase en vivo, así que se actualiza sola.
 
 - **Ver/probar en local:** servir por http (para tener origen válido y traer datos de Supabase): `cd resumen-repartidor && python3 -m http.server 8791`, y abrir `http://localhost:8791/listado.html`.
-- **Regenerar la página (solo si cambia el CÓDIGO/diseño o para refrescar el respaldo horneado):** `bash resumen-repartidor/publicar.sh "mensaje"` — regenera `listado.html`, **re-sincroniza Supabase** y hace commit + push (GitHub Pages publica en ~1 min).
+- **Regenerar la página (solo si cambia el CÓDIGO/diseño):** `bash resumen-repartidor/publicar.sh "mensaje"` — regenera `listado.html` y hace commit + push solo de la página (GitHub Pages publica en ~1 min). Ya no re-sincroniza `entregas.json` sobre Supabase salvo con `--sincronizar` (15-nov-2026).
 
 **Importante:** agregar una entrega **NO** requiere regenerar ni publicar — el `--enviar` la sube a Supabase y aparece sola. `publicar.sh` es solo para cambios de código/diseño de la página. Ver `ARQUITECTURA.md`.
 
@@ -115,7 +115,7 @@ Cuando Alejandro pregunte **cómo abordar o negociar un cliente** (sobre todo ca
 - `entregas.json` — input/registro de las entregas (lo edita Claude/el usuario); el `--enviar` lo sube a Supabase
 - `scripts/resumen_repartidor.py` — resumen + WhatsApp al repartidor; con `--enviar`/`--abrir` **sube la entrega a Supabase**
 - `scripts/sync_entregas_supabase.py` — sincroniza `entregas.json` → tabla `entrega` de Supabase (expone `upsert_entrega()`)
-- `scripts/generar_listado.py` — genera `listado.html` (respaldo horneado + JS que lee de Supabase)
+- `scripts/generar_listado.py` — genera `listado.html` (sin tarjetas horneadas: el JS las trae de Supabase en dos pasos, ver `ARQUITECTURA.md`)
 - `supabase/entrega.sql`, `supabase/entrega_estado.sql` — DDL de las tablas (contenido / estado)
-- `listado.html` — página publicada en GitHub Pages (https://depsu.github.io/cotizaciones-destape-rapido/); se regenera con `publicar.sh`
-- `publicar.sh` — regenera la página + re-sincroniza Supabase + commit/push (solo para cambios de código/diseño)
+- `listado.html` — página publicada en GitHub Pages (https://www.destaperapido.cl/entregas); se regenera con `publicar.sh`
+- `publicar.sh` — regenera la página + commit/push solo de sus archivos (cambios de código/diseño; `--sincronizar` re-sube entregas.json, casi nunca hace falta)

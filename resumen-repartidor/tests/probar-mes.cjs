@@ -81,6 +81,18 @@ const document = {
 const APP = JSON.parse(
   fs.readFileSync('/tmp/js-0.js', 'utf8').replace(/^\s*window\.__APP__\s*=\s*/, '').replace(/;\s*$/, '')
 );
+// (15-nov-2026) la página ya no hornea entregas (todas llegan de Supabase al abrirla): sin red, como
+// acá, no hay datos. Se cargan casos de prueba con la forma de META (dos meses, cobradas y por cobrar).
+if (!(APP.entregas || []).length) {
+  const e = (id, fecha, estado, monto) => ({
+    id, cliente: 'Cliente ' + id, fecha, neto: Math.round(monto / 1.19), comision: Math.round(monto / 1.19 * 0.2),
+    comisiona: true, estado, comision_pagada: false, pagada_at: null, tel: '56911112222', tel_cobro: '',
+    nombre_cobro: '', banos: 1, tipo: 'bano', es_servicio: false, monto, con_iva: true,
+  });
+  APP.entregas = [e('oct-1', '2026-10-03', 'cobrado', 119000), e('oct-2', '2026-10-10', 'pendiente', 154700),
+    e('oct-3', '2026-10-20', 'entregado', 100000), e('nov-1', '2026-11-02', 'cobrado', 119000),
+    e('nov-2', '2026-11-05', 'pendiente', 190400), e('nov-3', '2026-11-09', 'cobrado', 238000)];
+}
 
 const ctx = {
   window: { __APP__: APP, addEventListener(){}, scrollTo(){}, matchMedia: () => ({ matches:false, addEventListener(){} }),

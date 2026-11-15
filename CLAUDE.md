@@ -56,9 +56,8 @@ sube la entrega a Supabase → aparece sola en la página del repartidor.**
 
 ### 3. La página del repartidor se actualiza SOLA
 El paso 2 (`--enviar`) ya subió la entrega a Supabase, así que **aparece sola** en
-https://depsu.github.io/cotizaciones-destape-rapido/ — **NO hace falta `publicar.sh`** para agregar
-una entrega. `publicar.sh` solo se usa si cambia el CÓDIGO/diseño de la página o para refrescar el
-respaldo horneado. Detalle en `resumen-repartidor/ARQUITECTURA.md`.
+https://www.destaperapido.cl/entregas — **NO hace falta `publicar.sh`** para agregar una entrega.
+`publicar.sh` solo se usa si cambia el CÓDIGO/diseño de la página. Detalle en `resumen-repartidor/ARQUITECTURA.md`.
 
 ### 4. Dejar registro
 - Actualizar la ficha del cliente en `clientes/historial.md` (precio, condiciones, estado).
@@ -82,9 +81,9 @@ respaldo horneado. Detalle en `resumen-repartidor/ARQUITECTURA.md`.
 
 - **Correo:** Resend por defecto (`config/resend.local.json`), SMTP del hosting de respaldo
   (`config/smtp.local.json`). `enviar_cotizacion.py` registra el envío en el panel ("Enviados").
-- **Página repartidor:** GitHub Pages. Lee las entregas **en vivo desde Supabase** (tabla `entrega`);
-  las horneadas quedan de respaldo. Agregar una entrega = `--enviar` (sube sola); `publicar.sh`
-  (regenera + re-sincroniza Supabase + push) solo para cambios de código/diseño. Ver
-  `resumen-repartidor/ARQUITECTURA.md`.
+- **Página repartidor:** GitHub Pages. Lee las entregas **en vivo desde Supabase** (tabla `entrega`), en dos
+  pasos y sin tarjetas horneadas (15-nov-2026). Agregar una entrega = `--enviar` (sube sola); `publicar.sh`
+  (regenera + commit/push solo de la página, nunca `git add -A`: el repo es público) solo para cambios de
+  código/diseño. Ver `resumen-repartidor/ARQUITECTURA.md`.
 - **Estados/comisión de entregas:** los cambia el repartidor desde la página (Supabase, tablas
   `entrega_estado`/`tarea_estado`), no a mano.
