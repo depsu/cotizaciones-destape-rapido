@@ -62,6 +62,9 @@ CONSULTAS = {
     "pub": "/rest/v1/cobro_publicidad?select=*&eliminado=eq.false&order=hasta.desc",
     # las tarjetas que cambiaron desde la última visita de ESTE teléfono (se le pega la fecha al final)
     "delta": "/rest/v1/entrega?select=id,updated_at,card_html&eliminado=eq.false&updated_at=gt.",
+    # (19-nov-2026) las que el bot retiró porque el cliente canceló (entrega.eliminado): para la lista
+    # de clientes perdidos. Se piden DESPUÉS de pintar, no atrasan la carga.
+    "perdidas": "/rest/v1/entrega?select=id,fecha,informado_at,data&eliminado=eq.true&order=informado_at.desc",
 }
 # El dibujo del logo de WhatsApp, para el <symbol> único de la página (la pestaña Comisión lo usa
 # con <use> en vez de repetir 1,4 KB por tarjeta).
@@ -390,6 +393,8 @@ def comision_de(e: dict) -> int:
     no en un porcentaje, y calcular el 20% igual daría un número que nadie acordó.
       · comision: false        → no comisiona
       · comision: 1060000      → esa cifra exacta
+      · comision_pct: 10       → ese porcentaje del neto (19-nov-2026: Alejandro dejó un cliente
+                                 de Peñaflor al 10%). Mismo campo que destapes.
       · sin campo              → 20% del neto, como siempre
     """
     if not comisiona(e):
@@ -397,7 +402,16 @@ def comision_de(e: dict) -> int:
     fija = e.get("comision")
     if isinstance(fija, (int, float)) and not isinstance(fija, bool):
         return int(round(fija))
-    return int(round((neto_de(e) or 0) * TASA_COMISION))
+    pct = pct_comision(e)
+    return int(round((neto_de(e) or 0) * (pct / 100 if pct else TASA_COMISION)))
+
+
+def pct_comision(e: dict):
+    """El porcentaje propio de la entrega (`comision_pct`, de 0 a 100) o None si va al de siempre."""
+    pct = e.get("comision_pct")
+    if isinstance(pct, bool) or not isinstance(pct, (int, float)) or not (0 < pct <= 100):
+        return None
+    return pct
 
 
 def cantidad_banos(e: dict) -> int:
@@ -1247,6 +1261,39 @@ ESTILOS_EXTRA = """
   .mes-filtro button.on { background:var(--azul); color:#fff; border-color:var(--azul); }
   .mes-filtro button.on.falta { background:#B45309; border-color:#B45309; }
   .mes-vacio { color:var(--gris); font-size:14px; padding:18px 14px; text-align:center; }
+  /* (19-nov-2026) Comisión distinta del 20% de siempre: etiqueta morada (ver pctTxt) */
+  .com-pct-chip { display:inline-block; margin-left:6px; padding:1px 8px; border-radius:999px; background:#F3E8FF;
+    color:#6B21A8; border:1px solid #D8B4FE; font-size:12px; font-weight:800; white-space:nowrap; vertical-align:middle; }
+  .com-dir .com-pct-chip { margin-left:0; margin-top:3px; }
+  .com-monto .com-pct { display:block; font-size:11px; font-weight:800; color:#6B21A8; text-align:right; }
+  /* (19-nov-2026) Clientes perdidos: al final del mes y al pie de Entregas. En rojo suave: se
+     distinguen de un vistazo de lo cobrado y lo por cobrar. */
+  .mes-tit.perd { color:#B91C1C; margin-top:22px; }
+  .mes-lista.perd { border-color:#FECACA; }
+  .mes-f.perd { background:#FEF2F2; border-bottom-color:#FECACA; }
+  .mes-f.perd .mto { color:#B91C1C; }
+  .mes-f .cli .mot { display:block; font-size:12px; color:#991B1B; white-space:normal; overflow-wrap:anywhere; line-height:1.3; margin-top:1px; }
+  .pie-perdidos { margin:22px 0 6px; }
+  .pie-perdidos[hidden] { display:none; }
+  body.modo-completadas .pie-perdidos { display:none !important; }
+  .ver-perdidos { display:block; width:100%; padding:12px; border:1px dashed #FCA5A5; background:#fff;
+    color:#B91C1C; font-size:14px; font-weight:700; border-radius:12px; cursor:pointer; font-family:inherit; min-height:46px; }
+  .ver-perdidos.abierto { background:#FEF2F2; }
+  .perd-hero { background:#FEF2F2; border:1px solid #FECACA; border-radius:14px; padding:14px; margin:12px 0 4px; }
+  .perd-hero .r { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:#B91C1C; }
+  .perd-hero .v { font-size:28px; font-weight:800; color:#B91C1C; font-variant-numeric:tabular-nums; line-height:1.15; margin-top:2px; }
+  .perd-hero .s { font-size:13.5px; color:#475569; margin-top:4px; }
+  .perd-mes { display:flex; justify-content:space-between; gap:10px; font-size:13px; font-weight:800; color:var(--gris);
+    text-transform:uppercase; letter-spacing:.4px; margin:16px 2px 8px; }
+  .perd-item { background:#fff; border:1px solid var(--linea); border-radius:12px; padding:11px 13px; margin-bottom:8px;
+    display:flex; gap:10px; align-items:flex-start; }
+  .perd-main { flex:1 1 auto; min-width:0; }
+  .perd-cli { font-weight:800; font-size:15px; overflow-wrap:anywhere; }
+  .perd-dir { color:var(--gris); font-size:13px; overflow-wrap:anywhere; margin-top:1px; }
+  .perd-dir a { color:#15803D; font-weight:700; text-decoration:none; }
+  .perd-motivo { margin-top:4px; font-size:13.5px; font-weight:700; color:#B91C1C; overflow-wrap:anywhere; }
+  .perd-monto { flex:none; font-weight:800; color:#B91C1C; font-variant-numeric:tabular-nums; white-space:nowrap; font-size:16px; text-align:right; }
+  .perd-monto small { display:block; font-size:11px; font-weight:600; color:var(--gris); }
   /* Secciones agregadas (limpiezas / retiros) */
   .agregado { margin-top:22px; }
   .ag-lista { list-style:none; margin:8px 0 0; padding:0; }
@@ -1446,7 +1493,8 @@ SCRIPT_ESTADO = r"""<script>
   }
   function labelSel(id) {
     if (esPub(id)) { var pb = PUB[pubIdDe(id)] || {}; return 'Publicidad ' + (pb.campana || '') + ' (' + pubPorc(pb) + ')'; }
-    return (META[id] || {}).cliente || id;
+    // (19-nov) si la comisión no es la de siempre, el detalle del pago y el WhatsApp lo dicen
+    return ((META[id] || {}).cliente || id) + (pctTxt(id) ? ' (' + pctTxt(id) + ')' : '');
   }
   var SEL_KEY = 'comision_desel_v1';
 
@@ -1588,6 +1636,11 @@ SCRIPT_ESTADO = r"""<script>
     // monto queda tachado —ahí sí sirve saber cuánto era— y el botón queda activo.
     var mchip = card.querySelector('.monto');
     var mpag = card.querySelector('.monto-pagado');
+    // (19-nov) comisión distinta del 20%: su etiqueta al lado del monto
+    var pctEl = card.querySelector('.com-pct-chip');
+    var pctT = pctTxt(id);
+    if (pctT && !pctEl && mchip && mchip.insertAdjacentHTML) { mchip.insertAdjacentHTML('afterend', chipPct(id)); }
+    else if (pctEl && !pctT && pctEl.parentNode) { pctEl.parentNode.removeChild(pctEl); }
     if (mchip) { mchip.hidden = pagoAdelantado; }
     if (mpag) { mpag.hidden = !pagoAdelantado; }
     var cmonto = card.querySelector('.cobro-monto');
@@ -1679,6 +1732,11 @@ SCRIPT_ESTADO = r"""<script>
     var p = String(iso || '').split('-');
     return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2], 12) : null;
   }
+  // (19-nov-2026) comisión distinta del 20% de siempre: una etiqueta morada que se ve en la tarjeta,
+  // en la compacta de «falta cobrar», en la pestaña Comisión y al pagar (Alejandro: «que se vea
+  // cuando vaya a pagar, ya que sale de lo común»)
+  function pctTxt(id) { var m = META[id]; return (m && m.pct) ? ('comisión ' + String(m.pct).replace('.', ',') + '%') : ''; }
+  function chipPct(id) { var t = pctTxt(id); return t ? ' <span class="com-pct-chip">🔖 ' + t + '</span>' : ''; }
   // (5-oct) «con IVA» / «neto» junto al monto, como el chip de la tarjeta; '' si no se sabe
   function condCobro(m) {
     return m.con_iva === true ? 'con IVA' : (m.con_iva === false ? 'neto' : '');
@@ -1748,7 +1806,7 @@ SCRIPT_ESTADO = r"""<script>
       '<div class="cobro-mini-row">' +
         '<div class="cobro-mini-info">' +
           '<b>' + escapeHtml(m.cliente || '—') + '</b> · <b class="cobro-monto">' + clp(m.monto || 0) + '</b>' +
-            (condCobro(m) ? ' <span class="cobro-cond">' + condCobro(m) + '</span>' : '') +
+            (condCobro(m) ? ' <span class="cobro-cond">' + condCobro(m) + '</span>' : '') + chipPct(id) +
           '<div class="cobro-sub">' + (comuna ? '📍 <b>' + escapeHtml(comuna) + '</b> · ' : '') +
             'Entregado el ' + escapeHtml(cuando) + (hace ? ' · ' + hace : '') + '</div>' +
         '</div>' +
@@ -1865,6 +1923,9 @@ SCRIPT_ESTADO = r"""<script>
     ponerEnOrden(cont, Array.prototype.filter.call(cont.children, function (x) { return x.matches && x.matches('section[data-fecha]'); }), vivas);
     // Las secciones agregadas (limpiezas / retiros) siempre al final.
     cont.querySelectorAll('section.agregado').forEach(function (s) { cont.appendChild(s); });
+    // (19-nov) y los clientes perdidos, al pie de todo (solo se mueve si algo quedó debajo)
+    var pie = document.getElementById('perdidos-pie');
+    if (pie && pie.parentNode === cont && cont.lastElementChild !== pie) { cont.appendChild(pie); }
   }
   /* (15-nov) mover un nodo, aunque quede en el mismo lugar, obliga al navegador a rehacer la página
      (y le quita el foco al que se está tocando): solo se mueve si el orden de verdad cambió. Mismo
@@ -2372,6 +2433,7 @@ SCRIPT_ESTADO = r"""<script>
     aplicarAnteriores();
     aplicarTareas();
     refrescarComision(); // la cabecera al tiro; la pestaña Comisión solo si está a la vista
+    pintarPerdidos();    // (19-nov) sacar una tarjeta la suma al tiro a los clientes perdidos
     if (!SUPA.url || !SUPA.key) return Promise.resolve(true);
     return fetch(SUPA.url + '/rest/v1/entrega_estado', {
       method: 'POST',
@@ -2482,6 +2544,23 @@ SCRIPT_ESTADO = r"""<script>
     });
     if (!mostrar.length) { html += '<p class="mes-vacio">No hay entregas en este mes.</p>'; }
     html += '</div>';
+    // (19-nov-2026) al final, los clientes perdidos del mes (no suman en las cifras de arriba)
+    // en el orden de la lista de arriba (del 1 al 31); sin la etiqueta «perdido» por fila: el título ya lo dice
+    // y así el nombre y el motivo tienen más espacio
+    var perdMes = perdidos().filter(function (p) { return p.fecha.slice(0, 7) === mesElegido; }).reverse();
+    if (perdMes.length) {
+      var montoPerd = perdMes.reduce(function (s, p) { return s + p.monto; }, 0);
+      html += '<div class="mes-tit perd"><span>' + perdMes.length + (perdMes.length === 1 ? ' cliente perdido' : ' clientes perdidos')
+        + '</span><span>' + clp(montoPerd) + '</span></div><div class="mes-lista perd">';
+      perdMes.forEach(function (p) {
+        html += '<div class="mes-f perd">'
+          + '<span class="d">' + escapeHtml(p.fecha.slice(8) || '—') + '</span>'
+          + '<span class="cli">' + escapeHtml(p.cliente) + '<small class="mot">' + escapeHtml(p.motivo) + '</small></span>'
+          + '<span class="mto">' + clp(p.monto) + (p.cond ? '<small class="mto-c">' + p.cond + '</small>' : '') + '</span>'
+          + '</div>';
+      });
+      html += '</div>';
+    }
     cont.innerHTML = html;
 
     cont.querySelectorAll('.mes-filtro button').forEach(function (b) {
@@ -2489,6 +2568,137 @@ SCRIPT_ESTADO = r"""<script>
         mesFiltro = b.getAttribute('data-filtro');
         renderMes();
       });
+    });
+  }
+
+  // ====================== CLIENTES PERDIDOS ======================
+  /* (19-nov-2026, pedido de Alejandro) «al final mostrar todos los clientes perdidos, y que también se
+     vea en el mes». Perdido = una entrega que se sacó y no se hizo. Sale de dos lados:
+      (1) las que se sacaron desde esta página (entrega_estado.eliminado, botón 🗑 de la tarjeta);
+      (2) las que retiró el bot porque el cliente canceló o quedó en pausa (entrega.eliminado). Esas no
+          vienen en la carga normal (la consulta `lite` las deja fuera): se piden aparte DESPUÉS de pintar
+          (Q.perdidas, no atrasan la carga) y quedan guardadas en el teléfono para abrir sin señal.
+     NO cuentan como perdidas, porque no se perdió nada:
+      - las cobradas (la plata llegó; pasa cuando el bot retira una tarjeta ya pagada);
+      - las de prueba (nombre con «prueba» o el WhatsApp de Alejandro);
+      - las reemplazadas por otra tarjeta del mismo cliente: el bot vuelve a despachar con id nuevo
+        cuando cambia la fecha o el monto (misma persona, otra tarjeta). Con los datos del 19-nov
+        eran 5 casos así.
+     Si un cliente se perdió dos veces seguidas (reagendó y después canceló), sale una sola vez. */
+  var PERDIDAS_BOT = [];        // filas de `entrega` con eliminado=true de ESTA vista
+  var perdidosAbierto = false;
+  var CACHE_PERD = 'entregas_perdidas_v1' + SUFIJO_VISTA;
+  function tel8(t) { var d = soloDigitosJS(t); return d.length >= 8 ? d.slice(-8) : ''; }
+  function nombreNorm(s) { return normTxtJS(s).replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function diasEntre(a, b) {
+    var x = dateDe(String(a || '').slice(0, 10)), y = dateDe(String(b || '').slice(0, 10));
+    return (x && y) ? Math.abs(x - y) / 864e5 : Infinity;
+  }
+  // ¿son la misma persona? Por teléfono; por nombre solo si a una de las dos le falta el teléfono.
+  function mismaPersona(a, b) {
+    if (a.tel && b.tel) { return a.tel === b.tel; }
+    return !!a.nom && a.nom === b.nom;
+  }
+  function perdidos() {
+    if (!ROWS.length && !PERDIDAS_BOT.length) { return []; }
+    var dueno = tel8(APP.whatsapp || '');
+    var ficha = function (row, id) {
+      var d = (row && row.data) || {};
+      var st = estado[id] || {};
+      return { id: id, d: d, tel: tel8(d.telefono), nom: nombreNorm(d.cliente),
+        fecha: String(st.fecha || row.fecha || d.fecha || '').slice(0, 10),
+        inf: String(row.informado_at || '').slice(0, 10), nota: String(st.nota || '').trim() };
+    };
+    var vistos = {}, cand = [], vivas = [];
+    ROWS.forEach(function (row) {
+      var id = idDeFila(row);
+      if (!id || vistos[id]) { return; }
+      vistos[id] = 1;
+      if (eliminadoDe(id)) { cand.push(ficha(row, id)); cand[cand.length - 1].bot = false; }
+      else { vivas.push(ficha(row, id)); }
+    });
+    PERDIDAS_BOT.forEach(function (row) {
+      var id = idDeFila(row);
+      if (!id || vistos[id]) { return; } // volvió a la lista (ya no está retirada): manda la carga viva
+      vistos[id] = 1;
+      cand.push(ficha(row, id)); cand[cand.length - 1].bot = true;
+    });
+    cand = cand.filter(function (c) {
+      if (cobradoDe(c.id)) { return false; }
+      if (/prueba|no conectado/i.test(String(c.d.cliente || '')) || (dueno && c.tel === dueno)) { return false; }
+      // reemplazada por una tarjeta viva del mismo cliente: la misma fecha, o despachada después y a menos de un mes
+      return !vivas.some(function (o) {
+        if (!mismaPersona(c, o)) { return false; }
+        var dd = diasEntre(c.fecha, o.fecha);
+        return dd <= 2 || (dd <= 31 && !!o.inf && o.inf >= c.inf);
+      });
+    });
+    // el mismo cliente perdido dos veces a menos de un mes: queda la última que traía monto (pasó en
+    // agosto: la segunda tarjeta salió sin monto ni teléfono y la buena era la primera)
+    var conMonto = function (c) { return Number(((c.d || {}).pago || {}).monto) > 0 ? 1 : 0; };
+    var gana = function (o, c) {
+      if (conMonto(o) !== conMonto(c)) { return conMonto(o) > conMonto(c); }
+      return o.inf > c.inf || (o.inf === c.inf && o.id > c.id);
+    };
+    cand = cand.filter(function (c) {
+      return !cand.some(function (o) {
+        return o !== c && mismaPersona(c, o) && diasEntre(c.fecha, o.fecha) <= 31 && gana(o, c);
+      });
+    });
+    return cand.map(function (c) {
+      var m = META[c.id] || metaDeData(c.d);
+      var g = geoDeData(c.d);
+      return { id: c.id, cliente: String(c.d.cliente || 'Cliente sin nombre'), fecha: c.fecha,
+        monto: Number(m.monto) || 0, cond: condCobro(m), tel: soloDigitosJS(c.d.telefono || ''),
+        comuna: (g.comuna && g.comuna !== 'Sin comuna') ? g.comuna : String(c.d.comuna || ''),
+        motivo: c.nota || (c.bot ? 'Canceló con el bot' : 'Se sacó de la lista') };
+    }).sort(function (a, b) { return a.fecha < b.fecha ? 1 : (a.fecha > b.fecha ? -1 : 0); });
+  }
+  // Al pie de Entregas: el botón «Ver clientes perdidos (N)» y, abierto, todos, de lo más nuevo a lo más viejo.
+  function pintarPerdidos() {
+    var pie = document.getElementById('perdidos-pie');
+    if (!pie) { return; }
+    var lista = CARGADO ? perdidos() : [];
+    if (!lista.length) { pie.hidden = true; pie.innerHTML = ''; perdidosAbierto = false; return; }
+    pie.hidden = false;
+    var html = '<button type="button" class="ver-perdidos' + (perdidosAbierto ? ' abierto' : '') + '" data-acc="ver-perdidos">'
+      + (perdidosAbierto ? '▴ Cerrar clientes perdidos' : '✕ Ver clientes perdidos') + ' (' + lista.length + ')</button>';
+    if (perdidosAbierto) {
+      var total = lista.reduce(function (s, p) { return s + p.monto; }, 0);
+      html += '<div class="perd-hero"><div class="r">Clientes perdidos</div><div class="v">' + clp(total) + '</div>'
+        + '<div class="s">' + lista.length + (lista.length === 1 ? ' entrega que no se hizo' : ' entregas que no se hicieron') + '</div></div>';
+      var mesAct = '';
+      lista.forEach(function (p, i) {
+        var mes = p.fecha.slice(0, 7);
+        if (mes !== mesAct) {
+          mesAct = mes;
+          var delMes = lista.filter(function (q) { return q.fecha.slice(0, 7) === mes; });
+          var suma = delMes.reduce(function (s, q) { return s + q.monto; }, 0);
+          var nom = mes ? nombreMes(mes) : 'Sin fecha';
+          html += '<div class="perd-mes"><span>' + escapeHtml(nom.charAt(0).toUpperCase() + nom.slice(1)) + ' · ' + delMes.length
+            + '</span><span>' + clp(suma) + '</span></div>';
+        }
+        var donde = [p.comuna, p.fecha ? fechaLarga(p.fecha) : ''].filter(Boolean).join(' · ');
+        html += '<div class="perd-item">'
+          + '<div class="perd-main"><div class="perd-cli">' + escapeHtml(p.cliente) + '</div>'
+          + (donde ? '<div class="perd-dir">📍 ' + escapeHtml(donde) + '</div>' : '')
+          + (p.tel ? '<div class="perd-dir"><a href="https://wa.me/' + p.tel + '" target="_blank" rel="noopener">💬 +' + p.tel + '</a></div>' : '')
+          + '<div class="perd-motivo">✕ ' + escapeHtml(p.motivo) + '</div></div>'
+          + '<div class="perd-monto">' + clp(p.monto) + (p.cond ? '<small>' + p.cond + '</small>' : '') + '</div>'
+          + '</div>';
+      });
+    }
+    pie.innerHTML = html;
+  }
+  // Las que retiró el bot: se piden una vez por visita, después de pintar.
+  function cargarPerdidasBot() {
+    if (SIN_VISTA || !SUPA.url || !SUPA.key || !Q.perdidas) { return; }
+    leer(Q.perdidas).then(function (rows) {
+      if (!Array.isArray(rows)) { return; }
+      PERDIDAS_BOT = rows.filter(esDeEstaVista);
+      cacheSet(CACHE_PERD, PERDIDAS_BOT);
+      pintarPerdidos();
+      if (VISTA_ACTUAL === 'mes') { renderMes(); }
     });
   }
 
@@ -2747,6 +2957,8 @@ SCRIPT_ESTADO = r"""<script>
         + '</div>';
     }
 
+    // (19-nov) la comuna (antes iba `m.direccion`, que META no trae, y quedaba «📍  · fecha»)
+    function comunaCom(id) { var c = (GEO[id] || {}).comuna || ''; return (c && c !== 'Sin comuna') ? c + ' · ' : ''; }
     function card(id, paid) {
       var m = META[id];
       var check = paid
@@ -2758,8 +2970,9 @@ SCRIPT_ESTADO = r"""<script>
       return '<div class="com-card' + (paid ? ' com-pagada' : '') + '">'
         + '<div class="com-top">' + check
         + '<div class="com-main"><div class="com-cli">' + escapeHtml(m.cliente) + '</div>'
-        + '<div class="com-dir">📍 ' + escapeHtml(m.direccion || '') + ' · ' + fechaLarga(fechaDe(id)) + '</div></div>'
-        + '<div class="com-monto">' + clp(m.comision) + '</div>' + rev + '</div>'
+        + '<div class="com-dir">📍 ' + escapeHtml(comunaCom(id)) + fechaLarga(fechaDe(id)) + '</div>'
+        + (m.pct ? '<div class="com-dir">' + chipPct(id) + '</div>' : '') + '</div>'
+        + '<div class="com-monto">' + clp(m.comision) + (m.pct ? '<small class="com-pct">al ' + m.pct + '%</small>' : '') + '</div>' + rev + '</div>'
         + '<div class="com-acciones">' + wa
         + '<button type="button" class="com-info" data-id="' + escapeHtml(id) + '">📋 Ver toda la info</button></div>'
         + '</div>';
@@ -2972,8 +3185,11 @@ SCRIPT_ESTADO = r"""<script>
     // fijo vuelve al 20% en cuanto el panel refresca (pasó con American Container: la
     // ficha decía $874.000 y el panel mostraba $1.520.000).
     var fija = (typeof e.comision === 'number') ? e.comision : null;
+    // (19-nov-2026) `comision_pct`: un porcentaje propio para ESA entrega (un cliente de Peñaflor
+    // quedó al 10%). Mismo campo y misma regla que comision_de() en Python y que destapes.
+    var pct = (typeof e.comision_pct === 'number' && e.comision_pct > 0 && e.comision_pct <= 100) ? e.comision_pct : null;
     var comision = !comisiona ? 0
-      : (fija != null ? Math.round(fija) : Math.round(neto * 0.20));
+      : (fija != null ? Math.round(fija) : Math.round(neto * (pct != null ? pct / 100 : 0.20)));
     return {
       id: e.id || '', cliente: e.cliente || '—', fecha: e.fecha || '',
       neto: neto, comision: comision, comisiona: comisiona,
@@ -2983,7 +3199,9 @@ SCRIPT_ESTADO = r"""<script>
       tel_cobro: contactoCobroJS(e).tel, nombre_cobro: contactoCobroJS(e).nombre,
       banos: banosDeJS(e),
       tipo: esServ ? 'limpieza' : 'bano', es_servicio: esServ,
-      monto: monto || 0, con_iva: conIva
+      monto: monto || 0, con_iva: conIva,
+      // el porcentaje SOLO cuando se sale del 20% de siempre: con eso se marca la tarjeta y el pago
+      pct: (comisiona && fija == null && pct != null && pct !== 20) ? pct : null
     };
   }
   // Geo en VIVO (puerto JS de derivar_geo + maps_query del generador): deduce
@@ -3329,6 +3547,8 @@ SCRIPT_ESTADO = r"""<script>
       document.title = 'Entregas de relevo';
     }
     var vivoDe = { estado: null, lite: null, pub: null }; // lo que llegó vivo (se guarda en el teléfono al final)
+    // (19-nov) las que retiró el bot, de la última visita: se reemplazan cuando llegan las vivas
+    PERDIDAS_BOT = (cacheGet(CACHE_PERD) || []).filter(esDeEstaVista);
     var completa = false, terminado = false;
     var done = function () {
       if (terminado) { return; }
@@ -3337,7 +3557,10 @@ SCRIPT_ESTADO = r"""<script>
       // (15-nov) pase lo que pase al pintar, la página se muestra (antes una excepción dejaba el velo)
       try { pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); renderHeaderPub(); refrescarComision(); }
       catch (e) { console.warn('Error al pintar la página:', e); }
+      try { pintarPerdidos(); } catch (e) { console.warn('Error al pintar los clientes perdidos:', e); }
       revelar(); irAlAncla(); guardarCaches(vivoDe, completa);
+      // (19-nov) las que retiró el bot (clientes perdidos): con la página ya a la vista
+      setTimeout(cargarPerdidasBot, 400);
     };
     if (!SUPA.url || !SUPA.key) { setActualizado('sin conexión a la base'); done(); return; }
     // Las tres lecturas ya salieron desde el <head> (window.__PRE__); si ese script no corrió, se piden acá.
@@ -3635,6 +3858,17 @@ SCRIPT_ESTADO = r"""<script>
     var sel = document.getElementById('mes-select');
     if (sel) {
       sel.addEventListener('change', function () { mesElegido = sel.value; renderMes(); });
+    }
+    // (19-nov) «Ver clientes perdidos»: abre y cierra la lista al pie de Entregas
+    var pp = document.getElementById('perdidos-pie');
+    if (pp) {
+      pp.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('[data-acc="ver-perdidos"]') : null;
+        if (!b) { return; }
+        perdidosAbierto = !perdidosAbierto;
+        pintarPerdidos();
+        if (perdidosAbierto && pp.scrollIntoView) { pp.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+      });
     }
   }
 
@@ -4081,6 +4315,8 @@ def construir_html(data: dict) -> str:
     # (15-nov-2026) siempre el reparto de hoy y el botón de completadas: las secciones de cada día
     # las crea el JS cuando llegan las tarjetas
     vista_entregas = reco_block + boton_anteriores + "".join(secciones) + limpiezas_sec + retiros_sec
+    # (19-nov-2026) al pie de Entregas: «Ver clientes perdidos (N)». Lo llena el JS (pintarPerdidos).
+    vista_entregas += '<div id="perdidos-pie" class="pie-perdidos" hidden></div>'
 
     # Barra de pestañas + dos vistas (entregas / comisión). El JS las alterna sin
     # regenerar la página. El aviso de conexión queda arriba, visible en ambas.

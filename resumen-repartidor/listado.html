@@ -10,7 +10,7 @@
     // sin clave en el enlace no se pide nada (la página dice «Enlace incompleto»)
     var vista = String(new URLSearchParams(location.search).get('repartidor') || '').trim().toLowerCase();
     if (!vista) { return; }
-    var c = {"url": "https://abmzkzraptmjgebwjzys.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho", "q": {"estado": "/rest/v1/entrega_estado?select=*", "lite": "/rest/v1/entrega?select=id,fecha,informado_at,updated_at,data&eliminado=eq.false&order=informado_at.desc", "pub": "/rest/v1/cobro_publicidad?select=*&eliminado=eq.false&order=hasta.desc", "delta": "/rest/v1/entrega?select=id,updated_at,card_html&eliminado=eq.false&updated_at=gt."}};
+    var c = {"url": "https://abmzkzraptmjgebwjzys.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho", "q": {"estado": "/rest/v1/entrega_estado?select=*", "lite": "/rest/v1/entrega?select=id,fecha,informado_at,updated_at,data&eliminado=eq.false&order=informado_at.desc", "pub": "/rest/v1/cobro_publicidad?select=*&eliminado=eq.false&order=hasta.desc", "delta": "/rest/v1/entrega?select=id,updated_at,card_html&eliminado=eq.false&updated_at=gt.", "perdidas": "/rest/v1/entrega?select=id,fecha,informado_at,data&eliminado=eq.true&order=informado_at.desc"}};
     // sin cabeceras propias (la llave va en la URL): el navegador no hace la consulta previa de CORS
     var leer = function (ruta) {
       var ctl = (typeof AbortController === 'function') ? new AbortController() : null;
@@ -505,6 +505,39 @@
   .mes-filtro button.on { background:var(--azul); color:#fff; border-color:var(--azul); }
   .mes-filtro button.on.falta { background:#B45309; border-color:#B45309; }
   .mes-vacio { color:var(--gris); font-size:14px; padding:18px 14px; text-align:center; }
+  /* (19-nov-2026) Comisión distinta del 20% de siempre: etiqueta morada (ver pctTxt) */
+  .com-pct-chip { display:inline-block; margin-left:6px; padding:1px 8px; border-radius:999px; background:#F3E8FF;
+    color:#6B21A8; border:1px solid #D8B4FE; font-size:12px; font-weight:800; white-space:nowrap; vertical-align:middle; }
+  .com-dir .com-pct-chip { margin-left:0; margin-top:3px; }
+  .com-monto .com-pct { display:block; font-size:11px; font-weight:800; color:#6B21A8; text-align:right; }
+  /* (19-nov-2026) Clientes perdidos: al final del mes y al pie de Entregas. En rojo suave: se
+     distinguen de un vistazo de lo cobrado y lo por cobrar. */
+  .mes-tit.perd { color:#B91C1C; margin-top:22px; }
+  .mes-lista.perd { border-color:#FECACA; }
+  .mes-f.perd { background:#FEF2F2; border-bottom-color:#FECACA; }
+  .mes-f.perd .mto { color:#B91C1C; }
+  .mes-f .cli .mot { display:block; font-size:12px; color:#991B1B; white-space:normal; overflow-wrap:anywhere; line-height:1.3; margin-top:1px; }
+  .pie-perdidos { margin:22px 0 6px; }
+  .pie-perdidos[hidden] { display:none; }
+  body.modo-completadas .pie-perdidos { display:none !important; }
+  .ver-perdidos { display:block; width:100%; padding:12px; border:1px dashed #FCA5A5; background:#fff;
+    color:#B91C1C; font-size:14px; font-weight:700; border-radius:12px; cursor:pointer; font-family:inherit; min-height:46px; }
+  .ver-perdidos.abierto { background:#FEF2F2; }
+  .perd-hero { background:#FEF2F2; border:1px solid #FECACA; border-radius:14px; padding:14px; margin:12px 0 4px; }
+  .perd-hero .r { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.5px; color:#B91C1C; }
+  .perd-hero .v { font-size:28px; font-weight:800; color:#B91C1C; font-variant-numeric:tabular-nums; line-height:1.15; margin-top:2px; }
+  .perd-hero .s { font-size:13.5px; color:#475569; margin-top:4px; }
+  .perd-mes { display:flex; justify-content:space-between; gap:10px; font-size:13px; font-weight:800; color:var(--gris);
+    text-transform:uppercase; letter-spacing:.4px; margin:16px 2px 8px; }
+  .perd-item { background:#fff; border:1px solid var(--linea); border-radius:12px; padding:11px 13px; margin-bottom:8px;
+    display:flex; gap:10px; align-items:flex-start; }
+  .perd-main { flex:1 1 auto; min-width:0; }
+  .perd-cli { font-weight:800; font-size:15px; overflow-wrap:anywhere; }
+  .perd-dir { color:var(--gris); font-size:13px; overflow-wrap:anywhere; margin-top:1px; }
+  .perd-dir a { color:#15803D; font-weight:700; text-decoration:none; }
+  .perd-motivo { margin-top:4px; font-size:13.5px; font-weight:700; color:#B91C1C; overflow-wrap:anywhere; }
+  .perd-monto { flex:none; font-weight:800; color:#B91C1C; font-variant-numeric:tabular-nums; white-space:nowrap; font-size:16px; text-align:right; }
+  .perd-monto small { display:block; font-size:11px; font-weight:600; color:var(--gris); }
   /* Secciones agregadas (limpiezas / retiros) */
   .agregado { margin-top:22px; }
   .ag-lista { list-style:none; margin:8px 0 0; padding:0; }
@@ -612,10 +645,10 @@
     <div class="skel-card"></div>
   </div>
   <main>
-    <div id="estado-online" class="estado-online" hidden></div><div class="vistas"><button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button><button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button><button type="button" class="vista-btn" data-vista="mes">📊 Mes</button></div><div class="vista" data-vista="entregas"><div id="recomendacion-hoy" class="reco" hidden></div><div id="modo-titulo" class="modo-titulo" hidden></div><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button></div><div class="vista" data-vista="comision" hidden><div id="comision-panel" class="comision-panel"></div><div id="barra-pagar" class="barra-pagar" hidden><button type="button" class="btn-pagar" disabled>Selecciona comisiones</button></div></div><div class="vista" data-vista="mes" hidden><div class="mes-sel"><select id="mes-select" aria-label="Mes"></select></div><div id="mes-panel"></div></div>
+    <div id="estado-online" class="estado-online" hidden></div><div class="vistas"><button type="button" class="vista-btn activo" data-vista="entregas">🚚 Entregas</button><button type="button" class="vista-btn" data-vista="comision">💰 Comisión</button><button type="button" class="vista-btn" data-vista="mes">📊 Mes</button></div><div class="vista" data-vista="entregas"><div id="recomendacion-hoy" class="reco" hidden></div><div id="modo-titulo" class="modo-titulo" hidden></div><button id="toggle-anteriores" class="ver-anteriores" type="button" hidden></button><div id="perdidos-pie" class="pie-perdidos" hidden></div></div><div class="vista" data-vista="comision" hidden><div id="comision-panel" class="comision-panel"></div><div id="barra-pagar" class="barra-pagar" hidden><button type="button" class="btn-pagar" disabled>Selecciona comisiones</button></div></div><div class="vista" data-vista="mes" hidden><div class="mes-sel"><select id="mes-select" aria-label="Mes"></select></div><div id="mes-panel"></div></div>
   </main>
   <footer>Toca una entrega para ver el detalle · Destape Rápido</footer>
-  <script>window.__APP__ = {"url": "https://abmzkzraptmjgebwjzys.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho", "q": {"estado": "/rest/v1/entrega_estado?select=*", "lite": "/rest/v1/entrega?select=id,fecha,informado_at,updated_at,data&eliminado=eq.false&order=informado_at.desc", "pub": "/rest/v1/cobro_publicidad?select=*&eliminado=eq.false&order=hasta.desc", "delta": "/rest/v1/entrega?select=id,updated_at,card_html&eliminado=eq.false&updated_at=gt."}, "whatsapp": "56930153632", "banco": {"titular": "Alejandro Rivera Carrasco", "banco": "BancoEstado", "cuenta": "000019955346", "email": "rivera.ale982@gmail.com"}, "entregas": [], "tareas": [], "comprobantes": {"2026-06-24": "comprobantes/pago-2026-06-24.png", "2026-06-27": "comprobantes/pago-2026-06-27.png", "2026-06-27T17:08:00+00:00": "comprobantes/pago-2026-06-27.png", "2026-07-16T17:26:26.07+00:00": "comprobantes/pago-2026-07-16.png", "2026-07-16": "comprobantes/pago-2026-07-16.png"}, "geo": {"2026-07-15-rene-etchegaray-hualtatas": {"comuna": "Lo Barnechea", "zona": "oriente", "lat": -33.353, "lng": -70.518, "aprox": true, "cliente": "René Etchegaray Ponce — obra Las Hualtatas (Condominio La Parroquia)", "mapsq": "Camino Las Hualtatas 5200, casa 40, Lo Barnechea, Región Metropolitana"}, "2026-06-30-innovators-conveyor-belt": {"comuna": "Las Condes", "zona": "oriente", "lat": -33.409, "lng": -70.569, "aprox": true, "cliente": "Suyen Guíñez — Innovators Conveyor Belt", "mapsq": "Camino El Alba, Las Condes, Región Metropolitana"}, "2026-06-26-b-carcamo-mair-mantencion": {"comuna": "Santiago Centro", "zona": "centro", "lat": -33.445, "lng": -70.66, "aprox": true, "cliente": "B. Cárcamo (MAIR) — mantención reforzada + retiro", "mapsq": "Curicó 517, Santiago Centro, Región Metropolitana"}, "2026-06-25-stock-diseno-chicureo": {"comuna": "Chicureo", "zona": "norte", "lat": -33.283, "lng": -70.667, "aprox": true, "cliente": "Stock Diseño Ltda. (Local Astop Aramco, Chicureo)", "mapsq": "Av. Chicureo 2300, Chicureo, Región Metropolitana"}, "2026-06-25-tania-soria-768": {"comuna": "Las Condes", "zona": "oriente", "lat": -33.409, "lng": -70.569, "aprox": true, "cliente": "Tania (obra Soria 768, Las Condes)", "mapsq": "Soria 768, Las Condes, Región Metropolitana"}, "2026-06-24-loreley-190-la-reina": {"comuna": "La Reina", "zona": "oriente", "lat": -33.443, "lng": -70.537, "aprox": true, "cliente": "Cliente — Loreley 190 (La Reina)", "mapsq": "Loreley 190, La Reina, Región Metropolitana"}, "2026-06-23-b-carcamo-mair": {"comuna": "Santiago Centro", "zona": "centro", "lat": -33.445, "lng": -70.66, "aprox": true, "cliente": "B. Cárcamo (MAIR)", "mapsq": "Curicó 517, Santiago Centro, Región Metropolitana"}, "2026-06-23-gino-munoz": {"comuna": "Colina", "zona": "norte", "lat": -33.203, "lng": -70.676, "aprox": true, "cliente": "Gino Muñoz (Constructora GMP)", "mapsq": "Condominio Polo de Manquehue 2, Chicureo, Colina, Región Metropolitana"}, "2026-06-23-don-daniel": {"comuna": "Vitacura", "zona": "oriente", "lat": -33.38, "lng": -70.575, "aprox": true, "cliente": "Don Daniel", "mapsq": "Chapultepec 6047, Vitacura, Región Metropolitana"}, "2026-06-25-hercha-ingenieria": {"comuna": "Padre Hurtado", "zona": "surponiente", "lat": -33.573, "lng": -70.81, "aprox": true, "cliente": "Don Eliecer (HERCHA Ingeniería)", "mapsq": "Planta de Tratamiento de Aguas Servidas Aguas Andinas, Camino El Trebal 2095, Padre Hurtado, Región Metropolitana"}, "2026-06-23-pilar-casanueva": {"comuna": "Lo Barnechea", "zona": "oriente", "lat": -33.353, "lng": -70.518, "aprox": true, "cliente": "Pilar Casanueva (MDA Constructora)", "mapsq": "El Rincón 12382, casa 5, Lo Barnechea, Región Metropolitana"}, "2026-06-26-villagra-conchali": {"comuna": "Conchalí", "zona": "norte", "lat": -33.383, "lng": -70.675, "aprox": true, "cliente": "Sr. Villagra", "mapsq": "Campanario 1749, Conchalí, Región Metropolitana"}, "2026-06-26-gamarra-santiago": {"comuna": "Santiago", "zona": "centro", "lat": -33.445, "lng": -70.66, "aprox": true, "cliente": "Sr. Gamarra", "mapsq": "San Isidro 1948, Santiago, Región Metropolitana"}, "2026-06-23-grupo-b-nunoa": {"comuna": "Ñuñoa", "zona": "oriente", "lat": -33.456, "lng": -70.597, "aprox": true, "cliente": "Grupo B SpA (obra Ñuñoa)", "mapsq": "Pasaje Juan Moya 368, Ñuñoa, Región Metropolitana"}, "2026-06-27-mair-recambio": {"comuna": "Santiago Centro", "zona": "centro", "lat": -33.445, "lng": -70.66, "aprox": true, "cliente": "B. Cárcamo (MAIR) — recambio de baño (Líder)", "mapsq": "Curicó 517, Santiago Centro, Región Metropolitana"}, "2026-07-06-empresa-gm-buin": {"comuna": "Buin", "zona": "sur", "lat": -33.732, "lng": -70.741, "aprox": true, "cliente": "EMPRESA GM SPA (contacto: Jordan Mendoza)", "mapsq": "Buin, Región Metropolitana"}, "2026-07-06-consel-fundo-chena": {"comuna": "San Bernardo", "zona": "sur", "lat": -33.592, "lng": -70.699, "aprox": true, "cliente": "Consel Capacitaciones SpA (contacto: C. Navarro)", "mapsq": "Av. Lonquén N°16450, San Bernardo, Región Metropolitana"}, "2026-07-06-consel-santo-domingo": {"comuna": "Santiago", "zona": "centro", "lat": -33.445, "lng": -70.66, "aprox": true, "cliente": "Consel Capacitaciones SpA (contacto: C. Navarro)", "mapsq": "Santo Domingo N°2423, Santiago, Región Metropolitana"}, "2026-07-06-cristian-ulloa": {"comuna": "Peñaflor", "zona": "surponiente", "lat": -33.61, "lng": -70.878, "aprox": true, "cliente": "Cristian Ulloa", "mapsq": "Av. Central 999, Peñaflor, Región Metropolitana"}, "2026-07-06-aporo-spa": {"comuna": "Colina", "zona": "norte", "lat": -33.203, "lng": -70.676, "aprox": true, "cliente": "Aporo SpA", "mapsq": "Av. Santa Filomena 13101, Colina, Región Metropolitana"}, "2026-07-08-rene-etchegaray": {"comuna": "Lo Barnechea", "zona": "oriente", "lat": -33.353, "lng": -70.518, "aprox": true, "cliente": "René Etchegaray Ponce", "mapsq": "Cerro Lagunillas 11805, Lo Barnechea, Región Metropolitana"}, "2026-07-08-robcar": {"comuna": "Colina", "zona": "norte", "lat": -33.203, "lng": -70.676, "aprox": true, "cliente": "Ingeniería Eléctrica y Construcción ROBCAR Limitada (contacto: Cristina)", "mapsq": "Los Montes 1022, Colina, Región Metropolitana"}, "2026-07-08-duble-almeyda": {"comuna": "Ñuñoa", "zona": "oriente", "lat": -33.456, "lng": -70.597, "aprox": true, "cliente": "Cliente Duble Almeyda (tel. +56 9 9347 6621)", "mapsq": "Duble Almeyda 3164, Ñuñoa, Región Metropolitana"}, "2026-07-10-metalcort-canoas": {"comuna": "Pudahuel", "zona": "poniente", "lat": -33.432308197021484, "lng": -70.84268951416016, "aprox": false, "cliente": "Metalcort — Club de Canoas Santiago", "mapsq": "Club de Canoas Santiago, Pudahuel, Región Metropolitana"}, "2026-07-09-montemaria-pirque": {"comuna": "Pirque", "zona": "sur", "lat": -33.64, "lng": -70.548, "aprox": true, "cliente": "Constructora Montemaría SpA (contacto: Macarena, Analista)", "mapsq": "Loma Tendida 1094, Pirque, Región Metropolitana"}, "2026-07-09-constructora-ag": {"comuna": "Colina", "zona": "norte", "lat": -33.203, "lng": -70.676, "aprox": true, "cliente": "Constructora A&G SPA", "mapsq": "7 Condominio San Pedro, Fundo Los Hornos, Chicureo, Colina, Región Metropolitana"}, "2026-07-13-arqcons": {"comuna": "Las Condes", "zona": "oriente", "lat": -33.409, "lng": -70.569, "aprox": true, "cliente": "Inmobiliaria y Constructora Arqcons SpA", "mapsq": "San José de la Sierra #360, Las Condes, Región Metropolitana"}, "2026-07-13-fabrica-domura": {"comuna": "La Granja", "zona": "sur", "lat": -33.54, "lng": -70.625, "aprox": true, "cliente": "Fábrica de Muebles Domura Ltda. (contacto: Tomás)", "mapsq": "Av. Combarbalá 0222, La Granja, Región Metropolitana"}, "2026-07-13-ferrara-paine": {"comuna": "Paine", "zona": "sur", "lat": -33.808, "lng": -70.741, "aprox": true, "cliente": "Ferrara (contacto: Rodolfo Aguilar)", "mapsq": "Bodega El Tránsito, Paine, Región Metropolitana"}, "2026-07-13-lissette-hizmeri": {"comuna": "Colina", "zona": "norte", "lat": -33.261871337890625, "lng": -70.72256469726562, "aprox": false, "cliente": "Lissette Hizmeri", "mapsq": "Condominio Casas del Polo Rayen, casa 5 M, Lo Pinto, Colina, Región Metropolitana"}, "2026-07-14-michelle-arquitectura-paisaje": {"comuna": "Quilicura", "zona": "norte", "lat": -33.367, "lng": -70.729, "aprox": true, "cliente": "Arquitectura y Paisaje (contacto en terreno)", "mapsq": "Bernardo O'Higgins 581, Quilicura, Región Metropolitana"}, "2026-07-14-spen-ser": {"comuna": "Talagante", "zona": "surponiente", "lat": -33.691341, "lng": -70.816544, "aprox": false, "cliente": "Spen-Ser (contacto: Sr. Flanega)", "mapsq": "-33.691341,-70.816544"}, "2026-07-14-cumbres-ingenieria-buin": {"comuna": "Buin", "zona": "sur", "lat": -33.732, "lng": -70.741, "aprox": true, "cliente": "Cumbres Ingeniería (contacto: K. Marchant)", "mapsq": "Arturo Prat 445, Buin, Región Metropolitana"}, "2026-07-15-neurona-soluciones": {"comuna": "Independencia", "zona": "centro", "lat": -33.417, "lng": -70.665, "aprox": true, "cliente": "Rodrigo — Neurona Soluciones", "mapsq": "Teniente Bisson 738, Independencia, Región Metropolitana"}, "2026-07-14-nuevas-urbanizaciones": {"comuna": "El Monte", "zona": "surponiente", "lat": -33.677, "lng": -71.01, "aprox": true, "cliente": "Nuevas Urbanizaciones SpA", "mapsq": "Avenida Los Libertadores 470, El Monte, Región Metropolitana"}, "2026-08-11-coni-la-porteria": {"comuna": "Las Condes", "zona": "oriente", "lat": -33.409, "lng": -70.569, "aprox": true, "cliente": "Coni — obra La Portería (Las Condes)", "mapsq": "La Portería 11847, Las Condes, Región Metropolitana"}, "2026-08-11-constructora-danilo-bocaz": {"comuna": "Lo Barnechea", "zona": "oriente", "lat": -33.3606384, "lng": -70.4917504, "aprox": false, "cliente": "Constructora Danilo Bocaz — obra Valle Escondido (Lo Barnechea)", "mapsq": "-33.3606384,-70.4917504"}}, "zonas": {"oriente": {"label": "Oriente", "emoji": "🌄", "orden": 1}, "centro": {"label": "Centro", "emoji": "🏙️", "orden": 2}, "norte": {"label": "Norte", "emoji": "🧭", "orden": 3}, "poniente": {"label": "Poniente", "emoji": "🌆", "orden": 4}, "surponiente": {"label": "Sur-poniente", "emoji": "🌾", "orden": 5}, "sur": {"label": "Sur", "emoji": "🚜", "orden": 6}, "otra": {"label": "Otra zona", "emoji": "📍", "orden": 9}}, "comunas_geo": {"lo barnechea": {"label": "Lo Barnechea", "lat": -33.353, "lng": -70.518, "zona": "oriente"}, "las condes": {"label": "Las Condes", "lat": -33.409, "lng": -70.569, "zona": "oriente"}, "vitacura": {"label": "Vitacura", "lat": -33.38, "lng": -70.575, "zona": "oriente"}, "la reina": {"label": "La Reina", "lat": -33.443, "lng": -70.537, "zona": "oriente"}, "nunoa": {"label": "Ñuñoa", "lat": -33.456, "lng": -70.597, "zona": "oriente"}, "providencia": {"label": "Providencia", "lat": -33.43, "lng": -70.61, "zona": "oriente"}, "penalolen": {"label": "Peñalolén", "lat": -33.485, "lng": -70.545, "zona": "oriente"}, "macul": {"label": "Macul", "lat": -33.485, "lng": -70.598, "zona": "oriente"}, "santiago centro": {"label": "Santiago Centro", "lat": -33.445, "lng": -70.66, "zona": "centro"}, "santiago": {"label": "Santiago", "lat": -33.445, "lng": -70.66, "zona": "centro"}, "independencia": {"label": "Independencia", "lat": -33.417, "lng": -70.665, "zona": "centro"}, "recoleta": {"label": "Recoleta", "lat": -33.414, "lng": -70.64, "zona": "centro"}, "estacion central": {"label": "Estación Central", "lat": -33.452, "lng": -70.685, "zona": "centro"}, "san miguel": {"label": "San Miguel", "lat": -33.497, "lng": -70.652, "zona": "centro"}, "san joaquin": {"label": "San Joaquin", "lat": -33.492, "lng": -70.628, "zona": "centro"}, "pedro aguirre cerda": {"label": "Pedro Aguirre Cerda", "lat": -33.487, "lng": -70.673, "zona": "centro"}, "colina": {"label": "Colina", "lat": -33.203, "lng": -70.676, "zona": "norte"}, "chicureo": {"label": "Chicureo", "lat": -33.283, "lng": -70.667, "zona": "norte"}, "lo pinto": {"label": "Lo Pinto", "lat": -33.262, "lng": -70.723, "zona": "norte"}, "lampa": {"label": "Lampa", "lat": -33.283, "lng": -70.883, "zona": "norte"}, "til til": {"label": "Til Til", "lat": -33.083, "lng": -70.93, "zona": "norte"}, "quilicura": {"label": "Quilicura", "lat": -33.367, "lng": -70.729, "zona": "norte"}, "huechuraba": {"label": "Huechuraba", "lat": -33.37, "lng": -70.645, "zona": "norte"}, "conchali": {"label": "Conchalí", "lat": -33.383, "lng": -70.675, "zona": "norte"}, "renca": {"label": "Renca", "lat": -33.404, "lng": -70.726, "zona": "norte"}, "pudahuel": {"label": "Pudahuel", "lat": -33.443, "lng": -70.76, "zona": "poniente"}, "cerro navia": {"label": "Cerro Navia", "lat": -33.423, "lng": -70.735, "zona": "poniente"}, "lo prado": {"label": "Lo Prado", "lat": -33.443, "lng": -70.72, "zona": "poniente"}, "maipu": {"label": "Maipú", "lat": -33.51, "lng": -70.76, "zona": "poniente"}, "cerrillos": {"label": "Cerrillos", "lat": -33.495, "lng": -70.715, "zona": "poniente"}, "curacavi": {"label": "Curacaví", "lat": -33.41, "lng": -71.14, "zona": "poniente"}, "padre hurtado": {"label": "Padre Hurtado", "lat": -33.573, "lng": -70.81, "zona": "surponiente"}, "penaflor": {"label": "Peñaflor", "lat": -33.61, "lng": -70.878, "zona": "surponiente"}, "talagante": {"label": "Talagante", "lat": -33.665, "lng": -70.928, "zona": "surponiente"}, "el monte": {"label": "El Monte", "lat": -33.677, "lng": -71.01, "zona": "surponiente"}, "isla de maipo": {"label": "Isla De Maipo", "lat": -33.752, "lng": -70.897, "zona": "surponiente"}, "melipilla": {"label": "Melipilla", "lat": -33.688, "lng": -71.215, "zona": "surponiente"}, "calera de tango": {"label": "Calera De Tango", "lat": -33.632, "lng": -70.782, "zona": "surponiente"}, "san bernardo": {"label": "San Bernardo", "lat": -33.592, "lng": -70.699, "zona": "sur"}, "buin": {"label": "Buin", "lat": -33.732, "lng": -70.741, "zona": "sur"}, "paine": {"label": "Paine", "lat": -33.808, "lng": -70.741, "zona": "sur"}, "pirque": {"label": "Pirque", "lat": -33.64, "lng": -70.548, "zona": "sur"}, "puente alto": {"label": "Puente Alto", "lat": -33.611, "lng": -70.575, "zona": "sur"}, "la florida": {"label": "La Florida", "lat": -33.552, "lng": -70.583, "zona": "sur"}, "la pintana": {"label": "La Pintana", "lat": -33.583, "lng": -70.63, "zona": "sur"}, "la granja": {"label": "La Granja", "lat": -33.54, "lng": -70.625, "zona": "sur"}, "el bosque": {"label": "El Bosque", "lat": -33.562, "lng": -70.675, "zona": "sur"}, "la cisterna": {"label": "La Cisterna", "lat": -33.537, "lng": -70.663, "zona": "sur"}, "san ramon": {"label": "San Ramón", "lat": -33.535, "lng": -70.645, "zona": "sur"}}};</script>
+  <script>window.__APP__ = {"url": "https://abmzkzraptmjgebwjzys.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho", "q": {"estado": "/rest/v1/entrega_estado?select=*", "lite": "/rest/v1/entrega?select=id,fecha,informado_at,updated_at,data&eliminado=eq.false&order=informado_at.desc", "pub": "/rest/v1/cobro_publicidad?select=*&eliminado=eq.false&order=hasta.desc", "delta": "/rest/v1/entrega?select=id,updated_at,card_html&eliminado=eq.false&updated_at=gt.", "perdidas": "/rest/v1/entrega?select=id,fecha,informado_at,data&eliminado=eq.true&order=informado_at.desc"}, "whatsapp": "56930153632", "banco": {"titular": "Alejandro Rivera Carrasco", "banco": "BancoEstado", "cuenta": "000019955346", "email": "rivera.ale982@gmail.com"}, "entregas": [], "tareas": [], "comprobantes": {"2026-06-24": "comprobantes/pago-2026-06-24.png", "2026-06-27": "comprobantes/pago-2026-06-27.png", "2026-06-27T17:08:00+00:00": "comprobantes/pago-2026-06-27.png", "2026-07-16T17:26:26.07+00:00": "comprobantes/pago-2026-07-16.png", "2026-07-16": "comprobantes/pago-2026-07-16.png"}, "geo": {"2026-07-15-rene-etchegaray-hualtatas": {"comuna": "Lo Barnechea", "zona": "oriente", "lat": -33.353, "lng": -70.518, "aprox": true, "cliente": "René Etchegaray Ponce — obra Las Hualtatas (Condominio La Parroquia)", "mapsq": "Camino Las Hualtatas 5200, casa 40, Lo Barnechea, Región Metropolitana"}, "2026-06-30-innovators-conveyor-belt": {"comuna": "Las Condes", "zona": "oriente", "lat": -33.409, "lng": -70.569, "aprox": true, "cliente": "Suyen Guíñez — Innovators Conveyor Belt", "mapsq": "Camino El Alba, Las Condes, Región Metropolitana"}, "2026-06-26-b-carcamo-mair-mantencion": {"comuna": "Santiago Centro", "zona": "centro", "lat": -33.445, "lng": -70.66, "aprox": true, "cliente": "B. Cárcamo (MAIR) — mantención reforzada + retiro", "mapsq": "Curicó 517, Santiago Centro, Región Metropolitana"}, "2026-06-25-stock-diseno-chicureo": {"comuna": "Chicureo", "zona": "norte", "lat": -33.283, "lng": -70.667, "aprox": true, "cliente": "Stock Diseño Ltda. (Local Astop Aramco, Chicureo)", "mapsq": "Av. Chicureo 2300, Chicureo, Región Metropolitana"}, "2026-06-25-tania-soria-768": {"comuna": "Las Condes", "zona": "oriente", "lat": -33.409, "lng": -70.569, "aprox": true, "cliente": "Tania (obra Soria 768, Las Condes)", "mapsq": "Soria 768, Las Condes, Región Metropolitana"}, "2026-06-24-loreley-190-la-reina": {"comuna": "La Reina", "zona": "oriente", "lat": -33.443, "lng": -70.537, "aprox": true, "cliente": "Cliente — Loreley 190 (La Reina)", "mapsq": "Loreley 190, La Reina, Región Metropolitana"}, "2026-06-23-b-carcamo-mair": {"comuna": "Santiago Centro", "zona": "centro", "lat": -33.445, "lng": -70.66, "aprox": true, "cliente": "B. Cárcamo (MAIR)", "mapsq": "Curicó 517, Santiago Centro, Región Metropolitana"}, "2026-06-23-gino-munoz": {"comuna": "Colina", "zona": "norte", "lat": -33.203, "lng": -70.676, "aprox": true, "cliente": "Gino Muñoz (Constructora GMP)", "mapsq": "Condominio Polo de Manquehue 2, Chicureo, Colina, Región Metropolitana"}, "2026-06-23-don-daniel": {"comuna": "Vitacura", "zona": "oriente", "lat": -33.38, "lng": -70.575, "aprox": true, "cliente": "Don Daniel", "mapsq": "Chapultepec 6047, Vitacura, Región Metropolitana"}, "2026-06-25-hercha-ingenieria": {"comuna": "Padre Hurtado", "zona": "surponiente", "lat": -33.573, "lng": -70.81, "aprox": true, "cliente": "Don Eliecer (HERCHA Ingeniería)", "mapsq": "Planta de Tratamiento de Aguas Servidas Aguas Andinas, Camino El Trebal 2095, Padre Hurtado, Región Metropolitana"}, "2026-06-23-pilar-casanueva": {"comuna": "Lo Barnechea", "zona": "oriente", "lat": -33.353, "lng": -70.518, "aprox": true, "cliente": "Pilar Casanueva (MDA Constructora)", "mapsq": "El Rincón 12382, casa 5, Lo Barnechea, Región Metropolitana"}, "2026-06-26-villagra-conchali": {"comuna": "Conchalí", "zona": "norte", "lat": -33.383, "lng": -70.675, "aprox": true, "cliente": "Sr. Villagra", "mapsq": "Campanario 1749, Conchalí, Región Metropolitana"}, "2026-06-26-gamarra-santiago": {"comuna": "Santiago", "zona": "centro", "lat": -33.445, "lng": -70.66, "aprox": true, "cliente": "Sr. Gamarra", "mapsq": "San Isidro 1948, Santiago, Región Metropolitana"}, "2026-06-23-grupo-b-nunoa": {"comuna": "Ñuñoa", "zona": "oriente", "lat": -33.456, "lng": -70.597, "aprox": true, "cliente": "Grupo B SpA (obra Ñuñoa)", "mapsq": "Pasaje Juan Moya 368, Ñuñoa, Región Metropolitana"}, "2026-06-27-mair-recambio": {"comuna": "Santiago Centro", "zona": "centro", "lat": -33.445, "lng": -70.66, "aprox": true, "cliente": "B. Cárcamo (MAIR) — recambio de baño (Líder)", "mapsq": "Curicó 517, Santiago Centro, Región Metropolitana"}, "2026-07-06-empresa-gm-buin": {"comuna": "Buin", "zona": "sur", "lat": -33.732, "lng": -70.741, "aprox": true, "cliente": "EMPRESA GM SPA (contacto: Jordan Mendoza)", "mapsq": "Buin, Región Metropolitana"}, "2026-07-06-consel-fundo-chena": {"comuna": "San Bernardo", "zona": "sur", "lat": -33.592, "lng": -70.699, "aprox": true, "cliente": "Consel Capacitaciones SpA (contacto: C. Navarro)", "mapsq": "Av. Lonquén N°16450, San Bernardo, Región Metropolitana"}, "2026-07-06-consel-santo-domingo": {"comuna": "Santiago", "zona": "centro", "lat": -33.445, "lng": -70.66, "aprox": true, "cliente": "Consel Capacitaciones SpA (contacto: C. Navarro)", "mapsq": "Santo Domingo N°2423, Santiago, Región Metropolitana"}, "2026-07-06-cristian-ulloa": {"comuna": "Peñaflor", "zona": "surponiente", "lat": -33.61, "lng": -70.878, "aprox": true, "cliente": "Cristian Ulloa", "mapsq": "Av. Central 999, Peñaflor, Región Metropolitana"}, "2026-07-06-aporo-spa": {"comuna": "Colina", "zona": "norte", "lat": -33.203, "lng": -70.676, "aprox": true, "cliente": "Aporo SpA", "mapsq": "Av. Santa Filomena 13101, Colina, Región Metropolitana"}, "2026-07-08-rene-etchegaray": {"comuna": "Lo Barnechea", "zona": "oriente", "lat": -33.353, "lng": -70.518, "aprox": true, "cliente": "René Etchegaray Ponce", "mapsq": "Cerro Lagunillas 11805, Lo Barnechea, Región Metropolitana"}, "2026-07-08-robcar": {"comuna": "Colina", "zona": "norte", "lat": -33.203, "lng": -70.676, "aprox": true, "cliente": "Ingeniería Eléctrica y Construcción ROBCAR Limitada (contacto: Cristina)", "mapsq": "Los Montes 1022, Colina, Región Metropolitana"}, "2026-07-08-duble-almeyda": {"comuna": "Ñuñoa", "zona": "oriente", "lat": -33.456, "lng": -70.597, "aprox": true, "cliente": "Cliente Duble Almeyda (tel. +56 9 9347 6621)", "mapsq": "Duble Almeyda 3164, Ñuñoa, Región Metropolitana"}, "2026-07-10-metalcort-canoas": {"comuna": "Pudahuel", "zona": "poniente", "lat": -33.432308197021484, "lng": -70.84268951416016, "aprox": false, "cliente": "Metalcort — Club de Canoas Santiago", "mapsq": "Club de Canoas Santiago, Pudahuel, Región Metropolitana"}, "2026-07-09-montemaria-pirque": {"comuna": "Pirque", "zona": "sur", "lat": -33.64, "lng": -70.548, "aprox": true, "cliente": "Constructora Montemaría SpA (contacto: Macarena, Analista)", "mapsq": "Loma Tendida 1094, Pirque, Región Metropolitana"}, "2026-07-09-constructora-ag": {"comuna": "Colina", "zona": "norte", "lat": -33.203, "lng": -70.676, "aprox": true, "cliente": "Constructora A&G SPA", "mapsq": "7 Condominio San Pedro, Fundo Los Hornos, Chicureo, Colina, Región Metropolitana"}, "2026-07-13-arqcons": {"comuna": "Las Condes", "zona": "oriente", "lat": -33.409, "lng": -70.569, "aprox": true, "cliente": "Inmobiliaria y Constructora Arqcons SpA", "mapsq": "San José de la Sierra #360, Las Condes, Región Metropolitana"}, "2026-07-13-fabrica-domura": {"comuna": "La Granja", "zona": "sur", "lat": -33.54, "lng": -70.625, "aprox": true, "cliente": "Fábrica de Muebles Domura Ltda. (contacto: Tomás)", "mapsq": "Av. Combarbalá 0222, La Granja, Región Metropolitana"}, "2026-07-13-ferrara-paine": {"comuna": "Paine", "zona": "sur", "lat": -33.808, "lng": -70.741, "aprox": true, "cliente": "Ferrara (contacto: Rodolfo Aguilar)", "mapsq": "Bodega El Tránsito, Paine, Región Metropolitana"}, "2026-07-13-lissette-hizmeri": {"comuna": "Colina", "zona": "norte", "lat": -33.261871337890625, "lng": -70.72256469726562, "aprox": false, "cliente": "Lissette Hizmeri", "mapsq": "Condominio Casas del Polo Rayen, casa 5 M, Lo Pinto, Colina, Región Metropolitana"}, "2026-07-14-michelle-arquitectura-paisaje": {"comuna": "Quilicura", "zona": "norte", "lat": -33.367, "lng": -70.729, "aprox": true, "cliente": "Arquitectura y Paisaje (contacto en terreno)", "mapsq": "Bernardo O'Higgins 581, Quilicura, Región Metropolitana"}, "2026-07-14-spen-ser": {"comuna": "Talagante", "zona": "surponiente", "lat": -33.691341, "lng": -70.816544, "aprox": false, "cliente": "Spen-Ser (contacto: Sr. Flanega)", "mapsq": "-33.691341,-70.816544"}, "2026-07-14-cumbres-ingenieria-buin": {"comuna": "Buin", "zona": "sur", "lat": -33.732, "lng": -70.741, "aprox": true, "cliente": "Cumbres Ingeniería (contacto: K. Marchant)", "mapsq": "Arturo Prat 445, Buin, Región Metropolitana"}, "2026-07-15-neurona-soluciones": {"comuna": "Independencia", "zona": "centro", "lat": -33.417, "lng": -70.665, "aprox": true, "cliente": "Rodrigo — Neurona Soluciones", "mapsq": "Teniente Bisson 738, Independencia, Región Metropolitana"}, "2026-07-14-nuevas-urbanizaciones": {"comuna": "El Monte", "zona": "surponiente", "lat": -33.677, "lng": -71.01, "aprox": true, "cliente": "Nuevas Urbanizaciones SpA", "mapsq": "Avenida Los Libertadores 470, El Monte, Región Metropolitana"}, "2026-08-11-coni-la-porteria": {"comuna": "Las Condes", "zona": "oriente", "lat": -33.409, "lng": -70.569, "aprox": true, "cliente": "Coni — obra La Portería (Las Condes)", "mapsq": "La Portería 11847, Las Condes, Región Metropolitana"}, "2026-08-11-constructora-danilo-bocaz": {"comuna": "Lo Barnechea", "zona": "oriente", "lat": -33.3606384, "lng": -70.4917504, "aprox": false, "cliente": "Constructora Danilo Bocaz — obra Valle Escondido (Lo Barnechea)", "mapsq": "-33.3606384,-70.4917504"}}, "zonas": {"oriente": {"label": "Oriente", "emoji": "🌄", "orden": 1}, "centro": {"label": "Centro", "emoji": "🏙️", "orden": 2}, "norte": {"label": "Norte", "emoji": "🧭", "orden": 3}, "poniente": {"label": "Poniente", "emoji": "🌆", "orden": 4}, "surponiente": {"label": "Sur-poniente", "emoji": "🌾", "orden": 5}, "sur": {"label": "Sur", "emoji": "🚜", "orden": 6}, "otra": {"label": "Otra zona", "emoji": "📍", "orden": 9}}, "comunas_geo": {"lo barnechea": {"label": "Lo Barnechea", "lat": -33.353, "lng": -70.518, "zona": "oriente"}, "las condes": {"label": "Las Condes", "lat": -33.409, "lng": -70.569, "zona": "oriente"}, "vitacura": {"label": "Vitacura", "lat": -33.38, "lng": -70.575, "zona": "oriente"}, "la reina": {"label": "La Reina", "lat": -33.443, "lng": -70.537, "zona": "oriente"}, "nunoa": {"label": "Ñuñoa", "lat": -33.456, "lng": -70.597, "zona": "oriente"}, "providencia": {"label": "Providencia", "lat": -33.43, "lng": -70.61, "zona": "oriente"}, "penalolen": {"label": "Peñalolén", "lat": -33.485, "lng": -70.545, "zona": "oriente"}, "macul": {"label": "Macul", "lat": -33.485, "lng": -70.598, "zona": "oriente"}, "santiago centro": {"label": "Santiago Centro", "lat": -33.445, "lng": -70.66, "zona": "centro"}, "santiago": {"label": "Santiago", "lat": -33.445, "lng": -70.66, "zona": "centro"}, "independencia": {"label": "Independencia", "lat": -33.417, "lng": -70.665, "zona": "centro"}, "recoleta": {"label": "Recoleta", "lat": -33.414, "lng": -70.64, "zona": "centro"}, "estacion central": {"label": "Estación Central", "lat": -33.452, "lng": -70.685, "zona": "centro"}, "san miguel": {"label": "San Miguel", "lat": -33.497, "lng": -70.652, "zona": "centro"}, "san joaquin": {"label": "San Joaquin", "lat": -33.492, "lng": -70.628, "zona": "centro"}, "pedro aguirre cerda": {"label": "Pedro Aguirre Cerda", "lat": -33.487, "lng": -70.673, "zona": "centro"}, "colina": {"label": "Colina", "lat": -33.203, "lng": -70.676, "zona": "norte"}, "chicureo": {"label": "Chicureo", "lat": -33.283, "lng": -70.667, "zona": "norte"}, "lo pinto": {"label": "Lo Pinto", "lat": -33.262, "lng": -70.723, "zona": "norte"}, "lampa": {"label": "Lampa", "lat": -33.283, "lng": -70.883, "zona": "norte"}, "til til": {"label": "Til Til", "lat": -33.083, "lng": -70.93, "zona": "norte"}, "quilicura": {"label": "Quilicura", "lat": -33.367, "lng": -70.729, "zona": "norte"}, "huechuraba": {"label": "Huechuraba", "lat": -33.37, "lng": -70.645, "zona": "norte"}, "conchali": {"label": "Conchalí", "lat": -33.383, "lng": -70.675, "zona": "norte"}, "renca": {"label": "Renca", "lat": -33.404, "lng": -70.726, "zona": "norte"}, "pudahuel": {"label": "Pudahuel", "lat": -33.443, "lng": -70.76, "zona": "poniente"}, "cerro navia": {"label": "Cerro Navia", "lat": -33.423, "lng": -70.735, "zona": "poniente"}, "lo prado": {"label": "Lo Prado", "lat": -33.443, "lng": -70.72, "zona": "poniente"}, "maipu": {"label": "Maipú", "lat": -33.51, "lng": -70.76, "zona": "poniente"}, "cerrillos": {"label": "Cerrillos", "lat": -33.495, "lng": -70.715, "zona": "poniente"}, "curacavi": {"label": "Curacaví", "lat": -33.41, "lng": -71.14, "zona": "poniente"}, "padre hurtado": {"label": "Padre Hurtado", "lat": -33.573, "lng": -70.81, "zona": "surponiente"}, "penaflor": {"label": "Peñaflor", "lat": -33.61, "lng": -70.878, "zona": "surponiente"}, "talagante": {"label": "Talagante", "lat": -33.665, "lng": -70.928, "zona": "surponiente"}, "el monte": {"label": "El Monte", "lat": -33.677, "lng": -71.01, "zona": "surponiente"}, "isla de maipo": {"label": "Isla De Maipo", "lat": -33.752, "lng": -70.897, "zona": "surponiente"}, "melipilla": {"label": "Melipilla", "lat": -33.688, "lng": -71.215, "zona": "surponiente"}, "calera de tango": {"label": "Calera De Tango", "lat": -33.632, "lng": -70.782, "zona": "surponiente"}, "san bernardo": {"label": "San Bernardo", "lat": -33.592, "lng": -70.699, "zona": "sur"}, "buin": {"label": "Buin", "lat": -33.732, "lng": -70.741, "zona": "sur"}, "paine": {"label": "Paine", "lat": -33.808, "lng": -70.741, "zona": "sur"}, "pirque": {"label": "Pirque", "lat": -33.64, "lng": -70.548, "zona": "sur"}, "puente alto": {"label": "Puente Alto", "lat": -33.611, "lng": -70.575, "zona": "sur"}, "la florida": {"label": "La Florida", "lat": -33.552, "lng": -70.583, "zona": "sur"}, "la pintana": {"label": "La Pintana", "lat": -33.583, "lng": -70.63, "zona": "sur"}, "la granja": {"label": "La Granja", "lat": -33.54, "lng": -70.625, "zona": "sur"}, "el bosque": {"label": "El Bosque", "lat": -33.562, "lng": -70.675, "zona": "sur"}, "la cisterna": {"label": "La Cisterna", "lat": -33.537, "lng": -70.663, "zona": "sur"}, "san ramon": {"label": "San Ramón", "lat": -33.535, "lng": -70.645, "zona": "sur"}}};</script>
   
   <script>
 (function () {
@@ -732,7 +765,8 @@
   }
   function labelSel(id) {
     if (esPub(id)) { var pb = PUB[pubIdDe(id)] || {}; return 'Publicidad ' + (pb.campana || '') + ' (' + pubPorc(pb) + ')'; }
-    return (META[id] || {}).cliente || id;
+    // (19-nov) si la comisión no es la de siempre, el detalle del pago y el WhatsApp lo dicen
+    return ((META[id] || {}).cliente || id) + (pctTxt(id) ? ' (' + pctTxt(id) + ')' : '');
   }
   var SEL_KEY = 'comision_desel_v1';
 
@@ -874,6 +908,11 @@
     // monto queda tachado —ahí sí sirve saber cuánto era— y el botón queda activo.
     var mchip = card.querySelector('.monto');
     var mpag = card.querySelector('.monto-pagado');
+    // (19-nov) comisión distinta del 20%: su etiqueta al lado del monto
+    var pctEl = card.querySelector('.com-pct-chip');
+    var pctT = pctTxt(id);
+    if (pctT && !pctEl && mchip && mchip.insertAdjacentHTML) { mchip.insertAdjacentHTML('afterend', chipPct(id)); }
+    else if (pctEl && !pctT && pctEl.parentNode) { pctEl.parentNode.removeChild(pctEl); }
     if (mchip) { mchip.hidden = pagoAdelantado; }
     if (mpag) { mpag.hidden = !pagoAdelantado; }
     var cmonto = card.querySelector('.cobro-monto');
@@ -965,6 +1004,11 @@
     var p = String(iso || '').split('-');
     return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2], 12) : null;
   }
+  // (19-nov-2026) comisión distinta del 20% de siempre: una etiqueta morada que se ve en la tarjeta,
+  // en la compacta de «falta cobrar», en la pestaña Comisión y al pagar (Alejandro: «que se vea
+  // cuando vaya a pagar, ya que sale de lo común»)
+  function pctTxt(id) { var m = META[id]; return (m && m.pct) ? ('comisión ' + String(m.pct).replace('.', ',') + '%') : ''; }
+  function chipPct(id) { var t = pctTxt(id); return t ? ' <span class="com-pct-chip">🔖 ' + t + '</span>' : ''; }
   // (5-oct) «con IVA» / «neto» junto al monto, como el chip de la tarjeta; '' si no se sabe
   function condCobro(m) {
     return m.con_iva === true ? 'con IVA' : (m.con_iva === false ? 'neto' : '');
@@ -1034,7 +1078,7 @@
       '<div class="cobro-mini-row">' +
         '<div class="cobro-mini-info">' +
           '<b>' + escapeHtml(m.cliente || '—') + '</b> · <b class="cobro-monto">' + clp(m.monto || 0) + '</b>' +
-            (condCobro(m) ? ' <span class="cobro-cond">' + condCobro(m) + '</span>' : '') +
+            (condCobro(m) ? ' <span class="cobro-cond">' + condCobro(m) + '</span>' : '') + chipPct(id) +
           '<div class="cobro-sub">' + (comuna ? '📍 <b>' + escapeHtml(comuna) + '</b> · ' : '') +
             'Entregado el ' + escapeHtml(cuando) + (hace ? ' · ' + hace : '') + '</div>' +
         '</div>' +
@@ -1151,6 +1195,9 @@
     ponerEnOrden(cont, Array.prototype.filter.call(cont.children, function (x) { return x.matches && x.matches('section[data-fecha]'); }), vivas);
     // Las secciones agregadas (limpiezas / retiros) siempre al final.
     cont.querySelectorAll('section.agregado').forEach(function (s) { cont.appendChild(s); });
+    // (19-nov) y los clientes perdidos, al pie de todo (solo se mueve si algo quedó debajo)
+    var pie = document.getElementById('perdidos-pie');
+    if (pie && pie.parentNode === cont && cont.lastElementChild !== pie) { cont.appendChild(pie); }
   }
   /* (15-nov) mover un nodo, aunque quede en el mismo lugar, obliga al navegador a rehacer la página
      (y le quita el foco al que se está tocando): solo se mueve si el orden de verdad cambió. Mismo
@@ -1658,6 +1705,7 @@
     aplicarAnteriores();
     aplicarTareas();
     refrescarComision(); // la cabecera al tiro; la pestaña Comisión solo si está a la vista
+    pintarPerdidos();    // (19-nov) sacar una tarjeta la suma al tiro a los clientes perdidos
     if (!SUPA.url || !SUPA.key) return Promise.resolve(true);
     return fetch(SUPA.url + '/rest/v1/entrega_estado', {
       method: 'POST',
@@ -1768,6 +1816,23 @@
     });
     if (!mostrar.length) { html += '<p class="mes-vacio">No hay entregas en este mes.</p>'; }
     html += '</div>';
+    // (19-nov-2026) al final, los clientes perdidos del mes (no suman en las cifras de arriba)
+    // en el orden de la lista de arriba (del 1 al 31); sin la etiqueta «perdido» por fila: el título ya lo dice
+    // y así el nombre y el motivo tienen más espacio
+    var perdMes = perdidos().filter(function (p) { return p.fecha.slice(0, 7) === mesElegido; }).reverse();
+    if (perdMes.length) {
+      var montoPerd = perdMes.reduce(function (s, p) { return s + p.monto; }, 0);
+      html += '<div class="mes-tit perd"><span>' + perdMes.length + (perdMes.length === 1 ? ' cliente perdido' : ' clientes perdidos')
+        + '</span><span>' + clp(montoPerd) + '</span></div><div class="mes-lista perd">';
+      perdMes.forEach(function (p) {
+        html += '<div class="mes-f perd">'
+          + '<span class="d">' + escapeHtml(p.fecha.slice(8) || '—') + '</span>'
+          + '<span class="cli">' + escapeHtml(p.cliente) + '<small class="mot">' + escapeHtml(p.motivo) + '</small></span>'
+          + '<span class="mto">' + clp(p.monto) + (p.cond ? '<small class="mto-c">' + p.cond + '</small>' : '') + '</span>'
+          + '</div>';
+      });
+      html += '</div>';
+    }
     cont.innerHTML = html;
 
     cont.querySelectorAll('.mes-filtro button').forEach(function (b) {
@@ -1775,6 +1840,137 @@
         mesFiltro = b.getAttribute('data-filtro');
         renderMes();
       });
+    });
+  }
+
+  // ====================== CLIENTES PERDIDOS ======================
+  /* (19-nov-2026, pedido de Alejandro) «al final mostrar todos los clientes perdidos, y que también se
+     vea en el mes». Perdido = una entrega que se sacó y no se hizo. Sale de dos lados:
+      (1) las que se sacaron desde esta página (entrega_estado.eliminado, botón 🗑 de la tarjeta);
+      (2) las que retiró el bot porque el cliente canceló o quedó en pausa (entrega.eliminado). Esas no
+          vienen en la carga normal (la consulta `lite` las deja fuera): se piden aparte DESPUÉS de pintar
+          (Q.perdidas, no atrasan la carga) y quedan guardadas en el teléfono para abrir sin señal.
+     NO cuentan como perdidas, porque no se perdió nada:
+      - las cobradas (la plata llegó; pasa cuando el bot retira una tarjeta ya pagada);
+      - las de prueba (nombre con «prueba» o el WhatsApp de Alejandro);
+      - las reemplazadas por otra tarjeta del mismo cliente: el bot vuelve a despachar con id nuevo
+        cuando cambia la fecha o el monto (misma persona, otra tarjeta). Con los datos del 19-nov
+        eran 5 casos así.
+     Si un cliente se perdió dos veces seguidas (reagendó y después canceló), sale una sola vez. */
+  var PERDIDAS_BOT = [];        // filas de `entrega` con eliminado=true de ESTA vista
+  var perdidosAbierto = false;
+  var CACHE_PERD = 'entregas_perdidas_v1' + SUFIJO_VISTA;
+  function tel8(t) { var d = soloDigitosJS(t); return d.length >= 8 ? d.slice(-8) : ''; }
+  function nombreNorm(s) { return normTxtJS(s).replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function diasEntre(a, b) {
+    var x = dateDe(String(a || '').slice(0, 10)), y = dateDe(String(b || '').slice(0, 10));
+    return (x && y) ? Math.abs(x - y) / 864e5 : Infinity;
+  }
+  // ¿son la misma persona? Por teléfono; por nombre solo si a una de las dos le falta el teléfono.
+  function mismaPersona(a, b) {
+    if (a.tel && b.tel) { return a.tel === b.tel; }
+    return !!a.nom && a.nom === b.nom;
+  }
+  function perdidos() {
+    if (!ROWS.length && !PERDIDAS_BOT.length) { return []; }
+    var dueno = tel8(APP.whatsapp || '');
+    var ficha = function (row, id) {
+      var d = (row && row.data) || {};
+      var st = estado[id] || {};
+      return { id: id, d: d, tel: tel8(d.telefono), nom: nombreNorm(d.cliente),
+        fecha: String(st.fecha || row.fecha || d.fecha || '').slice(0, 10),
+        inf: String(row.informado_at || '').slice(0, 10), nota: String(st.nota || '').trim() };
+    };
+    var vistos = {}, cand = [], vivas = [];
+    ROWS.forEach(function (row) {
+      var id = idDeFila(row);
+      if (!id || vistos[id]) { return; }
+      vistos[id] = 1;
+      if (eliminadoDe(id)) { cand.push(ficha(row, id)); cand[cand.length - 1].bot = false; }
+      else { vivas.push(ficha(row, id)); }
+    });
+    PERDIDAS_BOT.forEach(function (row) {
+      var id = idDeFila(row);
+      if (!id || vistos[id]) { return; } // volvió a la lista (ya no está retirada): manda la carga viva
+      vistos[id] = 1;
+      cand.push(ficha(row, id)); cand[cand.length - 1].bot = true;
+    });
+    cand = cand.filter(function (c) {
+      if (cobradoDe(c.id)) { return false; }
+      if (/prueba|no conectado/i.test(String(c.d.cliente || '')) || (dueno && c.tel === dueno)) { return false; }
+      // reemplazada por una tarjeta viva del mismo cliente: la misma fecha, o despachada después y a menos de un mes
+      return !vivas.some(function (o) {
+        if (!mismaPersona(c, o)) { return false; }
+        var dd = diasEntre(c.fecha, o.fecha);
+        return dd <= 2 || (dd <= 31 && !!o.inf && o.inf >= c.inf);
+      });
+    });
+    // el mismo cliente perdido dos veces a menos de un mes: queda la última que traía monto (pasó en
+    // agosto: la segunda tarjeta salió sin monto ni teléfono y la buena era la primera)
+    var conMonto = function (c) { return Number(((c.d || {}).pago || {}).monto) > 0 ? 1 : 0; };
+    var gana = function (o, c) {
+      if (conMonto(o) !== conMonto(c)) { return conMonto(o) > conMonto(c); }
+      return o.inf > c.inf || (o.inf === c.inf && o.id > c.id);
+    };
+    cand = cand.filter(function (c) {
+      return !cand.some(function (o) {
+        return o !== c && mismaPersona(c, o) && diasEntre(c.fecha, o.fecha) <= 31 && gana(o, c);
+      });
+    });
+    return cand.map(function (c) {
+      var m = META[c.id] || metaDeData(c.d);
+      var g = geoDeData(c.d);
+      return { id: c.id, cliente: String(c.d.cliente || 'Cliente sin nombre'), fecha: c.fecha,
+        monto: Number(m.monto) || 0, cond: condCobro(m), tel: soloDigitosJS(c.d.telefono || ''),
+        comuna: (g.comuna && g.comuna !== 'Sin comuna') ? g.comuna : String(c.d.comuna || ''),
+        motivo: c.nota || (c.bot ? 'Canceló con el bot' : 'Se sacó de la lista') };
+    }).sort(function (a, b) { return a.fecha < b.fecha ? 1 : (a.fecha > b.fecha ? -1 : 0); });
+  }
+  // Al pie de Entregas: el botón «Ver clientes perdidos (N)» y, abierto, todos, de lo más nuevo a lo más viejo.
+  function pintarPerdidos() {
+    var pie = document.getElementById('perdidos-pie');
+    if (!pie) { return; }
+    var lista = CARGADO ? perdidos() : [];
+    if (!lista.length) { pie.hidden = true; pie.innerHTML = ''; perdidosAbierto = false; return; }
+    pie.hidden = false;
+    var html = '<button type="button" class="ver-perdidos' + (perdidosAbierto ? ' abierto' : '') + '" data-acc="ver-perdidos">'
+      + (perdidosAbierto ? '▴ Cerrar clientes perdidos' : '✕ Ver clientes perdidos') + ' (' + lista.length + ')</button>';
+    if (perdidosAbierto) {
+      var total = lista.reduce(function (s, p) { return s + p.monto; }, 0);
+      html += '<div class="perd-hero"><div class="r">Clientes perdidos</div><div class="v">' + clp(total) + '</div>'
+        + '<div class="s">' + lista.length + (lista.length === 1 ? ' entrega que no se hizo' : ' entregas que no se hicieron') + '</div></div>';
+      var mesAct = '';
+      lista.forEach(function (p, i) {
+        var mes = p.fecha.slice(0, 7);
+        if (mes !== mesAct) {
+          mesAct = mes;
+          var delMes = lista.filter(function (q) { return q.fecha.slice(0, 7) === mes; });
+          var suma = delMes.reduce(function (s, q) { return s + q.monto; }, 0);
+          var nom = mes ? nombreMes(mes) : 'Sin fecha';
+          html += '<div class="perd-mes"><span>' + escapeHtml(nom.charAt(0).toUpperCase() + nom.slice(1)) + ' · ' + delMes.length
+            + '</span><span>' + clp(suma) + '</span></div>';
+        }
+        var donde = [p.comuna, p.fecha ? fechaLarga(p.fecha) : ''].filter(Boolean).join(' · ');
+        html += '<div class="perd-item">'
+          + '<div class="perd-main"><div class="perd-cli">' + escapeHtml(p.cliente) + '</div>'
+          + (donde ? '<div class="perd-dir">📍 ' + escapeHtml(donde) + '</div>' : '')
+          + (p.tel ? '<div class="perd-dir"><a href="https://wa.me/' + p.tel + '" target="_blank" rel="noopener">💬 +' + p.tel + '</a></div>' : '')
+          + '<div class="perd-motivo">✕ ' + escapeHtml(p.motivo) + '</div></div>'
+          + '<div class="perd-monto">' + clp(p.monto) + (p.cond ? '<small>' + p.cond + '</small>' : '') + '</div>'
+          + '</div>';
+      });
+    }
+    pie.innerHTML = html;
+  }
+  // Las que retiró el bot: se piden una vez por visita, después de pintar.
+  function cargarPerdidasBot() {
+    if (SIN_VISTA || !SUPA.url || !SUPA.key || !Q.perdidas) { return; }
+    leer(Q.perdidas).then(function (rows) {
+      if (!Array.isArray(rows)) { return; }
+      PERDIDAS_BOT = rows.filter(esDeEstaVista);
+      cacheSet(CACHE_PERD, PERDIDAS_BOT);
+      pintarPerdidos();
+      if (VISTA_ACTUAL === 'mes') { renderMes(); }
     });
   }
 
@@ -2033,6 +2229,8 @@
         + '</div>';
     }
 
+    // (19-nov) la comuna (antes iba `m.direccion`, que META no trae, y quedaba «📍  · fecha»)
+    function comunaCom(id) { var c = (GEO[id] || {}).comuna || ''; return (c && c !== 'Sin comuna') ? c + ' · ' : ''; }
     function card(id, paid) {
       var m = META[id];
       var check = paid
@@ -2044,8 +2242,9 @@
       return '<div class="com-card' + (paid ? ' com-pagada' : '') + '">'
         + '<div class="com-top">' + check
         + '<div class="com-main"><div class="com-cli">' + escapeHtml(m.cliente) + '</div>'
-        + '<div class="com-dir">📍 ' + escapeHtml(m.direccion || '') + ' · ' + fechaLarga(fechaDe(id)) + '</div></div>'
-        + '<div class="com-monto">' + clp(m.comision) + '</div>' + rev + '</div>'
+        + '<div class="com-dir">📍 ' + escapeHtml(comunaCom(id)) + fechaLarga(fechaDe(id)) + '</div>'
+        + (m.pct ? '<div class="com-dir">' + chipPct(id) + '</div>' : '') + '</div>'
+        + '<div class="com-monto">' + clp(m.comision) + (m.pct ? '<small class="com-pct">al ' + m.pct + '%</small>' : '') + '</div>' + rev + '</div>'
         + '<div class="com-acciones">' + wa
         + '<button type="button" class="com-info" data-id="' + escapeHtml(id) + '">📋 Ver toda la info</button></div>'
         + '</div>';
@@ -2258,8 +2457,11 @@
     // fijo vuelve al 20% en cuanto el panel refresca (pasó con American Container: la
     // ficha decía $874.000 y el panel mostraba $1.520.000).
     var fija = (typeof e.comision === 'number') ? e.comision : null;
+    // (19-nov-2026) `comision_pct`: un porcentaje propio para ESA entrega (un cliente de Peñaflor
+    // quedó al 10%). Mismo campo y misma regla que comision_de() en Python y que destapes.
+    var pct = (typeof e.comision_pct === 'number' && e.comision_pct > 0 && e.comision_pct <= 100) ? e.comision_pct : null;
     var comision = !comisiona ? 0
-      : (fija != null ? Math.round(fija) : Math.round(neto * 0.20));
+      : (fija != null ? Math.round(fija) : Math.round(neto * (pct != null ? pct / 100 : 0.20)));
     return {
       id: e.id || '', cliente: e.cliente || '—', fecha: e.fecha || '',
       neto: neto, comision: comision, comisiona: comisiona,
@@ -2269,7 +2471,9 @@
       tel_cobro: contactoCobroJS(e).tel, nombre_cobro: contactoCobroJS(e).nombre,
       banos: banosDeJS(e),
       tipo: esServ ? 'limpieza' : 'bano', es_servicio: esServ,
-      monto: monto || 0, con_iva: conIva
+      monto: monto || 0, con_iva: conIva,
+      // el porcentaje SOLO cuando se sale del 20% de siempre: con eso se marca la tarjeta y el pago
+      pct: (comisiona && fija == null && pct != null && pct !== 20) ? pct : null
     };
   }
   // Geo en VIVO (puerto JS de derivar_geo + maps_query del generador): deduce
@@ -2615,6 +2819,8 @@
       document.title = 'Entregas de relevo';
     }
     var vivoDe = { estado: null, lite: null, pub: null }; // lo que llegó vivo (se guarda en el teléfono al final)
+    // (19-nov) las que retiró el bot, de la última visita: se reemplazan cuando llegan las vivas
+    PERDIDAS_BOT = (cacheGet(CACHE_PERD) || []).filter(esDeEstaVista);
     var completa = false, terminado = false;
     var done = function () {
       if (terminado) { return; }
@@ -2623,7 +2829,10 @@
       // (15-nov) pase lo que pase al pintar, la página se muestra (antes una excepción dejaba el velo)
       try { pintarTodo(); reubicarCards(); actualizarProgreso(); aplicarAnteriores(); aplicarTareas(); renderHeaderPub(); refrescarComision(); }
       catch (e) { console.warn('Error al pintar la página:', e); }
+      try { pintarPerdidos(); } catch (e) { console.warn('Error al pintar los clientes perdidos:', e); }
       revelar(); irAlAncla(); guardarCaches(vivoDe, completa);
+      // (19-nov) las que retiró el bot (clientes perdidos): con la página ya a la vista
+      setTimeout(cargarPerdidasBot, 400);
     };
     if (!SUPA.url || !SUPA.key) { setActualizado('sin conexión a la base'); done(); return; }
     // Las tres lecturas ya salieron desde el <head> (window.__PRE__); si ese script no corrió, se piden acá.
@@ -2921,6 +3130,17 @@
     var sel = document.getElementById('mes-select');
     if (sel) {
       sel.addEventListener('change', function () { mesElegido = sel.value; renderMes(); });
+    }
+    // (19-nov) «Ver clientes perdidos»: abre y cierra la lista al pie de Entregas
+    var pp = document.getElementById('perdidos-pie');
+    if (pp) {
+      pp.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('[data-acc="ver-perdidos"]') : null;
+        if (!b) { return; }
+        perdidosAbierto = !perdidosAbierto;
+        pintarPerdidos();
+        if (perdidosAbierto && pp.scrollIntoView) { pp.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+      });
     }
   }
 
