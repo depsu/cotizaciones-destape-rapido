@@ -46,14 +46,25 @@ create trigger postventa_evento_touch
   before update on public.postventa_evento
   for each row execute function public.postventa_evento_touch();
 
+-- ── LA CLAVE (21-nov-2026, pedido de Alejandro: que no lo encuentre cualquiera, una IA o un hacker) ──
+-- La anon key es pública (va en la página), así que sola no protege nada. Estas tablas solo responden si el
+-- pedido trae la cabecera `x-clave` con la clave del enlace especial (destaperapido.cl/pv/<clave>). Acá vive
+-- SOLO su huella SHA-256: el repo es público y la clave no está en él (vive en ~/.dixdy/postventa-clave del Mac
+-- y en el conector del clon, que es privado). Cambiar la clave = nueva huella acá + el enlace + el bot.
+create or replace function public.postventa_clave_ok()
+returns boolean language sql stable as $$
+  select encode(extensions.digest(coalesce(current_setting('request.headers', true)::json ->> 'x-clave', ''), 'sha256'), 'hex')
+         = '7b305883ea0c62e40da69e83eb3a09fe0e343e8e2a94695461f8c36d8443e5a8'
+$$;
+
 alter table public.postventa_evento enable row level security;
 drop policy if exists postventa_evento_anon_select on public.postventa_evento;
-create policy postventa_evento_anon_select on public.postventa_evento for select using (true);
+create policy postventa_evento_anon_select on public.postventa_evento for select using (public.postventa_clave_ok());
 drop policy if exists postventa_evento_anon_insert on public.postventa_evento;
-create policy postventa_evento_anon_insert on public.postventa_evento for insert with check (true);
+create policy postventa_evento_anon_insert on public.postventa_evento for insert with check (public.postventa_clave_ok());
 -- solo se actualiza para ANULAR (o des-anular) una anotación: nada se borra
 drop policy if exists postventa_evento_anon_update on public.postventa_evento;
-create policy postventa_evento_anon_update on public.postventa_evento for update using (true) with check (true);
+create policy postventa_evento_anon_update on public.postventa_evento for update using (public.postventa_clave_ok()) with check (public.postventa_clave_ok());
 grant select, insert, update on public.postventa_evento to anon;
 revoke update on public.postventa_evento from anon;
 grant update (anulado) on public.postventa_evento to anon;
@@ -68,14 +79,15 @@ create table if not exists public.postventa_geo (
 );
 alter table public.postventa_geo enable row level security;
 drop policy if exists postventa_geo_anon_select on public.postventa_geo;
-create policy postventa_geo_anon_select on public.postventa_geo for select using (true);
+create policy postventa_geo_anon_select on public.postventa_geo for select using (public.postventa_clave_ok());
 drop policy if exists postventa_geo_anon_insert on public.postventa_geo;
-create policy postventa_geo_anon_insert on public.postventa_geo for insert with check (true);
+create policy postventa_geo_anon_insert on public.postventa_geo for insert with check (public.postventa_clave_ok());
 drop policy if exists postventa_geo_anon_update on public.postventa_geo;
-create policy postventa_geo_anon_update on public.postventa_geo for update using (true) with check (true);
+create policy postventa_geo_anon_update on public.postventa_geo for update using (public.postventa_clave_ok()) with check (public.postventa_clave_ok());
 grant select, insert, update on public.postventa_geo to anon;
 
--- Fotos: bucket público de lectura (la foto se ve con su link), la página sube con la anon key.
+-- Fotos: bucket público de lectura (la foto se ve SOLO con su link exacto, que lleva una parte al azar), la página
+-- sube con la anon key. Nadie puede LISTAR el bucket (sin política de select para anon).
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('postventa-fotos', 'postventa-fotos', true, 3145728, array['image/jpeg','image/webp','image/png'])
 on conflict (id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit,
@@ -85,5 +97,3 @@ drop policy if exists "postventa-fotos: anon sube" on storage.objects;
 create policy "postventa-fotos: anon sube" on storage.objects
   for insert to anon with check (bucket_id = 'postventa-fotos');
 drop policy if exists "postventa-fotos: se leen" on storage.objects;
-create policy "postventa-fotos: se leen" on storage.objects
-  for select to anon using (bucket_id = 'postventa-fotos');

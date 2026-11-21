@@ -163,8 +163,16 @@ ese link cada mañana. Ahora es una página viva, aparte de la de entregas:
   busca en OpenStreetMap (de a uno por segundo) y lo guarda. Los links cortos de Google (maps.app.goo.gl) no se abren
   desde el navegador: `node resumen-repartidor/scripts/geo-postventa.mjs` los resuelve y ubica de una vez lo que falte
   (`--reintentar` vuelve a buscar los que quedaron en el centro de su comuna). Punto con borde punteado = aproximado.
-- **Clave:** igual que la de entregas (`?repartidor=p-9t4kqv`); `destaperapido.cl/postventa` la pone sola (vercel.json
-  del clon). Sin clave no pide nada a la base.
+- **Enlace especial (21-nov-2026, que no lo encuentre cualquiera, una IA o un hacker):** `destaperapido.cl/pv/<clave>`
+  (vercel.json del clon lleva `/pv/:clave` a `postventa.html?k=:clave`). `destaperapido.cl/postventa` ya NO existe. La
+  clave NO está en este repo (es público): vive en `~/.dixdy/postventa-clave` (Mac y dixdy-1, permisos 600) y en el ajuste
+  `al_equipo.pagina` del bot. La página guarda solo su huella SHA-256 y sin la clave no pide nada. Además las tablas
+  `postventa_evento` y `postventa_geo` solo responden con la cabecera `x-clave` correcta (función
+  `postventa_clave_ok()` en `supabase/postventa.sql`, que también guarda solo la huella), y el bucket de fotos no se
+  puede listar (cada foto lleva 18 caracteres al azar en el nombre). Cambiar la clave: nueva en el archivo, nueva
+  huella en `postventa.html` y `postventa.sql` (aplicar el SQL), copiar el archivo a dixdy-1 y cambiar el ajuste del bot.
+  OJO, pendiente: la tabla `entrega` (nombres, teléfonos, direcciones) se sigue leyendo con la anon key pública, igual
+  que siempre para la página de entregas y los conectores del bot.
 - **Probar en navegador:** `node resumen-repartidor/tests/navegador/probar-postventa.mjs [carpeta-capturas]` (datos
   reales, toda escritura y OpenStreetMap interceptados).
 

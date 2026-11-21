@@ -11,6 +11,9 @@
 //   node resumen-repartidor/scripts/geo-postventa.mjs --seco     # dice qué haría, sin escribir
 //   node resumen-repartidor/scripts/geo-postventa.mjs --reintentar  # busca de nuevo los que quedaron en su comuna
 import { createRequire } from 'node:module';
+import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 const require = createRequire(import.meta.url);
 const PV = require('../postventa-logica.js');
 
@@ -19,7 +22,11 @@ const KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZi
 const SECO = process.argv.includes('--seco');
 // --reintentar: vuelve a buscar los que quedaron en el centro de su comuna (si cambió la regla de búsqueda)
 const REINTENTAR = process.argv.includes('--reintentar');
-const H = { apikey: KEY, Authorization: 'Bearer ' + KEY };
+// la clave del enlace especial (las tablas de postventa no responden sin ella): nunca en el repo, que es público
+let CLAVE = process.env.POSTVENTA_CLAVE || '';
+try { CLAVE = CLAVE || readFileSync(join(homedir(), '.dixdy/postventa-clave'), 'utf8').trim(); } catch { /* sin archivo */ }
+if (!CLAVE) { console.error('✗ falta la clave: ~/.dixdy/postventa-clave o POSTVENTA_CLAVE'); process.exit(2); }
+const H = { apikey: KEY, Authorization: 'Bearer ' + KEY, 'x-clave': CLAVE };
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function leer(ruta) {

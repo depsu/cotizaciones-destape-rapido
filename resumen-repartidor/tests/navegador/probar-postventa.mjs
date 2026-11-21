@@ -20,6 +20,8 @@ const { chromium } = resolverPlaywright();
 const CHROME = process.env.CHROME || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const CARPETA = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const CAPTURAS = process.argv[2] || join(tmpdir(), "postventa-capturas");
+// la clave del enlace especial vive fuera del repo (es público)
+const CLAVE = (process.env.POSTVENTA_CLAVE || readFileSync(join(homedir(), ".dixdy/postventa-clave"), "utf8")).trim();
 mkdirSync(CAPTURAS, { recursive: true });
 
 const TIPOS = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".png": "image/png" };
@@ -34,6 +36,7 @@ await new Promise((r) => server.listen(0, "127.0.0.1", r));
 const BASE = `http://127.0.0.1:${server.address().port}/resumen-repartidor/postventa.html`;
 const browser = await chromium.launch(existsSync(CHROME) ? { executablePath: CHROME, headless: true } : { headless: true });
 const fallos = [];
+const sinCabecera = [];
 const ok = (c, msg, det) => { console.log((c ? "✅ " : "❌ ") + msg + (!c && det !== undefined ? "\n    → " + JSON.stringify(det).slice(0, 500) : "")); if (!c) fallos.push(msg); };
 
 async function abrir(url) {
@@ -46,6 +49,7 @@ async function abrir(url) {
     const r = route.request();
     const u = decodeURIComponent(r.url().replace(/^https:\/\/[^/]+/, "")).replace(/[?&]apikey=[^&]+/, "");
     pedidos.push(r.method() + " " + u);
+    if (/postventa_/.test(u) && r.headers()["x-clave"] !== CLAVE) sinCabecera.push(r.method() + " " + u);
     // los puntos ya guardados se esconden: así la prueba ve a la página buscar en OSM como la primera vez
     if (r.method() === "GET" && /postventa_geo/.test(u)) { await route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*", "content-type": "application/json" }, body: "[]" }); return; }
     if (["GET", "HEAD", "OPTIONS"].includes(r.method())) { await route.continue(); return; }
@@ -67,17 +71,17 @@ async function abrir(url) {
   return { ctx, page, pedidos, escrituras, errores, osm };
 }
 
-// 1) sin clave: nada a la base
-{
-  const r = await abrir(BASE);
-  await r.page.waitForTimeout(800);
+// 1) sin clave, con la clave vieja de entregas o con una inventada: nada a la base
+for (const [nombre, q] of [["sin clave", ""], ["con la clave de entregas", "?repartidor=p-9t4kqv"], ["con una clave inventada", "?k=abcdefghjkmnpq"]]) {
+  const r = await abrir(BASE + q);
+  await r.page.waitForTimeout(1200);
   const txt = await r.page.textContent("main");
-  ok(/incompleto/i.test(txt) && r.pedidos.length === 0, "sin clave: «enlace incompleto» y cero pedidos a Supabase", { txt, pedidos: r.pedidos });
+  ok(/incompleto/i.test(txt) && r.pedidos.length === 0, nombre + ": «enlace incompleto» y cero pedidos a Supabase", { txt, pedidos: r.pedidos });
   await r.ctx.close();
 }
 
 // 2) con clave: la lista con los datos reales
-const r = await abrir(BASE + "?repartidor=p-9t4kqv");
+const r = await abrir(BASE + "?k=" + CLAVE);
 const { page } = r;
 await page.waitForSelector(".card", { timeout: 60000 });
 await page.waitForFunction(() => /al día/.test(document.getElementById("act").textContent), null, { timeout: 60000 });
@@ -183,6 +187,9 @@ await page.waitForTimeout(400);
 ok((await page.$$(".card")).length >= 1, "el buscador encuentra por nombre");
 
 ok(r.errores.length === 0, "sin errores de JavaScript", r.errores);
+ok(sinCabecera.length === 0, "todo pedido a las tablas de postventa lleva la clave", sinCabecera);
+const fotos = r.escrituras.filter((e) => /storage\/v1\/object\/postventa-fotos\//.test(e.ruta));
+ok(fotos.every((e) => /-[0-9a-f]{18}\.jpg$/.test(e.ruta)), "el nombre de cada foto lleva una parte al azar", fotos.map((e) => e.ruta));
 const raras = r.escrituras.filter((e) => !/postventa_evento|postventa_geo|storage\/v1\/object\/postventa-fotos/.test(e.ruta));
 ok(raras.length === 0, "solo escribe en sus tablas (nunca en entrega ni entrega_estado)", raras);
 console.log(`\ncapturas en ${CAPTURAS}`);

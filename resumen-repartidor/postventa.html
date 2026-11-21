@@ -212,7 +212,7 @@
 </section>
 <div id="toast" role="status" aria-live="polite"></div>
 
-<script src="postventa-logica.js?v=2"></script>
+<script src="postventa-logica.js?v=3"></script>
 <script>
 (function () {
   'use strict';
@@ -220,8 +220,10 @@
   var SUPA = 'https://abmzkzraptmjgebwjzys.supabase.co';
   var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho';
   var BUCKET = 'postventa-fotos';
-  // la misma clave que la página de entregas (destaperapido.cl/postventa la agrega sola)
-  var CLAVES = ['p-9t4kqv'];
+  // (21-nov-2026) EL ENLACE ESPECIAL: destaperapido.cl/pv/<clave>. Acá vive solo la huella SHA-256 de la clave (el repo
+  // es público): sin la clave la página no pide nada, y las tablas de postventa tampoco responden sin ella (cabecera
+  // x-clave, ver supabase/postventa.sql). La clave vive en ~/.dixdy/postventa-clave del Mac.
+  var HUELLA = '7b305883ea0c62e40da69e83eb3a09fe0e343e8e2a94695461f8c36d8443e5a8';
   var CACHE = 'postventa_cache_v1';
   var MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   var DIAS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
@@ -251,15 +253,20 @@
   var VISTA = 'lista';
 
   // ── la clave del enlace ─────────────────────────────────────────────────────────────────────
-  var PARAMS = new URLSearchParams(location.search);
-  var CLAVE = String(PARAMS.get('repartidor') || PARAMS.get('k') || '').trim().toLowerCase();
-  if (CLAVES.indexOf(CLAVE) === -1) {
+  var CLAVE = String(new URLSearchParams(location.search).get('k') || '').trim().toLowerCase();
+  function huella(t) {
+    if (!window.crypto || !crypto.subtle || !window.TextEncoder) { return Promise.resolve(''); }
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)).then(function (b) {
+      return Array.prototype.map.call(new Uint8Array(b), function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+    });
+  }
+  function sinClave() {
     document.title = 'Enlace incompleto';
     $('resumen').textContent = 'Enlace incompleto';
     $('barra').hidden = true;
     document.querySelector('.tabs').hidden = true;
-    $('vista-lista').innerHTML = '<div class="vacio"><b>Este enlace está incompleto</b>Abre el enlace completo que te mandaron (destaperapido.cl/postventa).</div>';
-    return;
+    $('vista-lista').innerHTML = '<div class="vacio"><b>Este enlace está incompleto</b>Abre el enlace completo que te mandaron.</div>';
+    try { localStorage.removeItem(CACHE); } catch (e) { /* nada guardado */ }
   }
 
   // ── fechas en palabras ──────────────────────────────────────────────────────────────────────
@@ -292,7 +299,10 @@
     var ctl = typeof AbortController === 'function' ? new AbortController() : null;
     var t = ctl ? setTimeout(function () { ctl.abort(); }, 30000) : null;
     var url = SUPA + '/rest/v1/' + ruta + (ruta.indexOf('?') === -1 ? '?' : '&') + 'apikey=' + encodeURIComponent(KEY);
-    return fetch(url, ctl ? { signal: ctl.signal } : undefined).then(function (r) {
+    var op = ctl ? { signal: ctl.signal } : {};
+    // las tablas de postventa piden la clave (las de entregas no: así se leen sin consulta previa de CORS)
+    if (/^postventa_/.test(ruta)) { op.headers = { 'x-clave': CLAVE }; }
+    return fetch(url, op).then(function (r) {
       if (t) { clearTimeout(t); }
       if (!r.ok) { throw new Error('la base respondió ' + r.status); }
       return r.json();
@@ -301,8 +311,8 @@
   function escribir(tabla, cuerpo, extra) {
     return fetch(SUPA + '/rest/v1/' + tabla + (extra || ''), {
       method: extra ? 'PATCH' : 'POST',
-      headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json',
-        Prefer: extra ? 'return=representation' : 'return=representation' },
+      headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json', 'x-clave': CLAVE,
+        Prefer: 'return=representation' },
       body: JSON.stringify(cuerpo)
     }).then(function (r) {
       if (!r.ok) { return r.text().then(function (t) { throw new Error('no se guardó (' + r.status + ') ' + t.slice(0, 120)); }); }
@@ -675,7 +685,9 @@
     });
   }
   function subirFoto(s, blob, fecha) {
-    var ruta = s.id + '/' + fecha + '-' + Date.now().toString(36) + '.jpg';
+    // el nombre lleva una parte al azar: la foto se ve solo con su link exacto (nadie puede listar el bucket)
+    var azar = Array.prototype.map.call(crypto.getRandomValues(new Uint8Array(9)), function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+    var ruta = s.id + '/' + fecha + '-' + azar + '.jpg';
     return fetch(SUPA + '/storage/v1/object/' + BUCKET + '/' + ruta, {
       method: 'POST', headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'image/jpeg' }, body: blob
     }).then(function (r) {
@@ -973,7 +985,7 @@
       // si el punto viene de un link corto, la fila queda con la dirección: el script la cambia por el punto exacto
       if (s.linkCorto) { fila.q = 'dir:' + s.geoQ; }
       return fetch(SUPA + '/rest/v1/postventa_geo', { method: 'POST',
-        headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+        headers: { apikey: KEY, Authorization: 'Bearer ' + KEY, 'Content-Type': 'application/json', 'x-clave': CLAVE, Prefer: 'resolution=merge-duplicates,return=minimal' },
         body: JSON.stringify(fila) }).catch(function () { return null; }).then(function () {
         var i = DATOS.geo.findIndex(function (y) { return y.id === s.id; });
         if (i === -1) { DATOS.geo.push(fila); } else { DATOS.geo[i] = fila; }
@@ -1101,12 +1113,16 @@
   });
   window.addEventListener('resize', medir);
   medir();
-  // lo guardado de la última visita sale al tiro; lo vivo lo reemplaza apenas llega
-  try {
-    var previo = JSON.parse(leerLocal(CACHE) || 'null');
-    if (previo && previo.filas) { DATOS = previo; armar(); $('act').textContent = 'cargando…'; }
-  } catch (e) { /* caché roto: se espera la red */ }
-  cargar();
+  // sin la clave correcta no se muestra ni se pide nada
+  (CLAVE.length >= 10 ? huella(CLAVE) : Promise.resolve('')).then(function (h) {
+    if (h !== HUELLA) { sinClave(); return; }
+    // lo guardado de la última visita sale al tiro; lo vivo lo reemplaza apenas llega
+    try {
+      var previo = JSON.parse(leerLocal(CACHE) || 'null');
+      if (previo && previo.filas) { DATOS = previo; armar(); $('act').textContent = 'cargando…'; }
+    } catch (e) { /* caché roto: se espera la red */ }
+    cargar();
+  });
 })();
 </script>
 </body>
