@@ -137,6 +137,37 @@ Vía **Management API** (token personal `SUPABASE_ACCESS_TOKEN` y `SUPABASE_PROJ
 ```
 (Hay ejemplos de este patrón en el historial; el SQL idempotente está en `supabase/entrega.sql` y `supabase/entrega_estado.sql`.)
 
+## Postventa: destaperapido.cl/postventa (21-nov-2026)
+
+Pedido de Alejandro y del repartidor (que ya tiene choferes haciendo limpiezas y necesita control). Hasta el
+21-nov `postventa.html` era una **demo fija del 15-oct** (botón «Listo» que no guardaba nada) y el bot igual mandaba
+ese link cada mañana. Ahora es una página viva, aparte de la de entregas:
+
+- **Qué muestra:** cada baño ENTREGADO que sigue en terreno, con dirección completa, «Cómo llegar» (el pin del cliente
+  si lo hay), llamar y WhatsApp, el plazo (desde, hasta, mes N, extendido N veces) y la limpieza (cuándo toca, la
+  última y quién la hizo). Secciones: **Terminó el plazo** (¿renovó o se retira?), **Retiros**, **Toca limpieza** y
+  **Al día**. Filtros Todos / Limpiezas / Retiros / Por renovar, buscador (incluye terminados y retirados) y pestaña
+  **Mapa** (Leaflet + OpenStreetMap, sin llave ni costo) con todos los baños en color según urgencia.
+- **Qué se anota** (tabla `postventa_evento`, `supabase/postventa.sql`; nunca se borra, un error se **anula** y queda
+  tachado en el historial): **Limpieza hecha** (fecha, nota y foto al bucket `postventa-fotos`, achicada a 1280 px en
+  el teléfono), **Extender** (1 mes, 2 semanas, 1 semana u otra fecha; si el plazo terminó hace rato suma desde el
+  fin hasta pasar hoy), **Retirado**, **Ubicación exacta** (link o dirección que manda en «Cómo llegar») y **Nota**.
+  Cada anotación lleva **quién** (el nombre se pide una vez por teléfono).
+- **Las reglas** (fin del plazo, aseo cada 7 a 10 días, cantidad, comuna) viven en `postventa-logica.js` y son el
+  puerto exacto de `generar_listado.py` + `agenda-del-equipo.py`: `node resumen-repartidor/tests/probar-postventa-logica.cjs`
+  las compara con Python sobre TODAS las entregas reales. Si cambias una regla en Python, corre ese test.
+- **El bot lo sabe:** `conexiones/agenda-del-equipo.py` (clon destaperapido, corre en dixdy-1) lee `postventa_evento`:
+  la extensión mueve el `fin`, la limpieza entra en `hechos`/`hechos_at` (cierra tareas y reclamos de aseo) y el retiro
+  pone `retiro_hecho` y saca el servicio a los 3 días. Prueba: `python3 conexiones/_probar-agenda-postventa.py`.
+- **Mapa:** el punto sale de las coordenadas o link de la ficha, de la caché `postventa_geo` o, si falta, la página lo
+  busca en OpenStreetMap (de a uno por segundo) y lo guarda. Los links cortos de Google (maps.app.goo.gl) no se abren
+  desde el navegador: `node resumen-repartidor/scripts/geo-postventa.mjs` los resuelve y ubica de una vez lo que falte
+  (`--reintentar` vuelve a buscar los que quedaron en el centro de su comuna). Punto con borde punteado = aproximado.
+- **Clave:** igual que la de entregas (`?repartidor=p-9t4kqv`); `destaperapido.cl/postventa` la pone sola (vercel.json
+  del clon). Sin clave no pide nada a la base.
+- **Probar en navegador:** `node resumen-repartidor/tests/navegador/probar-postventa.mjs [carpeta-capturas]` (datos
+  reales, toda escritura y OpenStreetMap interceptados).
+
 ## Modelo de datos
 
 ### Campos por entrega (en `entregas.json` y en la columna `data` de la tabla `entrega`)
