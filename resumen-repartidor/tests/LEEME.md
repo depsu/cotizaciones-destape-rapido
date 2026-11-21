@@ -49,9 +49,3 @@ node resumen-repartidor/tests/navegador/probar-bordes.mjs /tmp/publicado.html /t
   invalida por `updated_at`, el delta de la 2.ª visita, falla parcial del paso 2, el ancla del WhatsApp.
 - Necesitan `playwright-core` (lo buscan en el proyecto, en DIXDY o en la caché de npx) y Chrome.
 
-## Postventa (21-nov-2026)
-
-- `probar-postventa-logica.cjs`: las reglas de `postventa-logica.js` contra el Python (todas las entregas reales) y
-  los casos nuevos (extensión, limpieza, retiro, anular, ubicación, Waze). `node resumen-repartidor/tests/probar-postventa-logica.cjs`
-- `navegador/probar-postventa.mjs`: la página en Chrome con datos reales, escrituras interceptadas. Revisa clave,
-  ancho de teléfono, Extender, Limpieza con foto, Retirado, Anular, mapa, búsqueda en OSM y buscador.
