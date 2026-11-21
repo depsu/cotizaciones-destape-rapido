@@ -432,11 +432,18 @@
     add(base);
     var comuna = s.comunaKey ? s.comunaKey.replace(/(^|\s)(\S)/g, function (_, a, b) { return a + b.toUpperCase(); }) : '';
     var segs = String(base || '').split(/[,.]\s+|,/).map(function (x) { return x.trim(); }).filter(Boolean);
-    var conNum = segs.filter(function (x) { return /\d/.test(x) && /[a-záéíóúñ]{3}/i.test(x); })[0];
+    // sin comuna conocida, la búsqueda se acota a la Región Metropolitana (hay una Av. Santa Rosa en cada ciudad)
+    if (!comuna && out.length && !/metropolitana|santiago/i.test(out[0])) { out[0] = out[0] + ', Región Metropolitana'; }
+    var conNum = segs.filter(function (x) {
+      return /\d/.test(x) && /[a-záéíóúñ]{3}/i.test(x) && !/^(paradero|casa|depto|dpto|departamento|lote|parcela|sitio|local|of|oficina|km)\b/i.test(x);
+    })[0];
     if (conNum) {
       var limpio = conNum.replace(/\b(casa|depto|dpto|departamento|of|oficina|lote|parcela|sitio|local|condominio)\b.*$/i, '')
         .replace(/N[°º]|#|°|º/g, ' ').replace(/^calle\s+/i, '').replace(/\bav(da)?\.?\s/i, 'Avenida ').replace(/\s+/g, ' ').trim();
-      var conComuna = function (t) { return comuna && PV_norm(t).indexOf(PV_norm(comuna)) === -1 ? t + ', ' + comuna : t; };
+      var conComuna = function (t) {
+        if (!comuna) { return /metropolitana/i.test(t) ? t : t + ', Región Metropolitana'; }
+        return PV_norm(t).indexOf(PV_norm(comuna)) === -1 ? t + ', ' + comuna : t;
+      };
       add(conComuna(limpio));
       var calle = limpio.replace(/\b\d[\d.]*\b/g, ' ').replace(/\s+/g, ' ').trim();
       if (calle.length >= 4 && calle !== limpio) { add(conComuna(calle)); }
@@ -444,6 +451,15 @@
     return out.slice(0, 3);
   }
   function PV_norm(t) { return norm(t); }
+
+  /** ¿Un punto encontrado es creíble? A menos de 30 km del centro de su comuna (si se sabe) y dentro de la zona. */
+  function puntoCreible(s, lat, lng) {
+    if (!(lat < -32.9 && lat > -34.4 && lng < -70.1 && lng > -71.8)) { return false; }
+    if (!s.comunaCentro) { return true; }
+    var dy = (lat - s.comunaCentro[0]) * 111;
+    var dx = (lng - s.comunaCentro[1]) * 93;
+    return Math.sqrt(dx * dx + dy * dy) <= 30;
+  }
 
   /** Mes del arriendo en que va (1 = el primero), contado desde la entrega. */
   function mesDelArriendo(inicio, hoy) {
@@ -471,7 +487,7 @@
     cadaDias: cadaDias, cantidadBanos: cantidadBanos, sumarDias: sumarDias, diasEntre: diasEntre,
     masMeses: masMeses, hoyLocal: hoyLocal, fechaDeMarca: fechaDeMarca, lugarCorto: lugarCorto,
     direccionLimpia: direccionLimpia, mapsQuery: mapsQuery, coordsDe: coordsDe, deGeohash: deGeohash,
-    linkCorto: linkCorto, comunaDe: comunaDe, servicio: servicio, consultasGeo: consultasGeo, mesDelArriendo: mesDelArriendo, urgencia: urgencia
+    linkCorto: linkCorto, comunaDe: comunaDe, servicio: servicio, consultasGeo: consultasGeo, puntoCreible: puntoCreible, mesDelArriendo: mesDelArriendo, urgencia: urgencia
   };
   if (typeof module === 'object' && module.exports) { module.exports = api; }
   else { raiz.PV = api; }

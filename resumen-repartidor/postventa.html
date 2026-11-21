@@ -941,27 +941,27 @@
   }
 
   // una búsqueda en OSM: el punto si es de calle o más fino, null si no (de a una por segundo: lo pide OSM)
-  function osm(q) {
+  function osm(q, s) {
     var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=cl&accept-language=es' +
       '&viewbox=-71.75,-32.85,-70.15,-34.25&q=' + encodeURIComponent(q + (/chile/i.test(q) ? '' : ', Chile'));
     return fetch(url).then(function (r) { return r.ok ? r.json() : []; }).then(function (r) {
       var x = r && r[0];
-      if (!x || Math.abs(parseFloat(x.lat) + 33.5) > 1.6 || Math.abs(parseFloat(x.lon) + 70.8) > 1.6) { return null; }
+      if (!x || !PV.puntoCreible(s, parseFloat(x.lat), parseFloat(x.lon))) { return null; }
       return Number(x.place_rank || 0) >= 26 ? [parseFloat(x.lat), parseFloat(x.lon)] : null;
     });
   }
-  function enCascada(qs) {
+  function enCascada(qs, s) {
     if (!qs.length) { return Promise.resolve(null); }
-    return osm(qs[0]).then(function (p) {
+    return osm(qs[0], s).then(function (p) {
       if (p || qs.length === 1) { return p; }
-      return new Promise(function (ok) { setTimeout(ok, 1100); }).then(function () { return enCascada(qs.slice(1)); });
+      return new Promise(function (ok) { setTimeout(ok, 1100); }).then(function () { return enCascada(qs.slice(1), s); });
     });
   }
   function geocodificar(s) {
     // un link corto (maps.app.goo.gl) no se puede abrir desde acá: lo resuelve scripts/geo-postventa.mjs; mientras, la dirección
     var qs = PV.consultasGeo(s);
     if (!qs.length) { return Promise.resolve(null); }
-    return enCascada(qs).then(function (p) {
+    return enCascada(qs, s).then(function (p) {
       var fila;
       if (p) {
         fila = { id: s.id, q: s.geoQ, lat: p[0], lng: p[1], fuente: 'osm' };

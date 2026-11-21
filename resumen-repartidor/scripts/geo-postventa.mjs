@@ -49,12 +49,12 @@ async function resolverLink(url) {
   return null;
 }
 
-async function osm(q) {
+async function osm(q, s) {
   const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=cl&accept-language=es'
     + '&viewbox=-71.75,-32.85,-70.15,-34.25&q=' + encodeURIComponent(q + (/chile/i.test(q) ? '' : ', Chile'));
   const r = await fetch(url, { headers: { 'User-Agent': 'destaperapido-postventa/1.0 (mapa interno de baños)' } });
   const x = r.ok ? (await r.json())[0] : null;
-  if (!x || Math.abs(parseFloat(x.lat) + 33.5) > 1.6 || Math.abs(parseFloat(x.lon) + 70.8) > 1.6) return null;
+  if (!x || !PV.puntoCreible(s, parseFloat(x.lat), parseFloat(x.lon))) return null;
   return { lat: parseFloat(x.lat), lng: parseFloat(x.lon), fino: Number(x.place_rank || 0) >= 26 };
 }
 
@@ -74,7 +74,7 @@ const servicios = filas.map((f) => PV.servicio(f, est[f.id], tar, evs[f.id] || [
 let hechos = 0, links = 0, buscados = 0, comuna = 0, nada = 0;
 for (const s of servicios) {
   const g = geoDe[s.id];
-  const flojo = g && (g.fuente === 'comuna' || g.fuente === 'nada');
+  const flojo = g && (g.fuente === 'comuna' || g.fuente === 'nada' || (g.fuente === 'osm' && !PV.puntoCreible(s, g.lat, g.lng)));
   if (g && g.q === s.geoQ && !(REINTENTAR && flojo)) continue;         // ya ubicado con lo que dice hoy la ficha
   if (g && g.q === 'dir:' + s.geoQ && !s.linkCorto) continue;
   let fila = null;
@@ -87,7 +87,7 @@ for (const s of servicios) {
     if (g && g.q === 'dir:' + s.geoQ && !(REINTENTAR && flojo)) continue; // el link no se pudo abrir y la dirección ya estaba
     let r = null;
     for (const q of PV.consultasGeo(s)) {                               // de lo más fino a la calle sola
-      r = await osm(q).catch(() => null);
+      r = await osm(q, s).catch(() => null);
       await esperar(1100);                                              // OpenStreetMap pide máximo uno por segundo
       if (r && r.fino) break;
     }
