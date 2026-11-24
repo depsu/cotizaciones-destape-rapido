@@ -4225,9 +4225,9 @@ NUEVO_JS = r"""  // ====================== VISTA PREVIA: PÁGINA ÚNICA DEL REPA
       // en Arriendos mensuales la cifra de arriba no lleva al Mes
       g.addEventListener('click', function (ev) { if (NV.periodo === 'mensuales') { ev.stopImmediatePropagation(); } }, true);
     }
-    var ultima = document.querySelectorAll('section.vista[data-vista]');
+    var ultima = document.querySelectorAll('div.vista[data-vista]');
     if (ultima.length) {
-      var sec = document.createElement('section');
+      var sec = document.createElement('div');
       sec.className = 'vista nv-men'; sec.setAttribute('data-vista', 'mensuales'); sec.hidden = true; sec.id = 'nv-men';
       var ult = ultima[ultima.length - 1];
       ult.parentNode.insertBefore(sec, ult.nextSibling);
