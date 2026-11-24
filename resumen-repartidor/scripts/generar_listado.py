@@ -2718,6 +2718,7 @@ SCRIPT_ESTADO = r"""<script>
     if (!CARGADO) { setHeaderH(); return; }
     var el = document.getElementById('ganado-total');
     if (el) { el.innerHTML = '💰 <b>' + clp(llevan) + '</b> <span class="proy">/ ' + clp(total) + ' si se cobra todo</span>'; }
+    /*@NUEVO:ganado@*/
     var pc = document.getElementById('pend-count');
     if (pc) { pc.textContent = pend; }
     setHeaderH(); // el alto del header cambia con la línea de "ganado"
@@ -3663,6 +3664,7 @@ SCRIPT_ESTADO = r"""<script>
             if (completa) { card.classList.add('celebrando'); }
             if (sale) { card.classList.add('saliendo'); }
             upsert(id, { estado: next });
+            /*@NUEVO:entregado@*/
             if (completa) {
               var mm = META[id] || {};
               var msgC = (mm.tipo === 'limpieza') ? '✅ Limpieza realizada con éxito'
@@ -3896,10 +3898,375 @@ SCRIPT_ESTADO = r"""<script>
   wireVistas();
   wire();
   wireTareas();
+  /*@NUEVO:init@*/
   load();
   loadTareas();
 })();
 </script>"""
+
+
+# ── VISTA PREVIA de la página única del repartidor (24-nov-2026) ─────────────────────────────────
+# La misma página con lo nuevo: sale aparte en listado-nuevo.html y la sirve el portero de la app del equipo en
+# equipo.destaperapido.cl/<clave>/nuevo/entregas/. listado.html (la de siempre) sale IDÉNTICA: los huecos
+# /*@NUEVO:x@*/ de SCRIPT_ESTADO se borran enteros (con su línea) y no se agrega CSS.
+RE_HUECO_NUEVO = re.compile(r"^[ \t]*/\*@NUEVO:(\w+)@\*/\n", re.M)
+NUEVO_CSS = r"""  /* ===== VISTA PREVIA: página única del repartidor (24-nov-2026). Solo en listado-nuevo.html ===== */
+  body.nv { padding-bottom:calc(80px + env(safe-area-inset-bottom)); }
+  body.nv header .ganado { white-space:normal; overflow:visible; text-overflow:clip; line-height:1.65; }
+  body.nv header .ganado::after { content:none; }
+  .nv-chip { display:inline-flex; align-items:center; gap:6px; margin-top:8px; background:rgba(255,255,255,.18);
+    border:1px solid rgba(255,255,255,.45); color:#fff; border-radius:999px; padding:4px 13px; font:inherit; font-size:14px;
+    font-weight:800; cursor:pointer; }
+  .nv-barra { display:flex; height:12px; margin:8px 0 4px; border-radius:6px; overflow:hidden; background:rgba(255,255,255,.25); }
+  .nv-barra:empty { display:none; }
+  .nv-barra i { display:block; height:100%; }
+  .nv-suave { opacity:.92; font-weight:700; }
+  .nv-tag { border-radius:6px; padding:1px 7px; font-weight:800; }
+  .nv-tag.rojo { background:#DC2626; color:#fff; }
+  .nv-tag.amarillo { background:#FACC15; color:#422006; }
+  .nv-hoy { margin-top:4px; font-size:15px; font-weight:800; }
+  .nv-hoy:empty { display:none; }
+  .nv-nav { position:fixed; left:0; right:0; bottom:0; z-index:25; display:grid; grid-template-columns:1fr 1.2fr 1fr;
+    background:#fff; border-top:2px solid #CBD5E1; padding-bottom:env(safe-area-inset-bottom); }
+  .nv-nav a { min-height:74px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    font-weight:700; font-size:16px; color:#475569; text-decoration:none; text-align:center; }
+  .nv-nav a span { font-size:26px; line-height:1; }
+  .nv-nav a.dos { font-size:14.5px; line-height:1.15; }
+  .nv-nav a.on { color:var(--azul); background:#EFF6FF; box-shadow:inset 0 4px 0 var(--azul); }
+  body.nv .barra-pagar { bottom:calc(78px + env(safe-area-inset-bottom)); }
+  body.nv .ver-anteriores.modo-activo { bottom:calc(94px + env(safe-area-inset-bottom)); }
+  body.nv .modo-titulo { bottom:150px; }
+  .nv-velo { position:fixed; inset:0; z-index:60; background:rgba(15,23,42,.55); display:flex; align-items:flex-end; }
+  .nv-hoja { width:100%; max-width:560px; margin:0 auto; background:#fff; border-radius:18px 18px 0 0; box-sizing:border-box;
+    padding:18px 16px calc(22px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:10px; color:var(--tinta); }
+  .nv-hoja-cab { display:flex; justify-content:space-between; align-items:center; }
+  .nv-hoja-cab h2 { margin:0; font-size:21px; font-weight:800; }
+  .nv-cerrar { border:0; background:#F1F5F9; border-radius:10px; width:42px; height:42px; font-size:18px; cursor:pointer; }
+  .nv-op { text-align:left; border:1px solid #CBD5E1; background:#fff; border-radius:14px; padding:12px 14px; font:inherit;
+    display:flex; flex-direction:column; gap:3px; cursor:pointer; color:inherit; }
+  .nv-op.on { border:3px solid var(--azul); background:#EFF6FF; }
+  .nv-op-t { display:flex; justify-content:space-between; font-size:18px; font-weight:800; }
+  .nv-op.on .nv-op-t { color:var(--azul); }
+  .nv-op-v { font-size:15px; font-weight:700; color:#15803D; }
+  .nv-op-d { font-size:15px; color:#475569; }
+  .nv-op-d .rojo { color:#B91C1C; }
+  .nv-op-d .amar { color:#A16207; }
+  .nv-men-tit { display:flex; justify-content:space-between; align-items:baseline; margin:14px 2px 8px; font-size:14px;
+    font-weight:800; letter-spacing:.4px; color:#475569; }
+  .nv-men-ayuda { color:var(--gris); font-size:14px; margin:-2px 2px 10px; }
+  .nv-men-vacio { color:var(--gris); text-align:center; padding:30px 10px; }
+  .nv-tar { background:#fff; border:1px solid var(--linea); border-radius:16px; padding:12px 14px; margin-bottom:10px;
+    display:flex; flex-direction:column; gap:6px; }
+  .nv-tar.rev { background:#FEFCE8; border-color:#FDE68A; }
+  .nv-tar-cab { display:flex; justify-content:space-between; gap:8px; font-size:17px; }
+  .nv-tar-m { color:#166534; white-space:nowrap; }
+  .nv-tar-m span { font-size:13px; color:#475569; font-weight:600; }
+  .nv-tar-d { font-size:15px; color:#475569; }
+  .nv-tar-acc { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:2px; }
+  .nv-tar-acc.uno { grid-template-columns:1fr; }
+  .nv-b { min-height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:16px;
+    font-weight:800; text-decoration:none; }
+  .nv-b.verde { background:#15803D; color:#fff; }
+  .nv-b.wa { background:#25D366; color:#fff; }
+  .nv-b.blanco { background:#fff; color:#0F172A; border:1px solid #CBD5E1; font-weight:700; }
+"""
+NUEVO_JS = r"""  // ====================== VISTA PREVIA: PÁGINA ÚNICA DEL REPARTIDOR (24-nov-2026) ======================
+  /* Solo existe en listado-nuevo.html, que el portero sirve en equipo.destaperapido.cl/<clave>/nuevo/entregas/.
+     Suma, sin cambiar lo de siempre:
+      - abajo la barra Entregas · Limpiezas y retiros · Mapa (las otras dos son la oficina, /<clave>/nuevo/);
+      - arriba la plata del período (verde cobrado, gris por cobrar, rojo perdido) y el chip para elegir Esta semana,
+        Este mes (por defecto), Todo o Arriendos mensuales;
+      - Arriendos mensuales: lo que entra cada mes por los baños de 1 mes o más (las reglas de logica.js de la oficina)
+        y los que terminaron sin que nadie anotara nada, en amarillo con Sigue o Se retiró;
+      - al marcar Entregado (el mismo día), el punto GPS del baño, si la ficha no traía uno exacto.
+     El 5% de Alejandro en las renovaciones no es oficial: solo lo ve él (el portero pone window.__NV__.cinco). */
+  var NV = { clave: '', periodo: 'mes', guardado: 'mes', men: null, cargando: null, pv: null, cinco: !!((window.__NV__ || {}).cinco) };
+  var NV_NOMBRE = { semana: 'Esta semana', mes: 'Este mes', todo: 'Todo', mensuales: 'Arriendos mensuales' };
+  var NV_MES_AB = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  function nvBase() { return '/' + NV.clave + '/'; }
+  function nvFecha(iso) { var p = String(iso || '').split('-'); return p.length === 3 ? (+p[2]) + ' ' + NV_MES_AB[+p[1] - 1] : ''; }
+  function nvBanos(n) { return n + (n === 1 ? ' baño' : ' baños'); }
+  function nvRango(p) {
+    var hoy = todayISO();
+    if (p === 'semana') {
+      var d = dateDe(hoy), lun = (d.getDay() + 6) % 7;
+      return [isoOf(new Date(d.getFullYear(), d.getMonth(), d.getDate() - lun, 12)), isoOf(new Date(d.getFullYear(), d.getMonth(), d.getDate() - lun + 6, 12))];
+    }
+    if (p === 'mes') { return [hoy.slice(0, 7) + '-01', hoy.slice(0, 7) + '-31']; }
+    return ['', '9999-12-31'];
+  }
+  // la plata del período: lo mismo que suma la vista del Mes (sin las eliminadas) y los clientes perdidos aparte
+  function nvSumas(p) {
+    var r = nvRango(p), o = { cob: 0, por: 0, per: 0, nper: 0 };
+    Object.keys(META).forEach(function (id) {
+      if (eliminadoDe(id)) { return; }
+      var f = fechaDe(id) || '';
+      if (p !== 'todo' && (!f || f < r[0] || f > r[1])) { return; }
+      var mto = META[id].monto || 0;
+      if (cobradoDe(id)) { o.cob += mto; } else { o.por += mto; }
+    });
+    perdidos().forEach(function (x) { if (p === 'todo' || (x.fecha >= r[0] && x.fecha <= r[1])) { o.per += x.monto; o.nper++; } });
+    return o;
+  }
+  function nvBarra(partes) {
+    var tot = partes.reduce(function (s, x) { return s + x[0]; }, 0);
+    if (!tot) { return ''; }
+    return partes.map(function (x) { return x[0] > 0 ? '<i style="width:' + (100 * x[0] / tot).toFixed(1) + '%;background:' + x[1] + '"></i>' : ''; }).join('');
+  }
+  function nuevoGanado(el) {
+    if (!NV.clave) { return; }
+    var chip = document.getElementById('nv-chip'), barra = document.getElementById('nv-barra'), hoyEl = document.getElementById('nv-hoy');
+    if (chip) { chip.innerHTML = (NV.periodo === 'mensuales' ? '🔁 ' : '📅 ') + NV_NOMBRE[NV.periodo] + ' ▾'; }
+    if (NV.periodo === 'mensuales') {
+      var m = NV.men;
+      if (!m) {
+        el.innerHTML = '<div>🔁 Sumando los arriendos…</div>';
+        if (barra) { barra.innerHTML = ''; }
+      } else {
+        if (barra) { barra.innerHTML = nvBarra([[m.act.m, '#4ADE80'], [m.rev.m, '#FACC15']]); }
+        el.innerHTML = '<div>🔁 <b>' + clp(m.act.m) + '</b> entra cada mes</div>' +
+          '<div class="nv-suave">' + nvBanos(m.act.b) + (NV.cinco ? ' · tu 5% ≈ ' + clp(m.act.c) : '') + '</div>' +
+          (m.rev.n ? '<div><span class="nv-tag amarillo">⚠ ' + clp(m.rev.m) + ' sin confirmar (' + m.rev.n + ')</span></div>' : '');
+      }
+      if (hoyEl) { hoyEl.innerHTML = ''; }
+      return;
+    }
+    var o = nvSumas(NV.periodo);
+    if (barra) { barra.innerHTML = nvBarra([[o.cob, '#4ADE80'], [o.por, 'rgba(255,255,255,.55)'], [o.per, '#EF4444']]); }
+    el.innerHTML = '<div>💰 <b>' + clp(o.cob) + '</b> cobrado ›</div>' +
+      '<div class="nv-suave">⏳ ' + clp(o.por) + ' por cobrar</div>' +
+      (o.nper ? '<div><span class="nv-tag rojo">✕ ' + clp(o.per) + ' perdidos (' + o.nper + ')</span></div>' : '');
+    if (hoyEl) {
+      var hoy = todayISO(), n = 0, ok = 0;
+      Object.keys(META).forEach(function (id) { if (!eliminadoDe(id) && fechaDe(id) === hoy) { n++; if (entregadoDe(id)) { ok++; } } });
+      var canc = perdidos().filter(function (x) { return x.fecha === hoy; }).length;
+      hoyEl.innerHTML = (n ? 'Hoy ' + ok + ' de ' + n + (n === 1 ? ' entregado' : ' entregados') : (canc ? 'Hoy' : '')) +
+        (canc ? (n ? ' · ' : ' ') + '<span class="nv-tag rojo">' + canc + (canc === 1 ? ' cancelado' : ' cancelados') + '</span>' : '');
+    }
+  }
+  function nvElegirPeriodo() {
+    var fila = function (p) {
+      var on = p === NV.periodo, det;
+      if (p === 'mensuales') {
+        det = NV.men
+          ? '<span class="nv-op-v">🔁 ' + clp(NV.men.act.m) + ' entra cada mes</span><span class="nv-op-d">' + nvBanos(NV.men.act.b) + ' de 1 mes o más' +
+            (NV.men.rev.n ? ' · <b class="amar">⚠ ' + NV.men.rev.n + ' sin confirmar</b>' : '') + '</span>'
+          : '<span class="nv-op-d">Lo que entra cada mes por los baños de 1 mes o más</span>';
+      } else {
+        var o = nvSumas(p);
+        det = '<span class="nv-op-v">💰 ' + clp(o.cob) + ' cobrado</span><span class="nv-op-d">⏳ ' + clp(o.por) + ' por cobrar' +
+          (o.nper ? ' · <b class="rojo">✕ ' + clp(o.per) + ' perdidos (' + o.nper + ')</b>' : '') + '</span>';
+      }
+      return '<button type="button" class="nv-op' + (on ? ' on' : '') + '" data-p="' + p + '"><span class="nv-op-t">' + (p === 'mensuales' ? '🔁 ' : '') +
+        NV_NOMBRE[p] + (on ? '<span>✓</span>' : '') + '</span>' + det + '</button>';
+    };
+    var velo = document.createElement('div');
+    velo.className = 'nv-velo';
+    velo.innerHTML = '<div class="nv-hoja" role="dialog" aria-modal="true" aria-label="Qué quieres ver"><div class="nv-hoja-cab"><h2>📅 ¿Qué quieres ver?</h2>' +
+      '<button type="button" class="nv-cerrar" aria-label="Cerrar">✕</button></div>' + ['semana', 'mes', 'todo', 'mensuales'].map(fila).join('') + '</div>';
+    document.body.appendChild(velo);
+    velo.addEventListener('click', function (ev) {
+      var b = ev.target.closest ? ev.target.closest('[data-p]') : null;
+      if (b) { nvPeriodo(b.getAttribute('data-p')); }
+      if (b || ev.target === velo || (ev.target.closest && ev.target.closest('.nv-cerrar'))) { velo.remove(); }
+    });
+  }
+  function nvPeriodo(p) {
+    NV.periodo = p;
+    if (p === 'mensuales') {
+      irAVista('mensuales');
+      nvMensuales();
+    } else {
+      NV.guardado = p;
+      try { localStorage.setItem('nv_periodo', p); } catch (e) { /* modo privado */ }
+      if (VISTA_ACTUAL === 'mensuales') { irAVista('entregas'); }
+    }
+    nvMarcarNav();
+    actualizarGanado();
+  }
+  // ---- Arriendos mensuales: los datos de la oficina (las mismas reglas de logica.js) ----
+  function nvPV() {
+    if (window.PV && window.PV.servicio) { return Promise.resolve(window.PV); }
+    if (!NV.pv) {
+      NV.pv = new Promise(function (ok, no) {
+        var s = document.createElement('script');
+        s.src = nvBase() + 'logica.js?v=4';
+        s.onload = function () { if (window.PV && window.PV.servicio) { ok(window.PV); } else { NV.pv = null; no(new Error('No cargaron las reglas')); } };
+        s.onerror = function () { NV.pv = null; no(new Error('No cargaron las reglas')); };
+        document.head.appendChild(s);
+      });
+    }
+    return NV.pv;
+  }
+  function nvCalcular(D, PV) {
+    var est = {}, tar = {}, evs = {};
+    (D.estados || []).forEach(function (x) { est[x.id] = x; });
+    (D.tareas || []).forEach(function (x) { tar[x.id] = x; });
+    (D.eventos || []).forEach(function (x) { (evs[x.entrega_id] = evs[x.entrega_id] || []).push(x); });
+    var nuevaSuma = function () { return { m: 0, c: 0, n: 0, b: 0, lista: [] }; };
+    var out = { act: nuevaSuma(), rev: nuevaSuma(), hoy: D.hoy };
+    (D.filas || []).forEach(function (f) {
+      if (!esDeEstaVista(f)) { return; }
+      var s = PV.servicio(f, est[f.id], tar, evs[f.id] || [], D.hoy);
+      if (!s || (s.grupo !== 'activo' && s.grupo !== 'revisar')) { return; }
+      if (!(PV.esLargo([s.periodo, s.notas, s.servicioTexto].join(' ')) || (s.duracion || 0) >= 28)) { return; }
+      var e = f.data || {}, pago = e.pago || {};
+      var monto = Number(pago.monto) || 0;
+      // lo que se paga cada mes es el arriendo, sin el flete (el flete se cobra una vez)
+      var fm = /flete[^$\d]*\$?\s*([\d.]+)/i.exec(String(pago.detalle_neto || e.detalle || ''));
+      var conIva = pago.con_factura === true || (pago.con_factura == null && !!(e.factura || {}).requiere);
+      var flete = fm ? Number(fm[1].replace(/\./g, '')) : 0;
+      if (conIva) { flete = Math.round(flete * 1.19); }
+      var mensual = Math.max(0, monto - flete);
+      var neto = conIva ? Math.round(mensual / 1.19) : mensual;
+      var propio = e.origen === 'propio';
+      var g = s.grupo === 'revisar' ? out.rev : out.act;
+      var x = { id: s.id, cliente: s.cliente, lugar: s.lugar, banos: s.cantidad || 1, fin: s.fin, tel: s.telefono, mensual: mensual,
+        cinco: propio ? 0 : Math.round(neto * 0.05), propio: propio, sinMonto: !monto };
+      g.lista.push(x); g.m += mensual; g.c += x.cinco; g.n++; g.b += x.banos;
+    });
+    out.rev.lista.sort(function (a, b) { return String(b.fin || '').localeCompare(String(a.fin || '')); });
+    out.act.lista.sort(function (a, b) { return String(a.fin || '9999').localeCompare(String(b.fin || '9999')); });
+    return out;
+  }
+  function nvCargarMensuales() {
+    if (NV.cargando) { return NV.cargando; }
+    var datos = fetch(nvBase() + 'api/datos', { headers: { accept: 'application/json' }, cache: 'no-store' })
+      .then(function (r) { if (!r.ok) { throw new Error('La oficina no respondió'); } return r.json(); });
+    NV.cargando = Promise.all([nvPV(), datos]).then(function (x) {
+      NV.men = nvCalcular(x[1], x[0]); NV.cargando = null; return NV.men;
+    }, function (e) { NV.cargando = null; throw e; });
+    return NV.cargando;
+  }
+  function nvTel(t) {
+    var d = soloDigitosJS(t || '');
+    if (d.length === 8) { d = '569' + d; } else if (d.length === 9 && d.charAt(0) === '9') { d = '56' + d; }
+    return d.length >= 11 ? d : '';
+  }
+  function nvPintarMensuales() {
+    var sec = document.getElementById('nv-men'), m = NV.men;
+    if (!sec || !m) { return; }
+    var ir = function (accion, id) { return nvBase() + 'nuevo/#' + accion + '=' + encodeURIComponent(id); };
+    var tarjeta = function (x, rev) {
+      var tel = nvTel(x.tel);
+      var msj = 'Hola, ¿cómo está? Le escribo por el baño en ' + (x.lugar || 'su dirección') + '.' +
+        (x.fin ? ' El arriendo termina el ' + nvFecha(x.fin) + '.' : '') + ' ¿Lo quiere seguir usando otro mes?';
+      var acc = rev
+        ? '<a class="nv-b verde" href="' + ir('renovo', x.id) + '">✓ Sigue</a><a class="nv-b blanco" href="' + ir('retirado', x.id) + '">Se retiró</a>'
+        : (tel ? '<a class="nv-b wa" href="https://wa.me/' + tel + '?text=' + encodeURIComponent(msj) + '" target="_blank" rel="noopener">💬 Preguntar</a>' : '') +
+          '<a class="nv-b blanco" href="' + ir('renovo', x.id) + '">🔁 Extender</a>';
+      return '<div class="nv-tar' + (rev ? ' rev' : '') + '"><div class="nv-tar-cab"><b>' + escapeHtml(x.cliente) + '</b><b class="nv-tar-m">' +
+        (x.sinMonto ? '<span>sin monto</span>' : clp(x.mensual) + '<span> /mes</span>') + '</b></div>' +
+        '<div class="nv-tar-d">📍 <b>' + escapeHtml(x.lugar || 'Sin dirección') + '</b> · ' + nvBanos(x.banos) +
+        (x.fin ? ' · ' + (rev ? 'terminó el ' : 'termina el ') + nvFecha(x.fin) : '') + (x.propio ? ' · Cliente propio' : '') + '</div>' +
+        '<div class="nv-tar-acc' + (tel || rev ? '' : ' uno') + '">' + acc + '</div></div>';
+    };
+    var h = '';
+    if (m.rev.n) {
+      h += '<div class="nv-men-tit"><span>⚠ ¿SIGUEN?</span><span>' + m.rev.n + ' · ' + clp(m.rev.m) + '/mes</span></div>' +
+        '<p class="nv-men-ayuda">Se acabó el plazo y nadie anotó si siguen.</p>' + m.rev.lista.map(function (x) { return tarjeta(x, true); }).join('');
+    }
+    h += '<div class="nv-men-tit"><span>🔁 VIGENTES</span><span>' + m.act.n + ' · ' + clp(m.act.m) + '/mes</span></div>' +
+      (m.act.lista.length ? m.act.lista.map(function (x) { return tarjeta(x, false); }).join('') : '<p class="nv-men-vacio">No hay arriendos de 1 mes o más.</p>');
+    h += '<p class="nv-men-ayuda">Es lo que paga cada cliente al mes, sin el flete. Cambia cuando se anota que alguien renovó o se retiró.' +
+      (NV.cinco ? ' Tu 5% es solo para mirar. Todavía no es oficial y no cuenta los clientes propios del repartidor.' : '') + '</p>';
+    sec.innerHTML = h;
+  }
+  function nvMensuales() {
+    var sec = document.getElementById('nv-men');
+    if (!sec) { return; }
+    if (NV.men) { nvPintarMensuales(); } else { sec.innerHTML = '<p class="nv-men-vacio">Sumando los arriendos…</p>'; }
+    nvCargarMensuales().then(function () { nvPintarMensuales(); actualizarGanado(); }, function (e) {
+      if (!NV.men) { sec.innerHTML = '<p class="nv-men-vacio">No pude traer los arriendos. ' + escapeHtml(e.message || '') + '</p>'; }
+    });
+  }
+  // ---- el punto GPS del baño al marcar Entregado ----
+  function nvGps(id) {
+    if (!NV.clave || !navigator.geolocation) { return; }
+    var fila = FILA[id] || {};
+    navigator.geolocation.getCurrentPosition(function (p) {
+      var c = p && p.coords;
+      if (!c || !(c.accuracy <= 100)) { return; }
+      nvPV().then(function (PV) {
+        var s = PV.servicio({ id: id, fecha: fechaDe(id), data: fila.data || {} }, { estado: 'entregado' }, {}, [], todayISO());
+        // si la ficha ya traía el punto exacto (el link del cliente) no se pisa, y si el teléfono está lejos de la comuna, no se anota
+        if (!s || s.exacto || !PV.puntoCreible(s, c.latitude, c.longitude)) { return; }
+        return fetch(nvBase() + 'api/anotar', { method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ entrega_id: id, tipo: 'ubicacion', nota: c.latitude.toFixed(6) + ',' + c.longitude.toFixed(6) + ' (GPS al marcar Entregado)' }) });
+      }).catch(function () { /* sin la ubicación queda la dirección de siempre */ });
+    }, function () { /* no dio permiso: no pasa nada */ }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 30000 });
+  }
+  // ---- la barra de abajo y lo de arriba ----
+  function nvMarcarNav() {
+    var a = document.querySelector('.nv-nav [data-nv="entregas"]');
+    if (a) { a.classList.toggle('on', true); }
+  }
+  function nuevoIniciar() {
+    var m = /^\/([a-z0-9]{14})\/supa$/.exec(String(SUPA.url || ''));
+    if (!m || SIN_VISTA) { return; }                  // fuera del portero es la página de siempre
+    NV.clave = m[1];
+    document.body.classList.add('nv');
+    try { NV.guardado = localStorage.getItem('nv_periodo') || 'mes'; } catch (e) { NV.guardado = 'mes'; }
+    if (!NV_NOMBRE[NV.guardado] || NV.guardado === 'mensuales') { NV.guardado = 'mes'; }
+    NV.periodo = NV.guardado;
+    var sub = document.querySelector('header .hdr-txt .sub');
+    var g = document.getElementById('ganado-total');
+    if (sub && g) {
+      var chip = document.createElement('button');
+      chip.type = 'button'; chip.id = 'nv-chip'; chip.className = 'nv-chip';
+      chip.addEventListener('click', nvElegirPeriodo);
+      var barra = document.createElement('div');
+      barra.id = 'nv-barra'; barra.className = 'nv-barra';
+      g.parentNode.insertBefore(chip, g);
+      g.parentNode.insertBefore(barra, g);
+      var hoyEl = document.createElement('div');
+      hoyEl.id = 'nv-hoy'; hoyEl.className = 'nv-hoy';
+      g.parentNode.insertBefore(hoyEl, g.nextSibling);
+      // en Arriendos mensuales la cifra de arriba no lleva al Mes
+      g.addEventListener('click', function (ev) { if (NV.periodo === 'mensuales') { ev.stopImmediatePropagation(); } }, true);
+    }
+    var ultima = document.querySelectorAll('section.vista[data-vista]');
+    if (ultima.length) {
+      var sec = document.createElement('section');
+      sec.className = 'vista nv-men'; sec.setAttribute('data-vista', 'mensuales'); sec.hidden = true; sec.id = 'nv-men';
+      var ult = ultima[ultima.length - 1];
+      ult.parentNode.insertBefore(sec, ult.nextSibling);
+    }
+    // las pestañas de arriba (Entregas, Comisión, Mes) vuelven al período de plata
+    document.querySelectorAll('.vista-btn').forEach(function (b) {
+      b.addEventListener('click', function () { if (NV.periodo === 'mensuales') { NV.periodo = NV.guardado; actualizarGanado(); } });
+    });
+    var nav = document.createElement('nav');
+    nav.className = 'nv-nav';
+    nav.setAttribute('aria-label', 'Secciones');
+    nav.innerHTML = '<a class="on" href="#" data-nv="entregas" aria-current="page"><span aria-hidden="true">🚚</span>Entregas</a>' +
+      '<a class="dos" href="' + nvBase() + 'nuevo/#hoy"><span aria-hidden="true">🧽</span>Limpiezas y retiros</a>' +
+      '<a href="' + nvBase() + 'nuevo/#mapa"><span aria-hidden="true">🗺️</span>Mapa</a>';
+    nav.querySelector('[data-nv="entregas"]').addEventListener('click', function (ev) {
+      ev.preventDefault();
+      if (NV.periodo === 'mensuales') { NV.periodo = NV.guardado; }
+      irAVista('entregas');
+      actualizarGanado();
+    });
+    document.body.appendChild(nav);
+    if (location.hash === '#mensuales') {
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* sin historial */ }
+      nvPeriodo('mensuales');
+    }
+  }
+  nuevoIniciar();
+"""
+NUEVO_HUECOS = {
+    "ganado": "    if (el) { nuevoGanado(el); }\n",
+    "entregado": "            if (e === 'entregado' && ent && fechaDe(id) === todayISO()) { nvGps(id); }\n",
+    "init": NUEVO_JS,
+}
+
+
+def script_estado(nuevo: bool = False) -> str:
+    if not nuevo:
+        return RE_HUECO_NUEVO.sub("", SCRIPT_ESTADO)
+    return RE_HUECO_NUEVO.sub(lambda m: NUEVO_HUECOS[m.group(1)], SCRIPT_ESTADO)
 
 
 def _tarea_card(tid, fecha, cliente, direccion, tel, etiqueta, nota, extra_html, contexto, coordenadas="") -> str:
@@ -4278,7 +4645,9 @@ PRE_CARGA = """<script id="pre-carga">
 </script>"""
 
 
-def construir_html(data: dict) -> str:
+def construir_html(data: dict, nuevo: bool = False) -> str:
+    js_estado = script_estado(nuevo)
+    css_nuevo = NUEVO_CSS if nuevo else ""
     entregas = data.get("entregas", [])
     pre_carga = PRE_CARGA.replace("__CFG__", json.dumps(
         {"url": SUPABASE_URL, "key": SUPABASE_ANON_KEY, "q": CONSULTAS}, ensure_ascii=False).replace("</", "<\\/"))
@@ -4464,7 +4833,7 @@ def construir_html(data: dict) -> str:
   .ver-anteriores:active {{ background:var(--fondo); }}
   .ver-anteriores[hidden] {{ display:none; }}
   footer {{ text-align:center; color:var(--gris); font-size:12px; padding:24px 16px 40px; }}
-{ESTILOS_EXTRA}</style>
+{ESTILOS_EXTRA}{css_nuevo}</style>
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false"><symbol id="ico-wa-sym" viewBox="0 0 24 24"><path d="{WA_PATH_D}"/></symbol></svg>
@@ -4496,14 +4865,16 @@ def construir_html(data: dict) -> str:
   <footer>Toca una entrega para ver el detalle · Destape Rápido</footer>
   {config_script}
   {script}
-  {SCRIPT_ESTADO}
+  {js_estado}
 </body>
 </html>
 """
 
 
 def main() -> None:
-    out = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_OUT
+    args = [a for a in sys.argv[1:] if a != "--nuevo"]
+    nuevo = "--nuevo" in sys.argv[1:]
+    out = Path(args[0]) if args else DEFAULT_OUT
     try:
         data = json.loads(DATA_PATH.read_text(encoding="utf-8"))
     except FileNotFoundError:
@@ -4511,7 +4882,10 @@ def main() -> None:
     except json.JSONDecodeError as e:
         sys.exit(f"❌ entregas.json tiene un error de formato: {e}")
 
-    out.write_text(construir_html(data), encoding="utf-8")
+    out.write_text(construir_html(data, nuevo), encoding="utf-8")
+    # (24-nov-2026) sin ruta: también la vista previa de la página única, al lado (listado-nuevo.html)
+    if not args:
+        DEFAULT_OUT.with_name("listado-nuevo.html").write_text(construir_html(data, True), encoding="utf-8")
     # (15-nov-2026) ya no se hornean tarjetas: las entregas llegan de Supabase al abrir la página
     print(f"✅ Listado generado: {out}  (las entregas llegan en vivo desde Supabase)")
 

@@ -29,7 +29,7 @@ if [ "$SINCRONIZAR" = "1" ]; then
     || echo "⚠️  No se pudo sincronizar Supabase."
 fi
 
-git add .nojekyll resumen-repartidor/listado.html resumen-repartidor/scripts/generar_listado.py \
+git add .nojekyll resumen-repartidor/listado.html resumen-repartidor/listado-nuevo.html resumen-repartidor/scripts/generar_listado.py \
   resumen-repartidor/publicidad resumen-repartidor/comprobantes
 if git diff --cached --quiet; then
   echo "Sin cambios que publicar."
