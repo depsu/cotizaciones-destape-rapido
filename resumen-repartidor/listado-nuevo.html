@@ -2050,6 +2050,7 @@
       PERDIDAS_BOT = rows.filter(esDeEstaVista);
       cacheSet(CACHE_PERD, PERDIDAS_BOT);
       pintarPerdidos();
+      if (NV.clave) { actualizarGanado(); }
       if (VISTA_ACTUAL === 'mes') { renderMes(); }
     });
   }

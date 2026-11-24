@@ -2698,6 +2698,7 @@ SCRIPT_ESTADO = r"""<script>
       PERDIDAS_BOT = rows.filter(esDeEstaVista);
       cacheSet(CACHE_PERD, PERDIDAS_BOT);
       pintarPerdidos();
+      /*@NUEVO:perdidas@*/
       if (VISTA_ACTUAL === 'mes') { renderMes(); }
     });
   }
@@ -4260,6 +4261,8 @@ NUEVO_HUECOS = {
     "ganado": "    if (el) { nuevoGanado(el); }\n",
     "entregado": "            if (e === 'entregado' && ent && fechaDe(id) === todayISO()) { nvGps(id); }\n",
     "init": NUEVO_JS,
+    # las que retiró el bot llegan después de pintar: la cifra roja de arriba se rehace con ellas
+    "perdidas": "      if (NV.clave) { actualizarGanado(); }\n",
 }
 
 
