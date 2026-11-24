@@ -3530,6 +3530,7 @@ SCRIPT_ESTADO = r"""<script>
   function load() {
     // (7-nov-2026) sin clave en el enlace: página vacía con aviso, sin tocar la base
     if (SIN_VISTA) {
+      if (window.__REDIRIGE__) { return; } // se va sola a la lista con clave (ver pre-carga)
       document.querySelectorAll('.vista[data-vista="entregas"] .card-wrap[data-id], section.agregado[data-tareas]').forEach(function (c) { c.remove(); });
       var h0 = document.querySelector('header h1');
       if (h0) { h0.textContent = 'Enlace incompleto'; }
@@ -4233,7 +4234,28 @@ PRE_CARGA = """<script id="pre-carga">
   try {
     // sin clave en el enlace no se pide nada (la página dice «Enlace incompleto»)
     var vista = String(new URLSearchParams(location.search).get('repartidor') || '').trim().toLowerCase();
-    if (!vista) { return; }
+    if (!vista) {
+      // (24-nov-2026) el enlace corto (el que sugiere el navegador, sin la clave) abre la lista que
+      // ESTE teléfono ya abrió con su clave. Un teléfono que nunca la tuvo sigue viendo el aviso.
+      var guardada = null;
+      try {
+        guardada = localStorage.getItem('ultima_clave_repartidor');
+        if (!guardada) {
+          var vistas = [];
+          for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i) || '';
+            if (k.indexOf('tarjetas_v2_desde:') === 0 && k.length > 18) { vistas.push(k.slice(18)); }
+          }
+          if (vistas.length === 1) { guardada = vistas[0]; }
+        }
+      } catch (e) { guardada = null; }
+      if (guardada && /^[a-z0-9-]{3,40}$/.test(guardada)) {
+        window.__REDIRIGE__ = true;
+        location.replace(location.pathname + '?repartidor=' + encodeURIComponent(guardada) + location.hash);
+      }
+      return;
+    }
+    try { localStorage.setItem('ultima_clave_repartidor', vista); } catch (e) { /* modo privado */ }
     var c = __CFG__;
     // sin cabeceras propias (la llave va en la URL): el navegador no hace la consulta previa de CORS
     var leer = function (ruta) {
