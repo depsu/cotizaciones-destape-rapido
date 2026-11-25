@@ -31,6 +31,20 @@
       return;
     }
     try { localStorage.setItem('ultima_clave_repartidor', vista); } catch (e) { /* modo privado */ }
+    // (25-nov-2026) LA PÁGINA NUEVA. La lista del repartidor abierta en GitHub (un favorito, el link de siempre) da una
+    // vuelta por destaperapido.cl/entregas: si ESTE teléfono ya abrió su link del equipo, Vercel lo manda a su página
+    // nueva (cookie dr_entregas, ver equipo/src/worker.js). Si no, vuelve con desde=web y se queda acá. El tope de
+    // 20 segundos evita una vuelta sin fin si algo de afuera se configura mal.
+    if (vista === 'p-9t4kqv' && location.hostname === 'depsu.github.io' && !new URLSearchParams(location.search).get('desde')) {
+      var ultima = 0;
+      try { ultima = +(sessionStorage.getItem('vuelta_equipo') || 0); } catch (e) { ultima = Date.now(); }
+      if (Date.now() - ultima > 20000) {
+        try { sessionStorage.setItem('vuelta_equipo', String(Date.now())); } catch (e) { /* modo privado */ }
+        window.__REDIRIGE__ = true;
+        location.replace('https://www.destaperapido.cl/entregas' + location.hash);
+        return;
+      }
+    }
     var c = {"url": "https://abmzkzraptmjgebwjzys.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFibXprenJhcHRtamdlYndqenlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5MDA1ODQsImV4cCI6MjA5MjQ3NjU4NH0.9qN07nBI9HdfreiWdVFl1cYrT5tlke7WWr5wi_Cwbho", "q": {"estado": "/rest/v1/entrega_estado?select=*", "lite": "/rest/v1/entrega?select=id,fecha,informado_at,updated_at,data&eliminado=eq.false&order=informado_at.desc", "pub": "/rest/v1/cobro_publicidad?select=*&eliminado=eq.false&order=hasta.desc", "delta": "/rest/v1/entrega?select=id,updated_at,card_html&eliminado=eq.false&updated_at=gt.", "perdidas": "/rest/v1/entrega?select=id,fecha,informado_at,data&eliminado=eq.true&order=informado_at.desc"}};
     // sin cabeceras propias (la llave va en la URL): el navegador no hace la consulta previa de CORS
     var leer = function (ruta) {
@@ -2821,9 +2835,9 @@
   }
 
   function load() {
+    if (window.__REDIRIGE__) { return; } // la pre-carga ya mandó a otra dirección: no se pinta nada
     // (7-nov-2026) sin clave en el enlace: página vacía con aviso, sin tocar la base
     if (SIN_VISTA) {
-      if (window.__REDIRIGE__) { return; } // se va sola a la lista con clave (ver pre-carga)
       document.querySelectorAll('.vista[data-vista="entregas"] .card-wrap[data-id], section.agregado[data-tareas]').forEach(function (c) { c.remove(); });
       var h0 = document.querySelector('header h1');
       if (h0) { h0.textContent = 'Enlace incompleto'; }
